@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voltride - Iniciar Sesión</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-box">
+      <div class="login-logo">
+        <h1>⚡ VOLTRIDE</h1>
+        <span>Sistema de Gestión de Alquileres</span>
+      </div>
+      
+      <div class="lang-selector">
+        <button class="lang-btn active" data-lang="es">ES</button>
+        <button class="lang-btn" data-lang="fr">FR</button>
+        <button class="lang-btn" data-lang="en">EN</button>
+      </div>
+      
+      <div id="loginError" class="alert alert-danger" style="display: none;"></div>
+      
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="username" data-i18n="username">Usuario</label>
+          <input type="text" id="username" class="form-control" placeholder="Ingrese su usuario" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="password" data-i18n="password">Contraseña</label>
+          <input type="password" id="password" class="form-control" placeholder="Ingrese su contraseña" required>
+        </div>
+        
+        <button type="submit" class="btn btn-primary" style="width: 100%;">
+          <span data-i18n="login">Iniciar Sesión</span>
+        </button>
+      </form>
+      
+      <div style="margin-top: 20px; text-align: center; color: var(--text-muted); font-size: 0.85rem;">
+        <p>Usuario por defecto: <strong>admin</strong></p>
+        <p>Contraseña: <strong>admin123</strong></p>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Traducciones
+    const translations = {
+      es: {
+        username: 'Usuario',
+        password: 'Contraseña',
+        login: 'Iniciar Sesión',
+        loginError: 'Usuario o contraseña incorrectos',
+        serverError: 'Error de conexión con el servidor'
+      },
+      fr: {
+        username: 'Utilisateur',
+        password: 'Mot de passe',
+        login: 'Connexion',
+        loginError: 'Utilisateur ou mot de passe incorrect',
+        serverError: 'Erreur de connexion au serveur'
+      },
+      en: {
+        username: 'Username',
+        password: 'Password',
+        login: 'Login',
+        loginError: 'Invalid username or password',
+        serverError: 'Server connection error'
+      }
+    };
+    
+    let currentLang = localStorage.getItem('voltride_lang') || 'es';
+    
+    // Changer de langue
+    function setLanguage(lang) {
+      currentLang = lang;
+      localStorage.setItem('voltride_lang', lang);
+      
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.lang === lang);
+      });
+      
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (translations[lang][key]) {
+          el.textContent = translations[lang][key];
+        }
+      });
+    }
+    
+    // Event listeners pour les boutons de langue
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+      btn.addEventListener('click', () => setLanguage(btn.dataset.lang));
+    });
+    
+    // Initialiser la langue
+    setLanguage(currentLang);
+    
+    // Vérifier si déjà connecté
+    const token = localStorage.getItem('voltride_token');
+    if (token) {
+      window.location.href = '/app.html';
+    }
+    
+    // Formulaire de connexion
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const errorDiv = document.getElementById('loginError');
+      
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ username, password })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          localStorage.setItem('voltride_token', data.token);
+          localStorage.setItem('voltride_user', JSON.stringify(data.user));
+          window.location.href = '/app.html';
+        } else {
+          errorDiv.textContent = translations[currentLang].loginError;
+          errorDiv.style.display = 'block';
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        errorDiv.textContent = translations[currentLang].serverError;
+        errorDiv.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>

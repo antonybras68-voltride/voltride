@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voltride - Gestión de Alquileres</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <h1>⚡ VOLTRIDE</h1>
+        <span id="currentAgency">AG-01 Torrevieja</span>
+      </div>
+      
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-page="dashboard">
+          <span>📊</span>
+          <span data-i18n="dashboard">Dashboard</span>
+        </button>
+        <button class="nav-item" data-page="vehicles">
+          <span>🚲</span>
+          <span data-i18n="vehicles">Vehículos</span>
+        </button>
+        <button class="nav-item" data-page="rentals">
+          <span>📋</span>
+          <span data-i18n="rentals">Alquileres</span>
+        </button>
+        <button class="nav-item" data-page="customers">
+          <span>👥</span>
+          <span data-i18n="customers">Clientes</span>
+        </button>
+        <button class="nav-item" data-page="cash">
+          <span>💰</span>
+          <span data-i18n="cash">Caja</span>
+        </button>
+        <button class="nav-item" data-page="users" id="navUsers" style="display: none;">
+          <span>👤</span>
+          <span data-i18n="users">Usuarios</span>
+        </button>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <div class="lang-selector">
+          <button class="lang-btn active" data-lang="es">ES</button>
+          <button class="lang-btn" data-lang="fr">FR</button>
+          <button class="lang-btn" data-lang="en">EN</button>
+        </div>
+        <div class="user-info">
+          <div class="user-avatar" id="userAvatar">A</div>
+          <div class="user-details">
+            <div class="user-name" id="userName">Admin</div>
+            <div class="user-role" id="userRole">Administrador</div>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm" style="width: 100%; margin-top: 10px;" onclick="logout()">
+          <span>🚪</span>
+          <span data-i18n="logout">Cerrar Sesión</span>
+        </button>
+      </div>
+    </aside>
+    
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Mobile Header -->
+      <div class="mobile-header" style="display: none;">
+        <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+        <h2>⚡ VOLTRIDE</h2>
+      </div>
+      
+      <!-- Pages Container -->
+      <div id="pageContainer">
+        <!-- Le contenu sera injecté ici par JavaScript -->
+      </div>
+    </main>
+  </div>
+  
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+  
+  <!-- Modal Container -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" id="modalContent">
+      <!-- Le contenu du modal sera injecté ici -->
+    </div>
+  </div>
+
+  <script src="/js/translations.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
