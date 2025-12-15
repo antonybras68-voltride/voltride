@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const PDFDocument = require('pdfkit');
 const path = require('path');
+const fs = require('fs');
 
 // Conditions générales multilingues
 const conditions = {
@@ -184,10 +185,19 @@ router.get('/:rentalId/pdf', async (req, res) => {
     doc.pipe(res);
     
     // ===== LOGO =====
-    try {
-      const logoPath = path.join(__dirname, '../assets/logo.png');
-      doc.image(logoPath, 50, 25, { width: 130 });
-    } catch (e) {
+    const logoPath = path.join(__dirname, '../assets/logo.png');
+    console.log('Logo path:', logoPath);
+    console.log('Logo exists:', fs.existsSync(logoPath));
+    if (fs.existsSync(logoPath)) {
+      try {
+        doc.image(logoPath, 50, 25, { width: 130 });
+        console.log('Logo charge avec succes');
+      } catch (e) {
+        console.error('Erreur chargement logo:', e.message);
+        doc.fontSize(24).fillColor('#f59e0b').text('VOLTRIDE', 50, 40);
+      }
+    } else {
+      console.error('Logo non trouve');
       doc.fontSize(24).fillColor('#f59e0b').text('VOLTRIDE', 50, 40);
     }
     
