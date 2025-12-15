@@ -52,13 +52,13 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // POST /api/customers - Crear cliente
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { first_name, last_name, email, phone, id_type, id_number, address, city, country, notes } = req.body;
+    const { first_name, last_name, email, phone, id_type, id_number, address, city, country, preferred_language, notes } = req.body;
     
     const result = await pool.query(`
-      INSERT INTO customers (first_name, last_name, email, phone, id_type, id_number, address, city, country, notes)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      INSERT INTO customers (first_name, last_name, email, phone, id_type, id_number, address, city, country, preferred_language, notes)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *
-    `, [first_name, last_name, email, phone, id_type, id_number, address, city, country, notes]);
+    `, [first_name, last_name, email, phone, id_type, id_number, address, city, country, preferred_language || 'es', notes]);
     
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -71,15 +71,15 @@ router.post('/', authMiddleware, async (req, res) => {
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const { first_name, last_name, email, phone, id_type, id_number, address, city, country, notes } = req.body;
+    const { first_name, last_name, email, phone, id_type, id_number, address, city, country, preferred_language, notes } = req.body;
     
     const result = await pool.query(`
       UPDATE customers 
       SET first_name = $1, last_name = $2, email = $3, phone = $4, id_type = $5,
-          id_number = $6, address = $7, city = $8, country = $9, notes = $10
-      WHERE id = $11
+          id_number = $6, address = $7, city = $8, country = $9, preferred_language = $10, notes = $11
+      WHERE id = $12
       RETURNING *
-    `, [first_name, last_name, email, phone, id_type, id_number, address, city, country, notes, id]);
+    `, [first_name, last_name, email, phone, id_type, id_number, address, city, country, preferred_language || 'es', notes, id]);
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Cliente no encontrado' });
