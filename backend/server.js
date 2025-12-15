@@ -3,7 +3,6 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const { pool, initDatabase } = require('./database');
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -11,6 +10,9 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, '../frontend')));
+
+// Rendre pool accessible aux routes
+app.set('pool', pool);
 
 // Import des routes
 const authRoutes = require('./routes/auth');
@@ -20,6 +22,7 @@ const rentalsRoutes = require('./routes/rentals');
 const paymentsRoutes = require('./routes/payments');
 const agenciesRoutes = require('./routes/agencies');
 const reportsRoutes = require('./routes/reports');
+const contractsRoutes = require('./routes/contracts');
 
 // Routes API
 app.use('/api/auth', authRoutes);
@@ -29,6 +32,7 @@ app.use('/api/rentals', rentalsRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/agencies', agenciesRoutes);
 app.use('/api/reports', reportsRoutes);
+app.use('/api/contracts', contractsRoutes);
 
 // Route par défaut - renvoie l'application
 app.get('*', (req, res) => {
@@ -38,7 +42,6 @@ app.get('*', (req, res) => {
 // Démarrage du serveur
 async function startServer() {
   try {
-    // Initialiser la base de données
     await initDatabase();
     
     app.listen(PORT, () => {
