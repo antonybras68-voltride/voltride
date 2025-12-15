@@ -69,9 +69,16 @@ async function initDatabase() {
         address TEXT,
         city VARCHAR(50),
         country VARCHAR(50),
+        preferred_language VARCHAR(5) DEFAULT 'es',
         notes TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
+    `);
+
+    // Ajouter la colonne preferred_language si elle n'existe pas (pour les bases existantes)
+    await client.query(`
+      ALTER TABLE customers 
+      ADD COLUMN IF NOT EXISTS preferred_language VARCHAR(5) DEFAULT 'es'
     `);
 
     // Table des locations
