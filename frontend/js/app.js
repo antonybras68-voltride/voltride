@@ -353,13 +353,14 @@ function renderCustomersTable(customers) {
   }
   document.getElementById('customersList').innerHTML = `
     <div class="table-container"><table><thead><tr>
-      <th>${t('firstName')} ${t('lastName')}</th><th>${t('phone')}</th><th>${t('email')}</th><th>${t('idNumber')}</th><th></th>
+      <th>${t('firstName')} ${t('lastName')}</th><th>${t('phone')}</th><th>${t('email')}</th><th>${t('idNumber')}</th><th>🌐</th><th></th>
     </tr></thead><tbody>
       ${customers.map(c => `<tr>
         <td><strong>${c.first_name} ${c.last_name}</strong></td>
         <td>${c.phone || '-'}</td>
         <td>${c.email || '-'}</td>
         <td>${c.id_number || '-'}</td>
+        <td>${(c.preferred_language || 'es').toUpperCase()}</td>
         <td><div class="btn-group">
           <button class="btn btn-sm btn-secondary" onclick="showCustomerModal(${c.id})">✏️</button>
           <button class="btn btn-sm btn-danger" onclick="deleteCustomer(${c.id})">🗑️</button>
@@ -387,12 +388,20 @@ function showCustomerModal(id = null) {
         <div class="form-group"><label>${t('email')}</label><input type="email" id="customerEmail" class="form-control"></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>${t('idType')}</label><select id="customerIdType" class="form-control"><option value="passport">${t('passport')}</option><option value="dni">${t('dni')}</option><option value="driving_license">${t('drivingLicense')}</option></select></div>
+        <div class="form-group"><label>${t('idType')}</label><select id="customerIdType" class="form-control"><option value="passport">${t('passport')}</option><option value="dni">${t('dni')}</option><option value="nie">NIE</option><option value="driving_license">${t('drivingLicense')}</option></select></div>
         <div class="form-group"><label>${t('idNumber')}</label><input type="text" id="customerIdNumber" class="form-control"></div>
       </div>
       <div class="form-row">
         <div class="form-group"><label>${t('country')}</label><input type="text" id="customerCountry" class="form-control"></div>
         <div class="form-group"><label>${t('city')}</label><input type="text" id="customerCity" class="form-control"></div>
+      </div>
+      <div class="form-group">
+        <label>🌐 ${t('preferredLanguage') || 'Langue preferee / Idioma preferido'}</label>
+        <select id="customerLanguage" class="form-control">
+          <option value="es">🇪🇸 Espanol</option>
+          <option value="fr">🇫🇷 Francais</option>
+          <option value="en">🇬🇧 English</option>
+        </select>
       </div>
     </form>
   `, `<button class="btn btn-secondary" onclick="closeModal()">${t('cancel')}</button><button class="btn btn-primary" onclick="saveCustomer()">${t('save')}</button>`);
@@ -410,6 +419,7 @@ async function loadCustomerData(id) {
     document.getElementById('customerIdNumber').value = c.id_number || '';
     document.getElementById('customerCountry').value = c.country || '';
     document.getElementById('customerCity').value = c.city || '';
+    document.getElementById('customerLanguage').value = c.preferred_language || 'es';
   } catch (e) { console.error(e); }
 }
 
@@ -423,7 +433,8 @@ async function saveCustomer() {
     id_type: document.getElementById('customerIdType').value,
     id_number: document.getElementById('customerIdNumber').value,
     country: document.getElementById('customerCountry').value,
-    city: document.getElementById('customerCity').value
+    city: document.getElementById('customerCity').value,
+    preferred_language: document.getElementById('customerLanguage').value
   };
   try {
     if (id) await customersAPI.update(id, data); else await customersAPI.create(data);
@@ -516,7 +527,7 @@ async function showNewRentalModal() {
         <label>${t('vehicle')} *</label>
         <select id="rentalVehicle" class="form-control" required onchange="updateRentalPrice()">
           <option value="">${t('selectVehicle')}</option>
-          ${vehicles.map(v => `<option value="${v.id}" data-rate="${v.daily_rate}" data-deposit="${v.deposit}">${v.code} - ${v.brand||''} ${v.model||''} (${formatCurrency(v.daily_rate)}/día)</option>`).join('')}
+          ${vehicles.map(v => `<option value="${v.id}" data-rate="${v.daily_rate}" data-deposit="${v.deposit}">${v.code} - ${v.brand||''} ${v.model||''} (${formatCurrency(v.daily_rate)}/dia)</option>`).join('')}
         </select>
       </div>
       <div class="form-row">
@@ -524,16 +535,16 @@ async function showNewRentalModal() {
         <div class="form-group"><label>${t('plannedEndDate')} *</label><input type="datetime-local" id="rentalEnd" class="form-control" value="${endDate}" required onchange="updateRentalPrice()"></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>${t('dailyRate')} (€)</label><input type="number" id="rentalRate" class="form-control" step="0.01" readonly></div>
-        <div class="form-group"><label>${t('deposit')} (€)</label><input type="number" id="rentalDeposit" class="form-control" step="0.01" readonly></div>
+        <div class="form-group"><label>${t('dailyRate')} (EUR)</label><input type="number" id="rentalRate" class="form-control" step="0.01" readonly></div>
+        <div class="form-group"><label>${t('deposit')} (EUR)</label><input type="number" id="rentalDeposit" class="form-control" step="0.01" readonly></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>${t('totalAmount')} (€)</label><input type="number" id="rentalTotal" class="form-control" readonly></div>
+        <div class="form-group"><label>${t('totalAmount')} (EUR)</label><input type="number" id="rentalTotal" class="form-control" readonly></div>
         <div class="form-group"><label>${t('paymentMethod')}</label><select id="rentalPayment" class="form-control"><option value="cash">${t('cash_method')}</option><option value="card">${t('card')}</option><option value="transfer">${t('transfer')}</option></select></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>${t('deposit')} ${t('amountPaid')} (€)</label><input type="number" id="rentalDepositPaid" class="form-control" step="0.01" value="0"></div>
-        <div class="form-group"><label>${t('amountPaid')} (€)</label><input type="number" id="rentalAmountPaid" class="form-control" step="0.01" value="0"></div>
+        <div class="form-group"><label>${t('deposit')} ${t('amountPaid')} (EUR)</label><input type="number" id="rentalDepositPaid" class="form-control" step="0.01" value="0"></div>
+        <div class="form-group"><label>${t('amountPaid')} (EUR)</label><input type="number" id="rentalAmountPaid" class="form-control" step="0.01" value="0"></div>
       </div>
     </form>
   `, `<button class="btn btn-secondary" onclick="closeModal()">${t('cancel')}</button><button class="btn btn-primary" onclick="createRental()">${t('save')}</button>`);
@@ -593,11 +604,11 @@ async function showReturnModal(id) {
       <hr style="border-color:var(--border);margin:15px 0;">
       <div class="form-group"><label>${t('endDate')} *</label><input type="datetime-local" id="returnDate" class="form-control" value="${now}" required></div>
       <div class="form-row">
-        <div class="form-group"><label>${t('amountPaid')} (€)</label><input type="number" id="returnAmount" class="form-control" step="0.01" value="0"></div>
+        <div class="form-group"><label>${t('amountPaid')} (EUR)</label><input type="number" id="returnAmount" class="form-control" step="0.01" value="0"></div>
         <div class="form-group"><label>${t('paymentMethod')}</label><select id="returnPayment" class="form-control"><option value="cash">${t('cash_method')}</option><option value="card">${t('card')}</option></select></div>
       </div>
       <div class="form-group">
-        <label><input type="checkbox" id="returnDeposit" checked> Devolver depósito (${formatCurrency(rental.deposit_paid)})</label>
+        <label><input type="checkbox" id="returnDeposit" checked> Devolver deposito (${formatCurrency(rental.deposit_paid)})</label>
       </div>
     </form>
   `, `<button class="btn btn-secondary" onclick="closeModal()">${t('cancel')}</button><button class="btn btn-success" onclick="processReturn()">${t('confirm')}</button>`);
@@ -668,7 +679,7 @@ async function renderCash(container) {
 }
 
 async function generateZReport() {
-  if (!confirm('¿Generar informe Z y cerrar la caja del día?')) return;
+  if (!confirm('Generar informe Z y cerrar la caja del dia?')) return;
   try {
     await reportsAPI.createZReport({ agency_id: currentUser.agency_id });
     showToast(t('zReportGenerated'), 'success');
@@ -773,6 +784,5 @@ async function deleteUser(id) {
 // =====================================================
 
 function downloadContract(rentalId) {
-  const token = getToken();
   window.open(`/api/contracts/${rentalId}/pdf`, '_blank');
 }
