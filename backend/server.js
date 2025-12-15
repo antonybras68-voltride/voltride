@@ -8,7 +8,8 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, '../frontend')));
 
 // Rendre pool accessible aux routes
@@ -23,6 +24,7 @@ const paymentsRoutes = require('./routes/payments');
 const agenciesRoutes = require('./routes/agencies');
 const reportsRoutes = require('./routes/reports');
 const contractsRoutes = require('./routes/contracts');
+const checkinRoutes = require('./routes/checkin');
 
 // Routes API
 app.use('/api/auth', authRoutes);
@@ -33,6 +35,7 @@ app.use('/api/payments', paymentsRoutes);
 app.use('/api/agencies', agenciesRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/contracts', contractsRoutes);
+app.use('/api/checkin', checkinRoutes);
 
 // Route par défaut - renvoie l'application
 app.get('*', (req, res) => {
