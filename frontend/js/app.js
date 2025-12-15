@@ -183,7 +183,10 @@ async function renderDashboard(container) {
             <td>${r.vehicle_code}</td>
             <td>${formatDateShort(r.start_date)}</td>
             <td>${formatDateShort(r.planned_end_date)}</td>
-            <td><button class="btn btn-sm btn-success" onclick="showReturnModal(${r.id})">${t('returnVehicle')}</button></td>
+            <td><div class="btn-group">
+              <button class="btn btn-sm btn-info" onclick="downloadContract(${r.id})">📄 PDF</button>
+              <button class="btn btn-sm btn-success" onclick="showReturnModal(${r.id})">${t('returnVehicle')}</button>
+            </div></td>
           </tr>`).join('')}
         </tbody></table></div>
       `;
@@ -480,9 +483,10 @@ function renderRentalsTable(rentals) {
         <td>${formatDateShort(r.start_date)}</td>
         <td>${formatCurrency(r.total_amount)}</td>
         <td>${getStatusBadge(r.status)}</td>
-        <td>
+        <td><div class="btn-group">
+          <button class="btn btn-sm btn-info" onclick="downloadContract(${r.id})">📄 PDF</button>
           ${r.status === 'active' ? `<button class="btn btn-sm btn-success" onclick="showReturnModal(${r.id})">${t('returnVehicle')}</button>` : ''}
-        </td>
+        </div></td>
       </tr>`).join('')}
     </tbody></table></div>
   `;
@@ -762,4 +766,13 @@ async function deleteUser(id) {
   if (!confirm(t('confirmDelete'))) return;
   try { await authAPI.deleteUser(id); showToast(t('deleteSuccess'), 'success'); renderUsers(document.getElementById('pageContainer')); }
   catch (e) { showToast(e.message, 'error'); }
+}
+
+// =====================================================
+// Contrats PDF
+// =====================================================
+
+function downloadContract(rentalId) {
+  const token = getToken();
+  window.open(`/api/contracts/${rentalId}/pdf`, '_blank');
 }
