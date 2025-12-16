@@ -1,5 +1,5 @@
 // =====================================================
-// VOLTRIDE - Check-in Walk-in (Version 2.0)
+// VOLTRIDE - Check-in Walk-in (Version 2.1 - avec OCR)
 // =====================================================
 
 let currentStep = 1;
@@ -601,7 +601,7 @@ function checkCgvAccepted() {
 }
 
 // =====================================================
-// Photo ID
+// Photo ID avec OCR
 // =====================================================
 
 function captureIdPhoto() {
@@ -612,17 +612,152 @@ function uploadIdPhoto() {
   document.getElementById('idPhotoInput').click();
 }
 
-function handleIdPhoto(input) {
+async function handleIdPhoto(input) {
   if (input.files && input.files[0]) {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       idPhotoData = e.target.result;
       const preview = document.getElementById('idPhotoPreview');
       preview.classList.remove('empty');
       preview.innerHTML = `<img src="${e.target.result}" alt="ID Photo">`;
+      
+      // Lancer l'OCR automatiquement
+      await analyzeDocumentWithOCR(e.target.result);
     };
     reader.readAsDataURL(input.files[0]);
   }
+}
+
+// Fonction OCR pour analyser le document
+async function analyzeDocumentWithOCR(imageData) {
+  // Afficher un indicateur de chargement
+  const preview = document.getElementById('idPhotoPreview');
+  preview.style.position = 'relative';
+  preview.innerHTML += `
+    <div id="ocrLoading" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+         background: rgba(0,0,0,0.7); display: flex; flex-direction: column; 
+         align-items: center; justify-content: center; color: white; border-radius: 8px;">
+      <div style="font-size: 32px; margin-bottom: 10px;">🔍</div>
+      <div>Analizando documento...</div>
+    </div>
+  `;
+  
+  try {
+    const response = await fetch('/api/ocr/document', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('voltride_token')}`
+      },
+      body: JSON.stringify({ image: imageData })
+    });
+    
+    const result = await response.json();
+    
+    // Enlever l'indicateur de chargement
+    const loadingEl = document.getElementById('ocrLoading');
+    if (loadingEl) loadingEl.remove();
+    
+    if (result.success) {
+      // Remplir automatiquement les champs
+      if (result.first_name) {
+        document.getElementById('clientFirstName').value = result.first_name;
+      }
+      if (result.last_name) {
+        document.getElementById('clientLastName').value = result.last_name;
+      }
+      if (result.document_number) {
+        document.getElementById('clientIdNumber').value = result.document_number;
+      }
+      if (result.document_type) {
+        const idTypeSelect = document.getElementById('clientIdType');
+        if (result.document_type === 'passport') {
+          idTypeSelect.value = 'passport';
+        } else if (result.document_type === 'dni') {
+          idTypeSelect.value = 'dni';
+        } else if (result.document_type === 'nie') {
+          idTypeSelect.value = 'nie';
+        }
+      }
+      if (result.nationality) {
+        // Mapper les nationalités courantes
+        const countryMap = {
+          'ESPAÑA': 'ES', 'SPAIN': 'ES', 'ESPAGNE': 'ES', 'SPANISH': 'ES',
+          'FRANCE': 'FR', 'FRANCIA': 'FR', 'FRENCH': 'FR', 'FRANÇAISE': 'FR',
+          'UNITED KINGDOM': 'GB', 'UK': 'GB', 'REINO UNIDO': 'GB', 'ROYAUME-UNI': 'GB', 'BRITISH': 'GB',
+          'GERMANY': 'DE', 'ALEMANIA': 'DE', 'ALLEMAGNE': 'DE', 'GERMAN': 'DE',
+          'ITALY': 'IT', 'ITALIA': 'IT', 'ITALIE': 'IT', 'ITALIAN': 'IT',
+          'PORTUGAL': 'PT', 'PORTUGUESE': 'PT',
+          'NETHERLANDS': 'NL', 'PAÍSES BAJOS': 'NL', 'PAYS-BAS': 'NL', 'DUTCH': 'NL',
+          'BELGIUM': 'BE', 'BÉLGICA': 'BE', 'BELGIQUE': 'BE', 'BELGIAN': 'BE'
+        };
+        const countryCode = countryMap[result.nationality.toUpperCase()];
+        if (countryCode) {
+          document.getElementById('clientCountry').value = countryCode;
+        }
+      }
+      
+      // Afficher un message de succès
+      showOCRSuccess();
+      
+      console.log('✅ OCR réussi:', result);
+    } else {
+      console.warn('⚠️ OCR n\'a pas pu lire le document:', result.error);
+      showOCRError(result.error || 'No se pudo leer el documento');
+    }
+    
+  } catch (error) {
+    console.error('❌ Erreur OCR:', error);
+    // Enlever l'indicateur de chargement
+    const loadingEl = document.getElementById('ocrLoading');
+    if (loadingEl) loadingEl.remove();
+    
+    showOCRError('Error al analizar el documento');
+  }
+}
+
+function showOCRSuccess() {
+  const preview = document.getElementById('idPhotoPreview');
+  const successBadge = document.createElement('div');
+  successBadge.id = 'ocrSuccessBadge';
+  successBadge.style.cssText = `
+    position: absolute; bottom: 10px; left: 10px; right: 10px;
+    background: rgba(34, 197, 94, 0.9); color: white;
+    padding: 10px; border-radius: 8px; text-align: center;
+    font-weight: bold;
+  `;
+  successBadge.innerHTML = '✅ Datos extraídos automáticamente';
+  preview.style.position = 'relative';
+  preview.appendChild(successBadge);
+  
+  // Enlever le badge après 3 secondes
+  setTimeout(() => {
+    if (successBadge.parentNode) {
+      successBadge.remove();
+    }
+  }, 3000);
+}
+
+function showOCRError(message) {
+  const preview = document.getElementById('idPhotoPreview');
+  const errorBadge = document.createElement('div');
+  errorBadge.id = 'ocrErrorBadge';
+  errorBadge.style.cssText = `
+    position: absolute; bottom: 10px; left: 10px; right: 10px;
+    background: rgba(239, 68, 68, 0.9); color: white;
+    padding: 10px; border-radius: 8px; text-align: center;
+    font-size: 12px;
+  `;
+  errorBadge.innerHTML = `⚠️ ${message}<br><small>Complete los datos manualmente</small>`;
+  preview.style.position = 'relative';
+  preview.appendChild(errorBadge);
+  
+  // Enlever le badge après 5 secondes
+  setTimeout(() => {
+    if (errorBadge.parentNode) {
+      errorBadge.remove();
+    }
+  }, 5000);
 }
 
 // =====================================================
