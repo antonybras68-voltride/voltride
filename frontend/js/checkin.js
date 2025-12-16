@@ -1,5 +1,5 @@
 // =====================================================
-// VOLTRIDE - Check-in Walk-in
+// VOLTRIDE - Check-in Walk-in (Version 2.0)
 // =====================================================
 
 let currentStep = 1;
@@ -11,8 +11,15 @@ let signatureCanvas, signatureCtx;
 let isDrawing = false;
 let hasSignature = false;
 let idPhotoData = null;
+let foundClient = null;
 
-// Accessoires disponibles (à personnaliser)
+// Payment data
+let paymentData = {
+  rental: { method: null, amount: 0 },
+  deposit: { method: null, amount: 0 }
+};
+
+// Accessoires disponibles
 const availableAccessories = [
   { id: 'lock', name: 'Candado', icon: '🔒', price: 0, mandatory: true, vehicleTypes: ['bike', 'ebike'] },
   { id: 'helmet', name: 'Casco', icon: '⛑️', price: 0, mandatory: false, vehicleTypes: ['bike', 'ebike', 'scooter'] },
@@ -29,104 +36,77 @@ const cgvTexts = {
   es: `
     <h3>CONDICIONES GENERALES DE ALQUILER - VOLTRIDE</h3>
     <p><strong>1. Objeto del contrato</strong><br>
-    El presente contrato tiene por objeto la cesión temporal del uso de un vehículo de movilidad personal (bicicleta, bicicleta eléctrica o patinete eléctrico) por parte de VOLTRIDE al Cliente.</p>
-    
+    El presente contrato tiene por objeto la cesión temporal del uso de un vehículo de movilidad personal por parte de VOLTRIDE al Cliente.</p>
     <p><strong>2. Estado del vehículo</strong><br>
     El cliente reconoce haber recibido el vehículo en perfecto estado de funcionamiento y se compromete a devolverlo en las mismas condiciones.</p>
-    
     <p><strong>3. Responsabilidad del cliente</strong><br>
-    El cliente es responsable de cualquier daño o pérdida del vehículo durante el período de alquiler. En caso de robo, el cliente deberá presentar denuncia policial.</p>
-    
+    El cliente es responsable de cualquier daño o pérdida del vehículo durante el período de alquiler.</p>
     <p><strong>4. Depósito</strong><br>
     El depósito será devuelto íntegramente si el vehículo se devuelve sin daños y en el plazo acordado.</p>
-    
     <p><strong>5. Retraso en la devolución</strong><br>
-    En caso de retraso en la devolución, se aplicará un cargo adicional equivalente a la tarifa diaria por cada día de retraso.</p>
-    
+    En caso de retraso, se aplicará un cargo adicional equivalente a la tarifa diaria.</p>
     <p><strong>6. Normas de circulación</strong><br>
-    El cliente se compromete a respetar el código de circulación vigente y a utilizar el vehículo de manera responsable.</p>
-    
+    El cliente se compromete a respetar el código de circulación vigente.</p>
     <p><strong>7. Prohibiciones</strong><br>
-    - Está prohibido el uso del vehículo bajo los efectos del alcohol o drogas.<br>
-    - El vehículo no puede ser subalquilado ni prestado a terceros.<br>
-    - El vehículo debe estar guardado en lugar seguro entre las 21h y las 7h.</p>
-    
+    - Uso bajo efectos del alcohol o drogas prohibido.<br>
+    - No subalquilar ni prestar a terceros.<br>
+    - Guardar en lugar seguro entre 21h y 7h.</p>
     <p><strong>8. Averías</strong><br>
-    En caso de avería, el cliente debe contactar inmediatamente con la agencia.</p>
-    
+    Contactar inmediatamente con la agencia en caso de avería.</p>
     <p><strong>9. Limpieza</strong><br>
-    Si el vehículo se devuelve sucio, se aplicará un cargo de 5 EUR.</p>
-    
+    Cargo de 5 EUR si el vehículo se devuelve sucio.</p>
     <p><strong>10. Protección de datos</strong><br>
-    Los datos personales del cliente serán tratados conforme al RGPD y utilizados únicamente para la gestión del alquiler.</p>
+    Datos tratados conforme al RGPD.</p>
   `,
   fr: `
     <h3>CONDITIONS GÉNÉRALES DE LOCATION - VOLTRIDE</h3>
     <p><strong>1. Objet du contrat</strong><br>
-    Le présent contrat a pour objet la mise à disposition temporaire d'un véhicule de mobilité personnelle (vélo, vélo électrique ou trottinette électrique) par VOLTRIDE au Client.</p>
-    
+    Mise à disposition temporaire d'un véhicule de mobilité personnelle par VOLTRIDE au Client.</p>
     <p><strong>2. État du véhicule</strong><br>
-    Le client reconnaît avoir reçu le véhicule en parfait état de fonctionnement et s'engage à le restituer dans les mêmes conditions.</p>
-    
+    Le client reconnaît avoir reçu le véhicule en parfait état.</p>
     <p><strong>3. Responsabilité du client</strong><br>
-    Le client est responsable de tout dommage ou perte du véhicule pendant la période de location. En cas de vol, le client devra déposer une plainte auprès de la police.</p>
-    
+    Le client est responsable de tout dommage ou perte pendant la location.</p>
     <p><strong>4. Caution</strong><br>
-    La caution sera intégralement restituée si le véhicule est rendu sans dommages et dans les délais convenus.</p>
-    
+    Restituée intégralement si le véhicule est rendu sans dommages.</p>
     <p><strong>5. Retard de restitution</strong><br>
-    En cas de retard de restitution, un supplément équivalent au tarif journalier sera appliqué pour chaque jour de retard.</p>
-    
+    Supplément journalier appliqué en cas de retard.</p>
     <p><strong>6. Code de la route</strong><br>
-    Le client s'engage à respecter le code de la route en vigueur et à utiliser le véhicule de manière responsable.</p>
-    
+    Le client s'engage à respecter le code de la route.</p>
     <p><strong>7. Interdictions</strong><br>
-    - L'utilisation du véhicule sous l'influence de l'alcool ou de drogues est interdite.<br>
-    - Le véhicule ne peut être sous-loué ni prêté à des tiers.<br>
-    - Le véhicule doit être stationné en lieu sûr entre 21h et 7h.</p>
-    
+    - Usage sous alcool/drogues interdit.<br>
+    - Ne pas sous-louer ni prêter.<br>
+    - Stationner en lieu sûr entre 21h et 7h.</p>
     <p><strong>8. Pannes</strong><br>
-    En cas de panne, le client doit contacter immédiatement l'agence.</p>
-    
+    Contacter immédiatement l'agence.</p>
     <p><strong>9. Propreté</strong><br>
-    Si le véhicule est rendu sale, des frais de 5 EUR seront appliqués.</p>
-    
+    Frais de 5 EUR si véhicule rendu sale.</p>
     <p><strong>10. Protection des données</strong><br>
-    Les données personnelles du client seront traitées conformément au RGPD et utilisées uniquement pour la gestion de la location.</p>
+    Données traitées conformément au RGPD.</p>
   `,
   en: `
     <h3>GENERAL RENTAL CONDITIONS - VOLTRIDE</h3>
-    <p><strong>1. Purpose of the contract</strong><br>
-    This contract governs the temporary rental of a personal mobility vehicle (bicycle, electric bicycle or electric scooter) from VOLTRIDE to the Customer.</p>
-    
+    <p><strong>1. Purpose</strong><br>
+    Temporary rental of a personal mobility vehicle from VOLTRIDE to Customer.</p>
     <p><strong>2. Vehicle condition</strong><br>
-    The customer acknowledges having received the vehicle in perfect working condition and agrees to return it in the same condition.</p>
-    
+    Customer acknowledges receiving the vehicle in perfect condition.</p>
     <p><strong>3. Customer responsibility</strong><br>
-    The customer is responsible for any damage or loss of the vehicle during the rental period. In case of theft, the customer must file a police report.</p>
-    
+    Customer is responsible for any damage or loss during the rental.</p>
     <p><strong>4. Deposit</strong><br>
-    The deposit will be fully refunded if the vehicle is returned without damage and within the agreed timeframe.</p>
-    
+    Fully refunded if vehicle is returned without damage.</p>
     <p><strong>5. Late return</strong><br>
-    In case of late return, an additional charge equivalent to the daily rate will be applied for each day of delay.</p>
-    
+    Additional daily charge applied for late returns.</p>
     <p><strong>6. Traffic rules</strong><br>
-    The customer agrees to comply with current traffic regulations and to use the vehicle responsibly.</p>
-    
+    Customer agrees to comply with traffic regulations.</p>
     <p><strong>7. Prohibitions</strong><br>
-    - Use of the vehicle under the influence of alcohol or drugs is prohibited.<br>
-    - The vehicle cannot be sublet or lent to third parties.<br>
-    - The vehicle must be stored in a secure location between 9pm and 7am.</p>
-    
+    - No use under alcohol/drugs.<br>
+    - No subletting or lending.<br>
+    - Store securely between 9pm-7am.</p>
     <p><strong>8. Breakdowns</strong><br>
-    In case of breakdown, the customer must contact the agency immediately.</p>
-    
+    Contact agency immediately.</p>
     <p><strong>9. Cleanliness</strong><br>
-    If the vehicle is returned dirty, a 5 EUR cleaning fee will be applied.</p>
-    
+    5 EUR fee if returned dirty.</p>
     <p><strong>10. Data protection</strong><br>
-    The customer's personal data will be processed in accordance with GDPR and used only for rental management.</p>
+    Data processed per GDPR.</p>
   `
 };
 
@@ -157,7 +137,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('endDate').value = formatDateInput(tomorrow);
   
   // Set current time rounded to 15 min
-  const currentHour = today.getHours();
+  const currentHour = Math.min(21, Math.max(8, today.getHours()));
   const currentMinute = Math.ceil(today.getMinutes() / 15) * 15;
   document.getElementById('startHour').value = String(currentHour).padStart(2, '0');
   document.getElementById('startMinute').value = String(currentMinute % 60).padStart(2, '0');
@@ -172,7 +152,7 @@ function formatDateInput(date) {
 function initHourSelects() {
   const hours = [];
   for (let h = 8; h <= 21; h++) {
-    hours.push(`<option value="${String(h).padStart(2, '0')}">${String(h).padStart(2, '0')}:00</option>`);
+    hours.push(`<option value="${String(h).padStart(2, '0')}">${String(h).padStart(2, '0')}h</option>`);
   }
   document.getElementById('startHour').innerHTML = hours.join('');
   document.getElementById('endHour').innerHTML = hours.join('');
@@ -228,15 +208,7 @@ function toggleVehicle(id) {
   }
   
   updateSelectedVehiclesDisplay();
-  renderVehicles(vehiclesData.filter(v => {
-    const filterType = document.querySelector('.btn.btn-sm:not(.btn-secondary)')?.textContent || 'Todos';
-    if (filterType === 'Todos') return true;
-    if (filterType.includes('City')) return v.type === 'bike';
-    if (filterType.includes('E-Bike')) return v.type === 'ebike';
-    if (filterType.includes('E-Moto')) return v.type === 'scooter';
-    return true;
-  }));
-  
+  renderVehicles(vehiclesData);
   document.getElementById('btnNext1').disabled = selectedVehicles.length === 0;
 }
 
@@ -272,29 +244,29 @@ function updateSelectedVehiclesDisplay() {
 }
 
 function filterVehicles(type) {
-  document.querySelectorAll('.vehicle-grid').forEach(g => g.innerHTML = '');
-  
   let filtered = vehiclesData;
   if (type !== 'all') {
     filtered = vehiclesData.filter(v => v.type === type);
   }
   
   // Update button styles
-  document.querySelectorAll('.wizard-panel#step1 .btn-sm').forEach(btn => {
+  document.querySelectorAll('#step1 .btn-sm').forEach(btn => {
     btn.classList.remove('btn-primary');
     btn.classList.add('btn-secondary');
   });
-  event.target.classList.remove('btn-secondary');
-  event.target.classList.add('btn-primary');
+  if (event && event.target) {
+    event.target.classList.remove('btn-secondary');
+    event.target.classList.add('btn-primary');
+  }
   
   renderVehicles(filtered);
 }
 
 // =====================================================
-// Pricing
+// Pricing (Prix TTC - TVA inversée)
 // =====================================================
 
-function updatePricing() {
+function calculateDays() {
   const startDate = document.getElementById('startDate').value;
   const startHour = document.getElementById('startHour').value;
   const startMinute = document.getElementById('startMinute').value;
@@ -302,7 +274,7 @@ function updatePricing() {
   const endHour = document.getElementById('endHour').value;
   const endMinute = document.getElementById('endMinute').value;
   
-  if (!startDate || !endDate) return;
+  if (!startDate || !endDate) return 1;
   
   const start = new Date(`${startDate}T${startHour}:${startMinute}`);
   const end = new Date(`${endDate}T${endHour}:${endMinute}`);
@@ -310,36 +282,92 @@ function updatePricing() {
   const diffHours = (end - start) / (1000 * 60 * 60);
   let days = Math.floor(diffHours / 24);
   if (diffHours % 24 > 1) days++;
-  days = Math.max(1, days);
+  return Math.max(1, days);
+}
+
+function updatePricing() {
+  const days = calculateDays();
   
   let html = `<div class="price-line"><span>Período</span><span><strong>${days} día(s)</strong></span></div>`;
   
-  let subtotal = 0;
+  let subtotalTTC = 0;
   selectedVehicles.forEach(v => {
-    const price = days * parseFloat(v.daily_rate);
-    subtotal += price;
+    const priceTTC = days * parseFloat(v.daily_rate);
+    subtotalTTC += priceTTC;
     const icon = v.type === 'bike' ? '🚲' : v.type === 'ebike' ? '⚡' : '🛵';
-    html += `<div class="price-line"><span>${icon} ${v.code}</span><span>${price.toFixed(2)} €</span></div>`;
+    html += `<div class="price-line"><span>${icon} ${v.code}</span><span>${priceTTC.toFixed(2)} €</span></div>`;
   });
   
   // Add accessories price
-  let accessoriesTotal = 0;
+  let accessoriesTotalTTC = 0;
   Object.values(accessoriesData).forEach(vehicleAccessories => {
     vehicleAccessories.forEach(acc => {
       if (acc.price > 0) {
-        accessoriesTotal += acc.price * days;
+        accessoriesTotalTTC += acc.price * days;
       }
     });
   });
   
-  if (accessoriesTotal > 0) {
-    html += `<div class="price-line"><span>🎒 Accesorios</span><span>${accessoriesTotal.toFixed(2)} €</span></div>`;
+  if (accessoriesTotalTTC > 0) {
+    html += `<div class="price-line"><span>🎒 Accesorios</span><span>${accessoriesTotalTTC.toFixed(2)} €</span></div>`;
   }
   
-  const total = subtotal + accessoriesTotal;
-  html += `<div class="price-line total"><span>TOTAL</span><span>${total.toFixed(2)} €</span></div>`;
+  const totalTTC = subtotalTTC + accessoriesTotalTTC;
+  html += `<div class="price-line total"><span>TOTAL</span><span>${totalTTC.toFixed(2)} €</span></div>`;
   
   document.getElementById('pricingSummary').innerHTML = html;
+}
+
+// =====================================================
+// Client Search
+// =====================================================
+
+async function searchClientByEmail() {
+  const email = document.getElementById('clientSearchEmail').value.trim();
+  if (!email) {
+    alert('Por favor, introduce un email');
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/customers?search=${encodeURIComponent(email)}`, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('voltride_token')}` }
+    });
+    const customers = await response.json();
+    
+    // Find exact match
+    const customer = customers.find(c => c.email && c.email.toLowerCase() === email.toLowerCase());
+    
+    if (customer) {
+      foundClient = customer;
+      document.getElementById('clientFoundName').textContent = `${customer.first_name} ${customer.last_name} (${customer.email})`;
+      document.getElementById('clientFoundBox').classList.add('active');
+    } else {
+      foundClient = null;
+      document.getElementById('clientFoundBox').classList.remove('active');
+      alert('Cliente no encontrado. Puede registrarse como nuevo cliente.');
+    }
+  } catch (e) {
+    console.error('Error searching client:', e);
+    alert('Error al buscar cliente');
+  }
+}
+
+function useFoundClient() {
+  if (!foundClient) return;
+  
+  document.getElementById('clientFirstName').value = foundClient.first_name || '';
+  document.getElementById('clientLastName').value = foundClient.last_name || '';
+  document.getElementById('clientEmail').value = foundClient.email || '';
+  document.getElementById('clientPhone').value = foundClient.phone || '';
+  document.getElementById('clientCountry').value = foundClient.country || '';
+  document.getElementById('clientLanguage').value = foundClient.preferred_language || 'es';
+  document.getElementById('clientIdType').value = foundClient.id_type || 'passport';
+  document.getElementById('clientIdNumber').value = foundClient.id_number || '';
+  document.getElementById('clientAddress').value = foundClient.address || '';
+  
+  document.getElementById('clientFoundBox').classList.remove('active');
+  document.getElementById('clientSearchEmail').value = '';
 }
 
 // =====================================================
@@ -353,7 +381,6 @@ function renderAccessories() {
     const icon = vehicle.type === 'bike' ? '🚲' : vehicle.type === 'ebike' ? '⚡' : '🛵';
     const vehicleAccessories = availableAccessories.filter(a => a.vehicleTypes.includes(vehicle.type));
     
-    // Initialize accessories data for this vehicle if not exists
     if (!accessoriesData[vehicle.id]) {
       accessoriesData[vehicle.id] = vehicleAccessories
         .filter(a => a.mandatory || a.price === 0)
@@ -408,6 +435,7 @@ function toggleAccessory(vehicleId, accessoryId) {
 // =====================================================
 
 function renderSummary() {
+  const days = calculateDays();
   const startDate = document.getElementById('startDate').value;
   const startHour = document.getElementById('startHour').value;
   const startMinute = document.getElementById('startMinute').value;
@@ -418,15 +446,12 @@ function renderSummary() {
   const start = new Date(`${startDate}T${startHour}:${startMinute}`);
   const end = new Date(`${endDate}T${endHour}:${endMinute}`);
   
-  const diffHours = (end - start) / (1000 * 60 * 60);
-  let days = Math.floor(diffHours / 24);
-  if (diffHours % 24 > 1) days++;
-  days = Math.max(1, days);
-  
   // Vehicles section
   let vehiclesHtml = selectedVehicles.map(v => {
     const icon = v.type === 'bike' ? '🚲' : v.type === 'ebike' ? '⚡' : '🛵';
     const accessories = accessoriesData[v.id] || [];
+    const priceTTC = days * parseFloat(v.daily_rate);
+    
     return `
       <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin-bottom: 10px;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -435,7 +460,7 @@ function renderSummary() {
             <div style="color: var(--text-secondary); font-size: 14px;">${v.brand || ''} ${v.model || ''}</div>
           </div>
           <div style="text-align: right;">
-            <strong>${(days * parseFloat(v.daily_rate)).toFixed(2)} €</strong>
+            <strong>${priceTTC.toFixed(2)} €</strong>
             <div style="color: var(--text-secondary); font-size: 12px;">${days} día(s) x ${parseFloat(v.daily_rate).toFixed(2)} €</div>
           </div>
         </div>
@@ -475,34 +500,36 @@ function renderSummary() {
     </div>
   `;
   
-  // Pricing
-  let subtotal = 0;
-  let accessoriesTotal = 0;
+  // Pricing - Prix TTC
+  let subtotalTTC = 0;
+  let accessoriesTotalTTC = 0;
   
   selectedVehicles.forEach(v => {
-    subtotal += days * parseFloat(v.daily_rate);
+    subtotalTTC += days * parseFloat(v.daily_rate);
   });
   
   Object.values(accessoriesData).forEach(vehicleAccessories => {
     vehicleAccessories.forEach(acc => {
       if (acc.price > 0) {
-        accessoriesTotal += acc.price * days;
+        accessoriesTotalTTC += acc.price * days;
       }
     });
   });
   
-  // Calculate deposit (sum of all vehicle deposits)
   const totalDeposit = selectedVehicles.reduce((sum, v) => sum + (parseFloat(v.deposit) || 0), 0);
+  const totalTTC = subtotalTTC + accessoriesTotalTTC;
   
-  const total = subtotal + accessoriesTotal;
+  // Store for payment step
+  paymentData.rental.amount = totalTTC;
+  paymentData.deposit.amount = totalDeposit;
   
   document.getElementById('finalPricing').innerHTML = `
     <h3>💰 Resumen de Precios</h3>
-    <div class="price-line"><span>Vehículos (${days} día(s))</span><span>${subtotal.toFixed(2)} €</span></div>
-    ${accessoriesTotal > 0 ? `<div class="price-line"><span>Accesorios</span><span>${accessoriesTotal.toFixed(2)} €</span></div>` : ''}
-    <div class="price-line"><span>Subtotal</span><span><strong>${total.toFixed(2)} €</strong></span></div>
+    <div class="price-line"><span>Vehículos (${days} día(s))</span><span>${subtotalTTC.toFixed(2)} €</span></div>
+    ${accessoriesTotalTTC > 0 ? `<div class="price-line"><span>Accesorios</span><span>${accessoriesTotalTTC.toFixed(2)} €</span></div>` : ''}
+    <div class="price-line"><span><strong>Subtotal (IVA incl.)</strong></span><span><strong>${totalTTC.toFixed(2)} €</strong></span></div>
     <div class="price-line"><span>Depósito (reembolsable)</span><span>${totalDeposit.toFixed(2)} €</span></div>
-    <div class="price-line total"><span>TOTAL A PAGAR</span><span>${(total + totalDeposit).toFixed(2)} €</span></div>
+    <div class="price-line total"><span>TOTAL A PAGAR</span><span>${(totalTTC + totalDeposit).toFixed(2)} €</span></div>
   `;
 }
 
@@ -513,8 +540,51 @@ function renderSummary() {
 function startClientMode() {
   clientMode = true;
   document.getElementById('clientModeBanner').classList.add('active');
-  document.querySelectorAll('.wizard-step.client-step').forEach(s => s.style.background = 'var(--warning)');
+  document.getElementById('operatorModeBanner').classList.remove('active');
   nextStep();
+}
+
+// =====================================================
+// Payment
+// =====================================================
+
+function goToPayment() {
+  if (!hasSignature) {
+    alert('Por favor, firme el contrato');
+    return;
+  }
+  
+  // Exit client mode, enter operator mode
+  clientMode = false;
+  document.getElementById('clientModeBanner').classList.remove('active');
+  document.getElementById('operatorModeBanner').classList.add('active');
+  
+  // Update payment display
+  const totalToPay = paymentData.rental.amount + paymentData.deposit.amount;
+  document.getElementById('paymentTotalAmount').textContent = totalToPay.toFixed(2) + ' €';
+  document.getElementById('rentalAmountDisplay').textContent = paymentData.rental.amount.toFixed(2) + ' €';
+  document.getElementById('depositAmountDisplay').textContent = paymentData.deposit.amount.toFixed(2) + ' €';
+  
+  nextStep();
+}
+
+function selectPaymentMethod(type, method) {
+  paymentData[type].method = method;
+  
+  // Update UI
+  const containerId = type === 'rental' ? 'rentalPaymentMethods' : 'depositPaymentMethods';
+  document.querySelectorAll(`#${containerId} .payment-method`).forEach(el => {
+    el.classList.remove('selected');
+  });
+  event.currentTarget.classList.add('selected');
+  
+  // Check if both methods selected
+  checkPaymentComplete();
+}
+
+function checkPaymentComplete() {
+  const isComplete = paymentData.rental.method && paymentData.deposit.method;
+  document.getElementById('btnFinish').disabled = !isComplete;
 }
 
 // =====================================================
@@ -561,19 +631,18 @@ function handleIdPhoto(input) {
 
 function initSignatureCanvas() {
   signatureCanvas = document.getElementById('signatureCanvas');
+  if (!signatureCanvas) return;
+  
   signatureCtx = signatureCanvas.getContext('2d');
   
-  // Set white background
   signatureCtx.fillStyle = 'white';
   signatureCtx.fillRect(0, 0, signatureCanvas.width, signatureCanvas.height);
   
-  // Mouse events
   signatureCanvas.addEventListener('mousedown', startDrawing);
   signatureCanvas.addEventListener('mousemove', draw);
   signatureCanvas.addEventListener('mouseup', stopDrawing);
   signatureCanvas.addEventListener('mouseout', stopDrawing);
   
-  // Touch events
   signatureCanvas.addEventListener('touchstart', handleTouchStart);
   signatureCanvas.addEventListener('touchmove', handleTouchMove);
   signatureCanvas.addEventListener('touchend', stopDrawing);
@@ -601,7 +670,7 @@ function draw(e) {
   signatureCtx.moveTo(x, y);
   
   hasSignature = true;
-  document.getElementById('btnFinish').disabled = false;
+  document.getElementById('btnToPayment').disabled = false;
 }
 
 function stopDrawing() {
@@ -633,7 +702,7 @@ function clearSignature() {
   signatureCtx.fillStyle = 'white';
   signatureCtx.fillRect(0, 0, signatureCanvas.width, signatureCanvas.height);
   hasSignature = false;
-  document.getElementById('btnFinish').disabled = true;
+  document.getElementById('btnToPayment').disabled = true;
 }
 
 // =====================================================
@@ -677,6 +746,7 @@ function prevStep() {
   if (currentStep <= 4) {
     clientMode = false;
     document.getElementById('clientModeBanner').classList.remove('active');
+    document.getElementById('operatorModeBanner').classList.remove('active');
   }
   
   window.scrollTo(0, 0);
@@ -687,15 +757,14 @@ function prevStep() {
 // =====================================================
 
 async function finishCheckin() {
-  if (!hasSignature) {
-    alert('Por favor, firme el contrato');
+  if (!paymentData.rental.method || !paymentData.deposit.method) {
+    alert('Por favor, seleccione los métodos de pago');
     return;
   }
   
   const user = JSON.parse(localStorage.getItem('voltride_user') || '{}');
   const signatureData = signatureCanvas.toDataURL('image/png');
   
-  // Collect all data
   const startDate = document.getElementById('startDate').value;
   const startHour = document.getElementById('startHour').value;
   const startMinute = document.getElementById('startMinute').value;
@@ -704,7 +773,6 @@ async function finishCheckin() {
   const endMinute = document.getElementById('endMinute').value;
   
   const checkinData = {
-    // Customer
     customer: {
       first_name: document.getElementById('clientFirstName').value,
       last_name: document.getElementById('clientLastName').value,
@@ -716,7 +784,6 @@ async function finishCheckin() {
       id_number: document.getElementById('clientIdNumber').value,
       address: document.getElementById('clientAddress').value
     },
-    // Vehicles
     vehicles: selectedVehicles.map(v => ({
       id: v.id,
       code: v.code,
@@ -724,15 +791,18 @@ async function finishCheckin() {
       deposit: v.deposit,
       accessories: accessoriesData[v.id] || []
     })),
-    // Dates
     start_date: `${startDate}T${startHour}:${startMinute}`,
     planned_end_date: `${endDate}T${endHour}:${endMinute}`,
-    // Agency & User
     agency_id: user.agency_id,
     user_id: user.id,
-    // Signature & Photos
     signature: signatureData,
-    id_photo: idPhotoData
+    id_photo: idPhotoData,
+    payment: {
+      rental_method: paymentData.rental.method,
+      rental_amount: paymentData.rental.amount,
+      deposit_method: paymentData.deposit.method,
+      deposit_amount: paymentData.deposit.amount
+    }
   };
   
   try {
@@ -753,12 +823,10 @@ async function finishCheckin() {
     if (response.ok) {
       alert(`✅ Check-in completado!\n\nContrato(s): ${result.contracts.join(', ')}`);
       
-      // Open PDF contracts
       result.rental_ids.forEach(id => {
         window.open(`/api/contracts/${id}/pdf`, '_blank');
       });
       
-      // Redirect to dashboard
       window.location.href = '/app.html';
     } else {
       throw new Error(result.error || 'Error al procesar el check-in');
@@ -775,4 +843,4 @@ function exitCheckin() {
   if (confirm('¿Seguro que desea salir? Se perderán los datos no guardados.')) {
     window.location.href = '/app.html';
   }
-                          }
+}
