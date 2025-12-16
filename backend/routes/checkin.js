@@ -1,16 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const { pool } = require('../database');
 const { authMiddleware } = require('./auth');
 
 // POST /api/checkin - Créer un check-in complet (walk-in)
 router.post('/', authMiddleware, async (req, res) => {
+  const pool = req.app.get('pool');
   const client = await pool.connect();
   
   try {
     await client.query('BEGIN');
     
-    const { customer, vehicles, start_date, planned_end_date, agency_id, user_id, signature, id_photo } = req.body;
+    const { customer, vehicles, start_date, planned_end_date, agency_id, user_id, signature, id_photo, payment } = req.body;
     
     // 1. Créer ou récupérer le client
     let customerId;
@@ -68,7 +68,8 @@ router.post('/', authMiddleware, async (req, res) => {
       // Générer numéro de contrat unique
       const today = new Date();
       const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
-      const contractNumber = `AG-${String(agency_id).padStart(2, '0')}-${dateStr}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
+      const randomNum = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
+      const contractNumber = `AG-${String(agency_id).padStart(2, '0')}-${dateStr}-${randomNum}`;
       
       // Calculer le nombre de jours
       const start = new Date(start_date);
@@ -78,7 +79,7 @@ router.post('/', authMiddleware, async (req, res) => {
       if (diffHours % 24 > 1) days++;
       days = Math.max(1, days);
       
-      // Calculer le total (location + accessoires)
+      // Calculer le total (location + accessoires) - Prix TTC
       const dailyRate = parseFloat(vehicle.daily_rate) || 0;
       let totalAmount = days * dailyRate;
       
@@ -93,14 +94,14 @@ router.post('/', authMiddleware, async (req, res) => {
       
       const deposit = parseFloat(vehicle.deposit) || 0;
       
-      // Créer la location
+      // Créer la location avec méthodes de paiement
       const rental = await client.query(`
         INSERT INTO rentals (
           contract_number, customer_id, vehicle_id, agency_id, user_id,
           start_date, planned_end_date, daily_rate, deposit, total_amount,
-          status, signature_customer, notes
+          status, signature_customer, payment_method, deposit_method, notes
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
         RETURNING id
       `, [
         contractNumber,
@@ -115,7 +116,9 @@ router.post('/', authMiddleware, async (req, res) => {
         totalAmount,
         'active',
         signature,
-        vehicle.accessories ? `Accessoires: ${vehicle.accessories.map(a => a.name).join(', ')}` : null
+        payment?.rental_method || null,
+        payment?.deposit_method || null,
+        vehicle.accessories ? `Accesorios: ${vehicle.accessories.map(a => a.name).join(', ')}` : null
       ]);
       
       rentalIds.push(rental.rows[0].id);
@@ -128,11 +131,10 @@ router.post('/', authMiddleware, async (req, res) => {
       );
     }
     
-    // 3. Sauvegarder la photo d'identité (optionnel - dans une table séparée ou en notes)
+    // 3. Sauvegarder la photo d'identité (optionnel)
     if (id_photo) {
-      // Pour l'instant on stocke juste une référence
-      // Dans une vraie app, on sauvegarderait le fichier sur un service de stockage
       console.log('Photo ID reçue pour le client:', customerId);
+      // TODO: Sauvegarder la photo dans un service de stockage
     }
     
     await client.query('COMMIT');
@@ -156,6 +158,8 @@ router.post('/', authMiddleware, async (req, res) => {
 
 // GET /api/checkin/today - Obtenir les check-ins du jour
 router.get('/today', authMiddleware, async (req, res) => {
+  const pool = req.app.get('pool');
+  
   try {
     const { agency_id } = req.query;
     
