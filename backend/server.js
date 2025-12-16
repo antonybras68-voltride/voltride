@@ -26,6 +26,7 @@ const reportsRoutes = require('./routes/reports');
 const contractsRoutes = require('./routes/contracts');
 const checkinRoutes = require('./routes/checkin');
 const checkoutRoutes = require('./routes/checkout');
+const ocrRoutes = require('./routes/ocr');
 
 // Routes API
 app.use('/api/auth', authRoutes);
@@ -38,6 +39,7 @@ app.use('/api/reports', reportsRoutes);
 app.use('/api/contracts', contractsRoutes);
 app.use('/api/checkin', checkinRoutes);
 app.use('/api/checkout', checkoutRoutes);
+app.use('/api/ocr', ocrRoutes);
 
 // Route par défaut - renvoie l'application
 app.get('*', (req, res) => {
