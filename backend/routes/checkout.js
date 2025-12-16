@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authMiddleware } = require('./auth');
+const { sendEmail, getInvoiceEmailTemplate } = require('../services/emailService');
 
 // GET /api/checkout/active - Obtenir les contrats actifs pour check-out
 router.get('/active', authMiddleware, async (req, res) => {
@@ -52,7 +53,23 @@ router.post('/', authMiddleware, async (req, res) => {
       checkout_photos
     } = req.body;
     
-    // 1. Mettre à jour la location (rentals)
+    // 1. Récupérer les infos de la location
+    const rentalInfo = await client.query(`
+      SELECT r.*, c.email, c.first_name, c.last_name, c.preferred_language,
+             v.code as vehicle_code, v.type as vehicle_type, v.brand, v.model
+      FROM rentals r
+      LEFT JOIN customers c ON r.customer_id = c.id
+      LEFT JOIN vehicles v ON r.vehicle_id = v.id
+      WHERE r.id = $1
+    `, [rental_id]);
+    
+    if (rentalInfo.rows.length === 0) {
+      throw new Error('Location non trouvée');
+    }
+    
+    const rental = rentalInfo.rows[0];
+    
+    // 2. Mettre à jour la location (rentals)
     const now = new Date().toISOString();
     
     await client.query(`
@@ -78,7 +95,7 @@ router.post('/', authMiddleware, async (req, res) => {
       rental_id
     ]);
     
-    // 2. Mettre à jour le statut du véhicule
+    // 3. Mettre à jour le statut du véhicule
     const newVehicleStatus = needs_maintenance ? 'maintenance' : 'available';
     
     await client.query(`
@@ -87,31 +104,25 @@ router.post('/', authMiddleware, async (req, res) => {
       WHERE id = $2
     `, [newVehicleStatus, vehicle_id]);
     
-    // 3. Si maintenance nécessaire, créer un ticket (table future)
+    // 4. Si maintenance nécessaire, créer un ticket
     if (needs_maintenance) {
-      // Pour l'instant, on log juste
       console.log(`⚠️ Véhicule ${vehicle_id} envoyé en maintenance`);
-      
       // TODO: Créer entrée dans table maintenance
-      // TODO: Envoyer email au mécanicien et admin
+      // TODO: Envoyer email au mécanicien
     }
     
-    // 4. Enregistrer les déductions comme paiements négatifs (si applicable)
+    // 5. Enregistrer les déductions comme paiements négatifs
     if (total_deductions > 0) {
       const user = req.user;
-      
-      // Récupérer agency_id du rental
-      const rentalInfo = await client.query('SELECT agency_id FROM rentals WHERE id = $1', [rental_id]);
-      const agency_id = rentalInfo.rows[0]?.agency_id;
       
       await client.query(`
         INSERT INTO payments (rental_id, agency_id, user_id, amount, payment_type, payment_method, description)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
       `, [
         rental_id,
-        agency_id,
+        rental.agency_id,
         user.id,
-        -total_deductions, // Montant négatif (déduction de la caution)
+        -total_deductions,
         'deduction',
         'deposit',
         `Deducciones check-out: ${deductions.map(d => d.description).join(', ')}`
@@ -120,10 +131,17 @@ router.post('/', authMiddleware, async (req, res) => {
     
     await client.query('COMMIT');
     
+    // 6. Envoyer l'email avec la facture (async)
+    if (rental.email) {
+      sendInvoiceEmail(rental, total_deductions, deposit_refunded, deductions)
+        .catch(err => console.error('Erreur envoi email facture:', err));
+    }
+    
     res.json({
       success: true,
       message: 'Check-out completado con éxito',
       rental_id: rental_id,
+      invoice_url: `/api/invoices/${rental_id}/pdf`,
       deposit_refunded: deposit_refunded,
       vehicle_status: newVehicleStatus
     });
@@ -136,6 +154,57 @@ router.post('/', authMiddleware, async (req, res) => {
     client.release();
   }
 });
+
+// Fonction pour envoyer l'email de facture
+async function sendInvoiceEmail(rental, total_deductions, deposit_refunded, deductions) {
+  const lang = rental.preferred_language || 'es';
+  
+  // Calculer les jours
+  const startDate = new Date(rental.start_date);
+  const endDate = new Date(rental.end_date || new Date());
+  const days = Math.max(1, Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)));
+  
+  const startDateFormatted = startDate.toLocaleDateString(
+    lang === 'fr' ? 'fr-FR' : lang === 'en' ? 'en-GB' : 'es-ES',
+    { day: '2-digit', month: '2-digit', year: 'numeric' }
+  );
+  const endDateFormatted = endDate.toLocaleDateString(
+    lang === 'fr' ? 'fr-FR' : lang === 'en' ? 'en-GB' : 'es-ES',
+    { day: '2-digit', month: '2-digit', year: 'numeric' }
+  );
+  
+  const vehicleIcon = rental.vehicle_type === 'bike' ? '🚲' : rental.vehicle_type === 'ebike' ? '⚡' : '🛵';
+  
+  const emailData = {
+    customer_name: `${rental.first_name} ${rental.last_name}`,
+    contract_number: rental.contract_number,
+    invoice_number: `F-${rental.contract_number}`,
+    vehicle: `${vehicleIcon} ${rental.vehicle_code} - ${rental.brand || ''} ${rental.model || ''}`,
+    start_date: startDateFormatted,
+    end_date: endDateFormatted,
+    days: days,
+    rental_amount: parseFloat(rental.total_amount).toFixed(2),
+    deposit_paid: parseFloat(rental.deposit).toFixed(2),
+    deductions: total_deductions,
+    deposit_refunded: deposit_refunded.toFixed(2)
+  };
+  
+  const template = getInvoiceEmailTemplate(emailData, lang);
+  
+  const result = await sendEmail({
+    to: rental.email,
+    subject: template.subject,
+    html: template.html
+  });
+  
+  if (result.success) {
+    console.log(`✅ Email facture envoyé à ${rental.email}`);
+  } else {
+    console.error(`❌ Erreur envoi email facture à ${rental.email}:`, result.error);
+  }
+  
+  return result;
+}
 
 // GET /api/checkout/:rentalId/summary - Obtenir le résumé d'un check-out
 router.get('/:rentalId/summary', authMiddleware, async (req, res) => {
