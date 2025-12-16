@@ -1,5 +1,5 @@
 // =====================================================
-// VOLTRIDE - Check-in Walk-in (Version 2.1 - avec OCR)
+// VOLTRIDE - Check-in Walk-in (Version 2.2 - OCR amélioré)
 // =====================================================
 
 let currentStep = 1;
@@ -249,7 +249,6 @@ function filterVehicles(type) {
     filtered = vehiclesData.filter(v => v.type === type);
   }
   
-  // Update button styles
   document.querySelectorAll('#step1 .btn-sm').forEach(btn => {
     btn.classList.remove('btn-primary');
     btn.classList.add('btn-secondary');
@@ -263,7 +262,7 @@ function filterVehicles(type) {
 }
 
 // =====================================================
-// Pricing (Prix TTC - TVA inversée)
+// Pricing
 // =====================================================
 
 function calculateDays() {
@@ -298,7 +297,6 @@ function updatePricing() {
     html += `<div class="price-line"><span>${icon} ${v.code}</span><span>${priceTTC.toFixed(2)} €</span></div>`;
   });
   
-  // Add accessories price
   let accessoriesTotalTTC = 0;
   Object.values(accessoriesData).forEach(vehicleAccessories => {
     vehicleAccessories.forEach(acc => {
@@ -335,7 +333,6 @@ async function searchClientByEmail() {
     });
     const customers = await response.json();
     
-    // Find exact match
     const customer = customers.find(c => c.email && c.email.toLowerCase() === email.toLowerCase());
     
     if (customer) {
@@ -446,7 +443,6 @@ function renderSummary() {
   const start = new Date(`${startDate}T${startHour}:${startMinute}`);
   const end = new Date(`${endDate}T${endHour}:${endMinute}`);
   
-  // Vehicles section
   let vehiclesHtml = selectedVehicles.map(v => {
     const icon = v.type === 'bike' ? '🚲' : v.type === 'ebike' ? '⚡' : '🛵';
     const accessories = accessoriesData[v.id] || [];
@@ -500,7 +496,6 @@ function renderSummary() {
     </div>
   `;
   
-  // Pricing - Prix TTC
   let subtotalTTC = 0;
   let accessoriesTotalTTC = 0;
   
@@ -519,7 +514,6 @@ function renderSummary() {
   const totalDeposit = selectedVehicles.reduce((sum, v) => sum + (parseFloat(v.deposit) || 0), 0);
   const totalTTC = subtotalTTC + accessoriesTotalTTC;
   
-  // Store for payment step
   paymentData.rental.amount = totalTTC;
   paymentData.deposit.amount = totalDeposit;
   
@@ -554,12 +548,10 @@ function goToPayment() {
     return;
   }
   
-  // Exit client mode, enter operator mode
   clientMode = false;
   document.getElementById('clientModeBanner').classList.remove('active');
   document.getElementById('operatorModeBanner').classList.add('active');
   
-  // Update payment display
   const totalToPay = paymentData.rental.amount + paymentData.deposit.amount;
   document.getElementById('paymentTotalAmount').textContent = totalToPay.toFixed(2) + ' €';
   document.getElementById('rentalAmountDisplay').textContent = paymentData.rental.amount.toFixed(2) + ' €';
@@ -571,14 +563,12 @@ function goToPayment() {
 function selectPaymentMethod(type, method) {
   paymentData[type].method = method;
   
-  // Update UI
   const containerId = type === 'rental' ? 'rentalPaymentMethods' : 'depositPaymentMethods';
   document.querySelectorAll(`#${containerId} .payment-method`).forEach(el => {
     el.classList.remove('selected');
   });
   event.currentTarget.classList.add('selected');
   
-  // Check if both methods selected
   checkPaymentComplete();
 }
 
@@ -621,7 +611,6 @@ async function handleIdPhoto(input) {
       preview.classList.remove('empty');
       preview.innerHTML = `<img src="${e.target.result}" alt="ID Photo">`;
       
-      // Lancer l'OCR automatiquement
       await analyzeDocumentWithOCR(e.target.result);
     };
     reader.readAsDataURL(input.files[0]);
@@ -630,7 +619,6 @@ async function handleIdPhoto(input) {
 
 // Fonction OCR pour analyser le document
 async function analyzeDocumentWithOCR(imageData) {
-  // Afficher un indicateur de chargement
   const preview = document.getElementById('idPhotoPreview');
   preview.style.position = 'relative';
   preview.innerHTML += `
@@ -638,7 +626,8 @@ async function analyzeDocumentWithOCR(imageData) {
          background: rgba(0,0,0,0.7); display: flex; flex-direction: column; 
          align-items: center; justify-content: center; color: white; border-radius: 8px;">
       <div style="font-size: 32px; margin-bottom: 10px;">🔍</div>
-      <div>Analizando documento...</div>
+      <div>Analizando documento con IA...</div>
+      <div style="font-size: 12px; margin-top: 5px; opacity: 0.7;">Esto puede tardar unos segundos</div>
     </div>
   `;
   
@@ -654,20 +643,25 @@ async function analyzeDocumentWithOCR(imageData) {
     
     const result = await response.json();
     
-    // Enlever l'indicateur de chargement
     const loadingEl = document.getElementById('ocrLoading');
     if (loadingEl) loadingEl.remove();
     
     if (result.success) {
-      // Remplir automatiquement les champs
+      // Remplir automatiquement les champs du formulaire (Step 6)
       if (result.first_name) {
         document.getElementById('clientFirstName').value = result.first_name;
+        const badge = document.getElementById('ocrBadgeFirstName');
+        if (badge) badge.style.display = 'inline';
       }
       if (result.last_name) {
         document.getElementById('clientLastName').value = result.last_name;
+        const badge = document.getElementById('ocrBadgeLastName');
+        if (badge) badge.style.display = 'inline';
       }
       if (result.document_number) {
         document.getElementById('clientIdNumber').value = result.document_number;
+        const badge = document.getElementById('ocrBadgeIdNumber');
+        if (badge) badge.style.display = 'inline';
       }
       if (result.document_type) {
         const idTypeSelect = document.getElementById('clientIdType');
@@ -677,27 +671,48 @@ async function analyzeDocumentWithOCR(imageData) {
           idTypeSelect.value = 'dni';
         } else if (result.document_type === 'nie') {
           idTypeSelect.value = 'nie';
+        } else if (result.document_type === 'driving_license') {
+          idTypeSelect.value = 'driving_license';
         }
+        const badge = document.getElementById('ocrBadgeIdType');
+        if (badge) badge.style.display = 'inline';
       }
       if (result.nationality) {
-        // Mapper les nationalités courantes
         const countryMap = {
-          'ESPAÑA': 'ES', 'SPAIN': 'ES', 'ESPAGNE': 'ES', 'SPANISH': 'ES',
-          'FRANCE': 'FR', 'FRANCIA': 'FR', 'FRENCH': 'FR', 'FRANÇAISE': 'FR',
-          'UNITED KINGDOM': 'GB', 'UK': 'GB', 'REINO UNIDO': 'GB', 'ROYAUME-UNI': 'GB', 'BRITISH': 'GB',
-          'GERMANY': 'DE', 'ALEMANIA': 'DE', 'ALLEMAGNE': 'DE', 'GERMAN': 'DE',
-          'ITALY': 'IT', 'ITALIA': 'IT', 'ITALIE': 'IT', 'ITALIAN': 'IT',
-          'PORTUGAL': 'PT', 'PORTUGUESE': 'PT',
-          'NETHERLANDS': 'NL', 'PAÍSES BAJOS': 'NL', 'PAYS-BAS': 'NL', 'DUTCH': 'NL',
-          'BELGIUM': 'BE', 'BÉLGICA': 'BE', 'BELGIQUE': 'BE', 'BELGIAN': 'BE'
+          'ESPAÑA': 'ES', 'SPAIN': 'ES', 'ESPAGNE': 'ES', 'SPANISH': 'ES', 'ESP': 'ES',
+          'FRANCE': 'FR', 'FRANCIA': 'FR', 'FRENCH': 'FR', 'FRANÇAISE': 'FR', 'FRA': 'FR',
+          'UNITED KINGDOM': 'GB', 'UK': 'GB', 'REINO UNIDO': 'GB', 'ROYAUME-UNI': 'GB', 'BRITISH': 'GB', 'GBR': 'GB',
+          'GERMANY': 'DE', 'ALEMANIA': 'DE', 'ALLEMAGNE': 'DE', 'GERMAN': 'DE', 'DEU': 'DE',
+          'ITALY': 'IT', 'ITALIA': 'IT', 'ITALIE': 'IT', 'ITALIAN': 'IT', 'ITA': 'IT',
+          'PORTUGAL': 'PT', 'PORTUGUESE': 'PT', 'PRT': 'PT',
+          'NETHERLANDS': 'NL', 'PAÍSES BAJOS': 'NL', 'PAYS-BAS': 'NL', 'DUTCH': 'NL', 'NLD': 'NL',
+          'BELGIUM': 'BE', 'BÉLGICA': 'BE', 'BELGIQUE': 'BE', 'BELGIAN': 'BE', 'BEL': 'BE'
         };
         const countryCode = countryMap[result.nationality.toUpperCase()];
         if (countryCode) {
           document.getElementById('clientCountry').value = countryCode;
+          const badge = document.getElementById('ocrBadgeCountry');
+          if (badge) badge.style.display = 'inline';
+        }
+      }
+      if (result.birth_date) {
+        const birthDate = convertDateToISO(result.birth_date);
+        if (birthDate) {
+          document.getElementById('clientBirthDate').value = birthDate;
+          const badge = document.getElementById('ocrBadgeBirthDate');
+          if (badge) badge.style.display = 'inline';
+        }
+      }
+      if (result.expiry_date) {
+        const expiryDate = convertDateToISO(result.expiry_date);
+        if (expiryDate) {
+          document.getElementById('clientDocExpiry').value = expiryDate;
+          const badge = document.getElementById('ocrBadgeExpiryDate');
+          if (badge) badge.style.display = 'inline';
         }
       }
       
-      // Afficher un message de succès
+      showOCRResultsPreview(result);
       showOCRSuccess();
       
       console.log('✅ OCR réussi:', result);
@@ -708,12 +723,70 @@ async function analyzeDocumentWithOCR(imageData) {
     
   } catch (error) {
     console.error('❌ Erreur OCR:', error);
-    // Enlever l'indicateur de chargement
     const loadingEl = document.getElementById('ocrLoading');
     if (loadingEl) loadingEl.remove();
     
     showOCRError('Error al analizar el documento');
   }
+}
+
+function convertDateToISO(dateStr) {
+  if (!dateStr) return null;
+  
+  const match1 = dateStr.match(/(\d{2})[\/\-\s](\d{2})[\/\-\s](\d{4})/);
+  if (match1) {
+    return `${match1[3]}-${match1[2]}-${match1[1]}`;
+  }
+  
+  const match2 = dateStr.match(/(\d{4})[\/\-](\d{2})[\/\-](\d{2})/);
+  if (match2) {
+    return `${match2[1]}-${match2[2]}-${match2[3]}`;
+  }
+  
+  return null;
+}
+
+function showOCRResultsPreview(result) {
+  const container = document.getElementById('ocrResultsPreview');
+  const content = document.getElementById('ocrResultsContent');
+  
+  let html = '';
+  
+  const docTypes = {
+    'passport': '🛂 Pasaporte',
+    'dni': '🪪 DNI',
+    'nie': '🪪 NIE',
+    'driving_license': '🚗 Permiso de Conducir'
+  };
+  
+  if (result.document_type) {
+    html += `<div class="ocr-result-row"><span class="ocr-result-label">Tipo:</span><span class="ocr-result-value">${docTypes[result.document_type] || result.document_type}</span></div>`;
+  }
+  if (result.first_name) {
+    html += `<div class="ocr-result-row"><span class="ocr-result-label">Nombre:</span><span class="ocr-result-value">${result.first_name}</span></div>`;
+  }
+  if (result.last_name) {
+    html += `<div class="ocr-result-row"><span class="ocr-result-label">Apellido:</span><span class="ocr-result-value">${result.last_name}</span></div>`;
+  }
+  if (result.document_number) {
+    html += `<div class="ocr-result-row"><span class="ocr-result-label">Nº Documento:</span><span class="ocr-result-value">${result.document_number}</span></div>`;
+  }
+  if (result.nationality) {
+    html += `<div class="ocr-result-row"><span class="ocr-result-label">Nacionalidad:</span><span class="ocr-result-value">${result.nationality}</span></div>`;
+  }
+  if (result.birth_date) {
+    html += `<div class="ocr-result-row"><span class="ocr-result-label">Nacimiento:</span><span class="ocr-result-value">${result.birth_date}</span></div>`;
+  }
+  if (result.expiry_date) {
+    html += `<div class="ocr-result-row"><span class="ocr-result-label">Validez:</span><span class="ocr-result-value">${result.expiry_date}</span></div>`;
+  }
+  if (result.gender) {
+    const genders = { 'M': 'Masculino', 'F': 'Femenino' };
+    html += `<div class="ocr-result-row"><span class="ocr-result-label">Sexo:</span><span class="ocr-result-value">${genders[result.gender] || result.gender}</span></div>`;
+  }
+  
+  content.innerHTML = html;
+  container.style.display = 'block';
 }
 
 function showOCRSuccess() {
@@ -722,20 +795,17 @@ function showOCRSuccess() {
   successBadge.id = 'ocrSuccessBadge';
   successBadge.style.cssText = `
     position: absolute; bottom: 10px; left: 10px; right: 10px;
-    background: rgba(34, 197, 94, 0.9); color: white;
-    padding: 10px; border-radius: 8px; text-align: center;
-    font-weight: bold;
+    background: rgba(34, 197, 94, 0.95); color: white;
+    padding: 12px; border-radius: 8px; text-align: center;
+    font-weight: bold; font-size: 14px;
   `;
-  successBadge.innerHTML = '✅ Datos extraídos automáticamente';
+  successBadge.innerHTML = '✅ Datos extraídos - Verifique en el siguiente paso';
   preview.style.position = 'relative';
   preview.appendChild(successBadge);
   
-  // Enlever le badge après 3 secondes
   setTimeout(() => {
-    if (successBadge.parentNode) {
-      successBadge.remove();
-    }
-  }, 3000);
+    if (successBadge.parentNode) successBadge.remove();
+  }, 5000);
 }
 
 function showOCRError(message) {
@@ -744,20 +814,17 @@ function showOCRError(message) {
   errorBadge.id = 'ocrErrorBadge';
   errorBadge.style.cssText = `
     position: absolute; bottom: 10px; left: 10px; right: 10px;
-    background: rgba(239, 68, 68, 0.9); color: white;
-    padding: 10px; border-radius: 8px; text-align: center;
-    font-size: 12px;
+    background: rgba(239, 68, 68, 0.95); color: white;
+    padding: 12px; border-radius: 8px; text-align: center;
+    font-size: 13px;
   `;
   errorBadge.innerHTML = `⚠️ ${message}<br><small>Complete los datos manualmente</small>`;
   preview.style.position = 'relative';
   preview.appendChild(errorBadge);
   
-  // Enlever le badge après 5 secondes
   setTimeout(() => {
-    if (errorBadge.parentNode) {
-      errorBadge.remove();
-    }
-  }, 5000);
+    if (errorBadge.parentNode) errorBadge.remove();
+  }, 6000);
 }
 
 // =====================================================
@@ -851,7 +918,7 @@ function nextStep() {
   if (currentStep === 3) {
     renderSummary();
   }
-  if (currentStep === 5) {
+  if (currentStep === 6) {
     renderCGV();
   }
   
@@ -917,7 +984,9 @@ async function finishCheckin() {
       preferred_language: document.getElementById('clientLanguage').value,
       id_type: document.getElementById('clientIdType').value,
       id_number: document.getElementById('clientIdNumber').value,
-      address: document.getElementById('clientAddress').value
+      address: document.getElementById('clientAddress').value,
+      birth_date: document.getElementById('clientBirthDate')?.value || null,
+      doc_expiry: document.getElementById('clientDocExpiry')?.value || null
     },
     vehicles: selectedVehicles.map(v => ({
       id: v.id,
@@ -978,4 +1047,4 @@ function exitCheckin() {
   if (confirm('¿Seguro que desea salir? Se perderán los datos no guardados.')) {
     window.location.href = '/app.html';
   }
-}
+                }
