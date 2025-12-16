@@ -301,4 +301,906 @@
       gap: 10px;
     }
     
-    .a
+    .accessory-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
+    }
+    
+    .accessory-card {
+      background: var(--bg-tertiary);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 15px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .accessory-card:hover {
+      border-color: var(--accent);
+    }
+    
+    .accessory-card.selected {
+      border-color: var(--success);
+      background: rgba(34, 197, 94, 0.1);
+    }
+    
+    .accessory-card.mandatory {
+      border-color: var(--accent);
+      background: rgba(245, 158, 11, 0.1);
+    }
+    
+    .accessory-card.mandatory::after {
+      content: 'Obligatorio';
+      display: block;
+      font-size: 10px;
+      color: var(--accent);
+      margin-top: 5px;
+    }
+    
+    .accessory-icon {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+    
+    .accessory-name {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .accessory-price {
+      color: var(--success);
+      font-size: 14px;
+    }
+    
+    .accessory-price.paid {
+      color: var(--accent);
+    }
+    
+    /* === SUMMARY === */
+    .summary-container {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+    }
+    
+    .summary-details {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    
+    .summary-section {
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .summary-section:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+    
+    .summary-section h3 {
+      color: var(--accent);
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .summary-pricing {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 20px;
+      position: sticky;
+      top: 20px;
+    }
+    
+    .price-line {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .price-line.total {
+      border-bottom: none;
+      font-size: 24px;
+      font-weight: bold;
+      color: var(--accent);
+      margin-top: 10px;
+      padding-top: 15px;
+      border-top: 2px solid var(--accent);
+    }
+    
+    /* === CLIENT FORM === */
+    .client-form {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 30px;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    
+    .client-form h2 {
+      text-align: center;
+      margin-bottom: 30px;
+      color: var(--accent);
+    }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    
+    /* === CLIENT SEARCH === */
+    .client-search-box {
+      background: var(--bg-tertiary);
+      border: 2px solid var(--accent);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .client-search-box h3 {
+      margin-bottom: 15px;
+      color: var(--accent);
+    }
+    
+    .client-search-row {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .client-search-row input {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #1a1a2e;
+      color: #ffffff;
+      font-size: 16px;
+    }
+    
+    .client-search-row button {
+      padding: 12px 25px;
+    }
+    
+    .client-found {
+      margin-top: 15px;
+      padding: 15px;
+      background: rgba(34, 197, 94, 0.1);
+      border: 2px solid var(--success);
+      border-radius: 8px;
+      display: none;
+    }
+    
+    .client-found.active {
+      display: block;
+    }
+    
+    /* === CGV === */
+    .cgv-container {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 30px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .cgv-content {
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      padding: 20px;
+      max-height: 400px;
+      overflow-y: auto;
+      margin-bottom: 20px;
+      font-size: 14px;
+      line-height: 1.8;
+    }
+    
+    .cgv-accept {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 20px;
+      background: rgba(245, 158, 11, 0.1);
+      border-radius: 8px;
+      border: 2px solid var(--accent);
+    }
+    
+    .cgv-accept input[type="checkbox"] {
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+    }
+    
+    .cgv-accept label {
+      font-size: 16px;
+      cursor: pointer;
+    }
+    
+    /* === SIGNATURE === */
+    .signature-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .signature-box {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 30px;
+      text-align: center;
+    }
+    
+    .signature-canvas-container {
+      background: white;
+      border-radius: 8px;
+      margin: 20px 0;
+      position: relative;
+    }
+    
+    #signatureCanvas {
+      border-radius: 8px;
+      cursor: crosshair;
+      touch-action: none;
+    }
+    
+    .signature-actions {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 15px;
+    }
+    
+    /* === PAYMENT STEP === */
+    .payment-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .payment-box {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 20px;
+    }
+    
+    .payment-box h3 {
+      margin-bottom: 20px;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .payment-total-display {
+      background: linear-gradient(135deg, var(--accent), #e67e22);
+      color: white;
+      padding: 30px;
+      border-radius: 12px;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .payment-total-display .amount {
+      font-size: 48px;
+      font-weight: bold;
+    }
+    
+    .payment-total-display .label {
+      font-size: 18px;
+      opacity: 0.9;
+    }
+    
+    .payment-methods {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+    
+    .payment-method {
+      background: var(--bg-tertiary);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .payment-method:hover {
+      border-color: var(--accent);
+    }
+    
+    .payment-method.selected {
+      border-color: var(--success);
+      background: rgba(34, 197, 94, 0.1);
+    }
+    
+    .payment-method-icon {
+      font-size: 36px;
+      margin-bottom: 10px;
+    }
+    
+    .payment-method-name {
+      font-weight: bold;
+    }
+    
+    .payment-method-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 5px;
+    }
+    
+    .deposit-warning {
+      background: rgba(245, 158, 11, 0.1);
+      border: 2px solid var(--accent);
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 15px;
+      font-size: 14px;
+    }
+    
+    /* === BUTTONS === */
+    .wizard-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+    
+    .btn-wizard {
+      padding: 15px 40px;
+      font-size: 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      border: none;
+      font-weight: bold;
+      transition: all 0.3s;
+    }
+    
+    .btn-wizard.prev {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+    
+    .btn-wizard.next {
+      background: var(--accent);
+      color: var(--bg-primary);
+    }
+    
+    .btn-wizard.finish {
+      background: var(--success);
+      color: white;
+      padding: 20px 60px;
+      font-size: 18px;
+    }
+    
+    .btn-wizard:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    }
+    
+    .btn-wizard:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    /* === PHOTO CAPTURE === */
+    .photo-capture {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .photo-preview {
+      width: 100%;
+      max-width: 400px;
+      height: 300px;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      margin: 20px auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    
+    .photo-preview img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    
+    .photo-preview.empty {
+      border: 2px dashed var(--border);
+    }
+    
+    .photo-preview.empty::after {
+      content: '📷 Sin foto';
+      color: var(--text-secondary);
+    }
+    
+    /* === RESPONSIVE === */
+    @media (max-width: 768px) {
+      .wizard-steps {
+        gap: 5px;
+      }
+      
+      .wizard-step {
+        min-width: 50px;
+        padding: 8px 5px;
+      }
+      
+      .wizard-step-label {
+        font-size: 9px;
+      }
+      
+      .wizard-step-icon {
+        font-size: 20px;
+      }
+      
+      .datetime-container,
+      .summary-container,
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+      
+      .vehicle-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .payment-methods {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="checkin-container">
+    <!-- Header -->
+    <div class="checkin-header">
+      <div class="checkin-logo">⚡ VOLTRIDE</div>
+      <div>
+        <span id="agencyName" style="margin-right: 20px; color: var(--text-secondary);"></span>
+        <button class="checkin-exit" onclick="exitCheckin()">✕ Salir</button>
+      </div>
+    </div>
+    
+    <!-- Client Mode Banner -->
+    <div class="client-mode-banner" id="clientModeBanner">
+      👤 MODO CLIENTE - Por favor complete sus datos
+    </div>
+    
+    <!-- Operator Mode Banner -->
+    <div class="operator-mode-banner" id="operatorModeBanner">
+      🔧 MODO OPERADOR - Complete el pago
+    </div>
+    
+    <!-- Wizard Steps -->
+    <div class="wizard-steps" id="wizardSteps">
+      <div class="wizard-step active" data-step="1">
+        <div class="wizard-step-icon">🚲</div>
+        <div class="wizard-step-label">Vehículo</div>
+      </div>
+      <div class="wizard-step" data-step="2">
+        <div class="wizard-step-icon">📅</div>
+        <div class="wizard-step-label">Fechas</div>
+      </div>
+      <div class="wizard-step" data-step="3">
+        <div class="wizard-step-icon">🎒</div>
+        <div class="wizard-step-label">Accesorios</div>
+      </div>
+      <div class="wizard-step" data-step="4">
+        <div class="wizard-step-icon">📋</div>
+        <div class="wizard-step-label">Resumen</div>
+      </div>
+      <div class="wizard-step client-step" data-step="5">
+        <div class="wizard-step-icon">👤</div>
+        <div class="wizard-step-label">Cliente</div>
+      </div>
+      <div class="wizard-step client-step" data-step="6">
+        <div class="wizard-step-icon">📷</div>
+        <div class="wizard-step-label">Foto ID</div>
+      </div>
+      <div class="wizard-step client-step" data-step="7">
+        <div class="wizard-step-icon">📜</div>
+        <div class="wizard-step-label">CGV</div>
+      </div>
+      <div class="wizard-step client-step" data-step="8">
+        <div class="wizard-step-icon">✍️</div>
+        <div class="wizard-step-label">Firma</div>
+      </div>
+      <div class="wizard-step operator-step" data-step="9">
+        <div class="wizard-step-icon">💳</div>
+        <div class="wizard-step-label">Pago</div>
+      </div>
+    </div>
+    
+    <!-- Wizard Content -->
+    <div class="wizard-content">
+      <!-- Step 1: Vehicle Selection -->
+      <div class="wizard-panel active" id="step1">
+        <h2>Seleccionar Vehículo(s)</h2>
+        <p style="color: var(--text-secondary);">Puedes seleccionar varios vehículos para una misma reserva</p>
+        
+        <div class="selected-vehicles" id="selectedVehiclesContainer" style="display: none;">
+          <h3>🚲 Vehículos seleccionados: <span id="selectedCount">0</span></h3>
+          <div id="selectedVehiclesTags"></div>
+        </div>
+        
+        <div style="display: flex; gap: 10px; margin: 20px 0;">
+          <button class="btn btn-sm" onclick="filterVehicles('all')" id="filterAll">Todos</button>
+          <button class="btn btn-sm btn-secondary" onclick="filterVehicles('bike')">🚲 City Bike</button>
+          <button class="btn btn-sm btn-secondary" onclick="filterVehicles('ebike')">⚡ E-Bike</button>
+          <button class="btn btn-sm btn-secondary" onclick="filterVehicles('scooter')">🛵 E-Moto</button>
+        </div>
+        
+        <div class="vehicle-grid" id="vehicleGrid">
+          <!-- Vehicles loaded dynamically -->
+        </div>
+        
+        <div class="wizard-buttons">
+          <div></div>
+          <button class="btn-wizard next" onclick="nextStep()" id="btnNext1" disabled>Siguiente →</button>
+        </div>
+      </div>
+      
+      <!-- Step 2: Date/Time Selection -->
+      <div class="wizard-panel" id="step2">
+        <h2>Fechas de Alquiler</h2>
+        
+        <div class="datetime-container">
+          <div class="datetime-box">
+            <h3><span class="dot green"></span> Fecha y Hora de Inicio</h3>
+            <div class="form-group">
+              <label>Fecha *</label>
+              <input type="date" id="startDate" class="form-control" onchange="updatePricing()">
+            </div>
+            <div class="time-select">
+              <div class="form-group">
+                <label>Hora *</label>
+                <select id="startHour" class="form-control" onchange="updatePricing()">
+                  <!-- Hours 8-21 -->
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Minutos *</label>
+                <select id="startMinute" class="form-control" onchange="updatePricing()">
+                  <option value="00">00</option>
+                  <option value="15">15</option>
+                  <option value="30">30</option>
+                  <option value="45">45</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          <div class="datetime-box">
+            <h3><span class="dot red"></span> Fecha y Hora de Fin</h3>
+            <div class="form-group">
+              <label>Fecha *</label>
+              <input type="date" id="endDate" class="form-control" onchange="updatePricing()">
+            </div>
+            <div class="time-select">
+              <div class="form-group">
+                <label>Hora *</label>
+                <select id="endHour" class="form-control" onchange="updatePricing()">
+                  <!-- Hours 8-21 -->
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Minutos *</label>
+                <select id="endMinute" class="form-control" onchange="updatePricing()">
+                  <option value="00">00</option>
+                  <option value="15">15</option>
+                  <option value="30">30</option>
+                  <option value="45">45</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="summary-pricing" style="margin-top: 20px;">
+          <h3>💰 Resumen de Precios</h3>
+          <div id="pricingSummary">
+            <!-- Dynamic pricing -->
+          </div>
+        </div>
+        
+        <div class="wizard-buttons">
+          <button class="btn-wizard prev" onclick="prevStep()">← Anterior</button>
+          <button class="btn-wizard next" onclick="nextStep()">Siguiente →</button>
+        </div>
+      </div>
+      
+      <!-- Step 3: Accessories -->
+      <div class="wizard-panel" id="step3">
+        <h2>Accesorios</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 20px;">
+          💡 Nota: Los accesorios gratuitos están pre-seleccionados. El candado es obligatorio.
+        </p>
+        
+        <div class="accessories-section" id="accessoriesSection">
+          <!-- Dynamic accessories per vehicle -->
+        </div>
+        
+        <div class="wizard-buttons">
+          <button class="btn-wizard prev" onclick="prevStep()">← Anterior</button>
+          <button class="btn-wizard next" onclick="nextStep()">Siguiente →</button>
+        </div>
+      </div>
+      
+      <!-- Step 4: Summary (Before client handoff) -->
+      <div class="wizard-panel" id="step4">
+        <h2>📋 Resumen del Contrato</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 20px;">
+          Por favor, revise todos los detalles antes de pasar la tableta al cliente.
+        </p>
+        
+        <div class="summary-container">
+          <div class="summary-details" id="summaryDetails">
+            <!-- Dynamic summary -->
+          </div>
+          <div class="summary-pricing" id="finalPricing">
+            <!-- Dynamic final pricing -->
+          </div>
+        </div>
+        
+        <div class="wizard-buttons">
+          <button class="btn-wizard prev" onclick="prevStep()">← Anterior</button>
+          <button class="btn-wizard next" onclick="startClientMode()" style="background: var(--warning);">
+            👤 Pasar al Cliente →
+          </button>
+        </div>
+      </div>
+      
+      <!-- Step 5: Client Information -->
+      <div class="wizard-panel" id="step5">
+        <div class="client-form">
+          <h2>👤 Sus Datos Personales</h2>
+          
+          <!-- Client Search -->
+          <div class="client-search-box">
+            <h3>🔍 ¿Ya eres cliente?</h3>
+            <div class="client-search-row">
+              <input type="email" id="clientSearchEmail" placeholder="Introduce tu email para buscar...">
+              <button class="btn btn-primary" onclick="searchClientByEmail()">Buscar</button>
+            </div>
+            <div class="client-found" id="clientFoundBox">
+              <p>✅ <strong>Cliente encontrado:</strong> <span id="clientFoundName"></span></p>
+              <button class="btn btn-sm btn-success" onclick="useFoundClient()">Usar estos datos</button>
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nombre *</label>
+              <input type="text" id="clientFirstName" placeholder="Juan" required>
+            </div>
+            <div class="form-group">
+              <label>Apellido *</label>
+              <input type="text" id="clientLastName" placeholder="García" required>
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label>Email *</label>
+              <input type="email" id="clientEmail" placeholder="juan@email.com" required>
+            </div>
+            <div class="form-group">
+              <label>Teléfono *</label>
+              <input type="tel" id="clientPhone" placeholder="+34 612 345 678" required>
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label>País *</label>
+              <select id="clientCountry" required>
+                <option value="">Seleccionar país...</option>
+                <option value="ES">🇪🇸 España</option>
+                <option value="FR">🇫🇷 Francia</option>
+                <option value="GB">🇬🇧 Reino Unido</option>
+                <option value="DE">🇩🇪 Alemania</option>
+                <option value="IT">🇮🇹 Italia</option>
+                <option value="PT">🇵🇹 Portugal</option>
+                <option value="NL">🇳🇱 Países Bajos</option>
+                <option value="BE">🇧🇪 Bélgica</option>
+                <option value="OTHER">Otro</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Idioma Contrato *</label>
+              <select id="clientLanguage" required>
+                <option value="es">🇪🇸 Español</option>
+                <option value="fr">🇫🇷 Français</option>
+                <option value="en">🇬🇧 English</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label>Tipo de Documento *</label>
+              <select id="clientIdType" required>
+                <option value="passport">Pasaporte</option>
+                <option value="dni">DNI</option>
+                <option value="nie">NIE</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Número de Documento *</label>
+              <input type="text" id="clientIdNumber" placeholder="12345678A" required>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Dirección</label>
+            <input type="text" id="clientAddress" placeholder="Calle, número, ciudad...">
+          </div>
+        </div>
+        
+        <div class="wizard-buttons">
+          <button class="btn-wizard prev" onclick="prevStep()">← Anterior</button>
+          <button class="btn-wizard next" onclick="nextStep()">Siguiente →</button>
+        </div>
+      </div>
+      
+      <!-- Step 6: Photo ID -->
+      <div class="wizard-panel" id="step6">
+        <h2>📷 Foto del Documento de Identidad</h2>
+        
+        <div class="photo-capture">
+          <p style="margin-bottom: 20px;">Por favor, tome una foto de su documento de identidad (DNI, Pasaporte o NIE)</p>
+          
+          <div class="photo-preview empty" id="idPhotoPreview"></div>
+          
+          <div style="display: flex; justify-content: center; gap: 15px;">
+            <button class="btn btn-primary" onclick="captureIdPhoto()">📷 Tomar Foto</button>
+            <button class="btn btn-secondary" onclick="uploadIdPhoto()">📁 Subir Archivo</button>
+          </div>
+          <input type="file" id="idPhotoInput" accept="image/*" capture="environment" style="display: none;" onchange="handleIdPhoto(this)">
+        </div>
+        
+        <div class="wizard-buttons">
+          <button class="btn-wizard prev" onclick="prevStep()">← Anterior</button>
+          <button class="btn-wizard next" onclick="nextStep()" id="btnNext6">Siguiente →</button>
+        </div>
+      </div>
+      
+      <!-- Step 7: CGV -->
+      <div class="wizard-panel" id="step7">
+        <div class="cgv-container">
+          <h2>📜 Condiciones Generales de Alquiler</h2>
+          
+          <div class="cgv-content" id="cgvContent">
+            <!-- Dynamic CGV based on language -->
+          </div>
+          
+          <div class="cgv-accept">
+            <input type="checkbox" id="acceptCgv" onchange="checkCgvAccepted()">
+            <label for="acceptCgv">
+              He leído y acepto las condiciones generales de alquiler
+            </label>
+          </div>
+        </div>
+        
+        <div class="wizard-buttons">
+          <button class="btn-wizard prev" onclick="prevStep()">← Anterior</button>
+          <button class="btn-wizard next" onclick="nextStep()" id="btnNext7" disabled>Siguiente →</button>
+        </div>
+      </div>
+      
+      <!-- Step 8: Signature -->
+      <div class="wizard-panel" id="step8">
+        <div class="signature-container">
+          <div class="signature-box">
+            <h2>✍️ Firma del Cliente</h2>
+            <p style="margin-bottom: 20px;">Por favor, firme en el recuadro blanco</p>
+            
+            <div class="signature-canvas-container">
+              <canvas id="signatureCanvas" width="600" height="200"></canvas>
+            </div>
+            
+            <div class="signature-actions">
+              <button class="btn btn-secondary" onclick="clearSignature()">🗑️ Borrar</button>
+            </div>
+          </div>
+          
+          <div class="wizard-buttons">
+            <button class="btn-wizard prev" onclick="prevStep()">← Anterior</button>
+            <button class="btn-wizard next" onclick="goToPayment()" id="btnToPayment" disabled style="background: var(--info);">
+              💳 Ir al Pago →
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Step 9: Payment -->
+      <div class="wizard-panel" id="step9">
+        <div class="payment-container">
+          <div class="payment-total-display">
+            <div class="label">TOTAL A COBRAR</div>
+            <div class="amount" id="paymentTotalAmount">0.00 €</div>
+          </div>
+          
+          <div class="payment-box">
+            <h3>💶 Pago del Alquiler</h3>
+            <p style="margin-bottom: 15px; color: var(--text-secondary);">Importe: <strong id="rentalAmountDisplay">0.00 €</strong></p>
+            
+            <div class="payment-methods" id="rentalPaymentMethods">
+              <div class="payment-method" onclick="selectPaymentMethod('rental', 'card')">
+                <div class="payment-method-icon">💳</div>
+                <div class="payment-method-name">Tarjeta</div>
+              </div>
+              <div class="payment-method" onclick="selectPaymentMethod('rental', 'cash')">
+                <div class="payment-method-icon">💵</div>
+                <div class="payment-method-name">Efectivo</div>
+              </div>
+              <div class="payment-method" onclick="selectPaymentMethod('rental', 'bizum')">
+                <div class="payment-method-icon">📱</div>
+                <div class="payment-method-name">Bizum</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="payment-box">
+            <h3>🔒 Depósito / Caución</h3>
+            <p style="margin-bottom: 15px; color: var(--text-secondary);">Importe: <strong id="depositAmountDisplay">0.00 €</strong> (reembolsable)</p>
+            
+            <div class="payment-methods" id="depositPaymentMethods">
+              <div class="payment-method" onclick="selectPaymentMethod('deposit', 'cash')">
+                <div class="payment-method-icon">💵</div>
+                <div class="payment-method-name">Efectivo</div>
+              </div>
+              <div class="payment-method" onclick="selectPaymentMethod('deposit', 'preauth')">
+                <div class="payment-method-icon">💳</div>
+                <div class="payment-method-name">Pre-autorización</div>
+                <div class="payment-method-desc">Solo tarjeta crédito</div>
+              </div>
+            </div>
+            
+            <div class="deposit-warning">
+              ⚠️ <strong>Importante:</strong> La pre-autorización solo es válida con tarjeta de CRÉDITO. Las tarjetas de débito no permiten pre-autorización.
+            </div>
+          </div>
+          
+          <div style="margin-top: 30px; text-align: center;">
+            <button class="btn-wizard finish" onclick="finishCheckin()" id="btnFinish" disabled>
+              ✅ Finalizar Check-in y Generar Contrato
+            </button>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+  
+  <script src="/js/api.js"></script>
+  <script src="/js/translations.js"></script>
+  <script src="/js/checkin.js"></script>
+</body>
+</html>
