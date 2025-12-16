@@ -99,11 +99,24 @@ async function initDatabase() {
         deposit_paid DECIMAL(10,2) DEFAULT 0,
         amount_paid DECIMAL(10,2) DEFAULT 0,
         payment_method VARCHAR(20),
+        deposit_method VARCHAR(20),
         status VARCHAR(20) DEFAULT 'active',
         notes TEXT,
         signature_customer TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
+    `);
+
+    // Ajouter la colonne deposit_method si elle n'existe pas (pour les bases existantes)
+    await client.query(`
+      ALTER TABLE rentals 
+      ADD COLUMN IF NOT EXISTS deposit_method VARCHAR(20)
+    `);
+
+    // Ajouter la colonne signature_customer si elle n'existe pas (pour les bases existantes)
+    await client.query(`
+      ALTER TABLE rentals 
+      ADD COLUMN IF NOT EXISTS signature_customer TEXT
     `);
 
     // Table des paiements (caisse)
