@@ -25,6 +25,7 @@ const agenciesRoutes = require('./routes/agencies');
 const reportsRoutes = require('./routes/reports');
 const contractsRoutes = require('./routes/contracts');
 const checkinRoutes = require('./routes/checkin');
+const checkoutRoutes = require('./routes/checkout');
 
 // Routes API
 app.use('/api/auth', authRoutes);
@@ -36,6 +37,7 @@ app.use('/api/agencies', agenciesRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/contracts', contractsRoutes);
 app.use('/api/checkin', checkinRoutes);
+app.use('/api/checkout', checkoutRoutes);
 
 // Route par défaut - renvoie l'application
 app.get('*', (req, res) => {
