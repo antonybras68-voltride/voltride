@@ -70,6 +70,7 @@ const titles = {
     concept: 'Concepto',
     amount: 'Importe',
     rental: 'Alquiler',
+    baseAmount: 'Base imponible',
     vat: 'IVA',
     subtotal: 'Subtotal',
     deposit: 'Deposito/Fianza (reembolsable)',
@@ -77,7 +78,14 @@ const titles = {
     bike: 'Bicicleta',
     ebike: 'Bicicleta Electrica',
     scooter: 'Patinete Electrico',
-    document: 'Documento'
+    document: 'Documento',
+    payment: 'FORMA DE PAGO',
+    rentalPayment: 'Pago alquiler',
+    depositPayment: 'Pago deposito',
+    card: 'Tarjeta',
+    cash: 'Efectivo',
+    bizum: 'Bizum',
+    preauth: 'Pre-autorizacion'
   },
   fr: {
     contract: 'CONTRAT DE LOCATION',
@@ -103,6 +111,7 @@ const titles = {
     concept: 'Concept',
     amount: 'Montant',
     rental: 'Location',
+    baseAmount: 'Base HT',
     vat: 'TVA',
     subtotal: 'Sous-total',
     deposit: 'Caution (remboursable)',
@@ -110,7 +119,14 @@ const titles = {
     bike: 'Velo',
     ebike: 'Velo Electrique',
     scooter: 'Trottinette Electrique',
-    document: 'Document'
+    document: 'Document',
+    payment: 'MODE DE PAIEMENT',
+    rentalPayment: 'Paiement location',
+    depositPayment: 'Paiement caution',
+    card: 'Carte',
+    cash: 'Especes',
+    bizum: 'Bizum',
+    preauth: 'Pre-autorisation'
   },
   en: {
     contract: 'RENTAL CONTRACT',
@@ -136,6 +152,7 @@ const titles = {
     concept: 'Concept',
     amount: 'Amount',
     rental: 'Rental',
+    baseAmount: 'Base amount',
     vat: 'VAT',
     subtotal: 'Subtotal',
     deposit: 'Deposit (refundable)',
@@ -143,7 +160,14 @@ const titles = {
     bike: 'Bike',
     ebike: 'Electric Bike',
     scooter: 'Electric Scooter',
-    document: 'Document'
+    document: 'Document',
+    payment: 'PAYMENT METHOD',
+    rentalPayment: 'Rental payment',
+    depositPayment: 'Deposit payment',
+    card: 'Card',
+    cash: 'Cash',
+    bizum: 'Bizum',
+    preauth: 'Pre-authorization'
   }
 };
 
@@ -186,18 +210,13 @@ router.get('/:rentalId/pdf', async (req, res) => {
     
     // ===== LOGO =====
     const logoPath = path.join(__dirname, '../assets/logo.png');
-    console.log('Logo path:', logoPath);
-    console.log('Logo exists:', fs.existsSync(logoPath));
     if (fs.existsSync(logoPath)) {
       try {
         doc.image(logoPath, 50, 25, { width: 130 });
-        console.log('Logo charge avec succes');
       } catch (e) {
-        console.error('Erreur chargement logo:', e.message);
         doc.fontSize(24).fillColor('#f59e0b').text('VOLTRIDE', 50, 40);
       }
     } else {
-      console.error('Logo non trouve');
       doc.fontSize(24).fillColor('#f59e0b').text('VOLTRIDE', 50, 40);
     }
     
@@ -205,7 +224,6 @@ router.get('/:rentalId/pdf', async (req, res) => {
     doc.fontSize(11).fillColor('#333').font('Helvetica').text(t.contract, 350, 35, { align: 'right' });
     doc.fontSize(12).fillColor('#f59e0b').font('Helvetica-Bold').text(rental.contract_number, 350, 50, { align: 'right' });
     
-    // Ligne separatrice
     doc.moveTo(50, 90).lineTo(545, 90).strokeColor('#f59e0b').lineWidth(2).stroke();
     
     // ===== DONNEES ENTREPRISE =====
@@ -282,16 +300,19 @@ router.get('/:rentalId/pdf', async (req, res) => {
     y += 12;
     doc.text(`${t.duration}: ${days} ${t.days}`, 60, y);
     
-    // ===== DECOMPTE ECONOMIQUE =====
+    // ===== DECOMPTE ECONOMIQUE (Prix TTC -> HT) =====
     y += 28;
     doc.font('Helvetica-Bold').fontSize(9).text(t.breakdown, 50, y);
     y += 15;
     
-    // Calculs TVA (21% sur location, pas sur depot)
+    // Prix TTC (ce qui est stocké en base)
     const dailyRate = parseFloat(rental.daily_rate) || 0;
-    const rentalAmountHT = days * dailyRate;
-    const vatAmount = rentalAmountHT * 0.21;
-    const rentalAmountTTC = rentalAmountHT + vatAmount;
+    const rentalAmountTTC = days * dailyRate;
+    
+    // Calcul inverse TVA : TTC / 1.21 = HT
+    const rentalAmountHT = rentalAmountTTC / 1.21;
+    const vatAmount = rentalAmountTTC - rentalAmountHT;
+    
     const deposit = parseFloat(rental.deposit) || 0;
     const total = rentalAmountTTC + deposit;
     
@@ -304,7 +325,7 @@ router.get('/:rentalId/pdf', async (req, res) => {
     
     doc.font('Helvetica').fontSize(8);
     y += 16;
-    doc.text(`${t.rental} (${days} ${t.days} x ${dailyRate.toFixed(2)} EUR)`, 60, y);
+    doc.text(`${t.baseAmount} (${days} ${t.days} x ${(dailyRate / 1.21).toFixed(2)} EUR)`, 60, y);
     doc.text(`${rentalAmountHT.toFixed(2)} EUR`, 480, y, { align: 'right' });
     
     y += 12;
@@ -313,7 +334,7 @@ router.get('/:rentalId/pdf', async (req, res) => {
     
     y += 12;
     doc.font('Helvetica-Bold');
-    doc.text(t.subtotal, 60, y);
+    doc.text(`${t.subtotal} (${t.rental})`, 60, y);
     doc.text(`${rentalAmountTTC.toFixed(2)} EUR`, 480, y, { align: 'right' });
     
     y += 12;
@@ -326,8 +347,21 @@ router.get('/:rentalId/pdf', async (req, res) => {
     doc.text(t.total, 60, y);
     doc.text(`${total.toFixed(2)} EUR`, 480, y, { align: 'right' });
     
-    // ===== CONDITIONS GENERALES =====
+    // ===== MODE DE PAIEMENT =====
     y += 25;
+    doc.font('Helvetica-Bold').fontSize(9).text(t.payment, 50, y);
+    y += 12;
+    doc.font('Helvetica').fontSize(8);
+    
+    const paymentMethods = { card: t.card, cash: t.cash, bizum: t.bizum, preauth: t.preauth };
+    const rentalMethod = rental.payment_method ? (paymentMethods[rental.payment_method] || rental.payment_method) : '-';
+    const depositMethod = rental.deposit_method ? (paymentMethods[rental.deposit_method] || rental.deposit_method) : '-';
+    
+    doc.text(`${t.rentalPayment}: ${rentalMethod}`, 50, y);
+    doc.text(`${t.depositPayment}: ${depositMethod}`, 250, y);
+    
+    // ===== CONDITIONS GENERALES =====
+    y += 20;
     doc.font('Helvetica-Bold').fontSize(9).text(t.conditions, 50, y);
     y += 12;
     doc.font('Helvetica').fontSize(6.5).fillColor('#555');
@@ -340,12 +374,32 @@ router.get('/:rentalId/pdf', async (req, res) => {
     y += 10;
     doc.font('Helvetica-Bold').fontSize(9).fillColor('#333').text(t.signatures, 50, y);
     y += 10;
-    doc.rect(50, y, 160, 50).strokeColor('#ccc').stroke();
-    doc.rect(335, y, 160, 50).strokeColor('#ccc').stroke();
+    
+    // Zone signature client
+    doc.rect(50, y, 200, 60).strokeColor('#ccc').stroke();
+    
+    // Ajouter la signature du client si elle existe
+    if (rental.signature_customer) {
+      try {
+        // La signature est stockée en base64
+        const signatureData = rental.signature_customer;
+        if (signatureData.startsWith('data:image')) {
+          const base64Data = signatureData.replace(/^data:image\/\w+;base64,/, '');
+          const signatureBuffer = Buffer.from(base64Data, 'base64');
+          doc.image(signatureBuffer, 55, y + 5, { width: 190, height: 50, fit: [190, 50] });
+        }
+      } catch (e) {
+        console.error('Erreur chargement signature:', e.message);
+      }
+    }
+    
+    // Zone signature entreprise
+    doc.rect(335, y, 160, 60).strokeColor('#ccc').stroke();
+    
     doc.font('Helvetica').fontSize(7).fillColor('#666');
-    doc.text(t.customerSignature, 55, y + 52);
-    doc.text(`${rental.first_name} ${rental.last_name}`, 55, y + 61);
-    doc.text(t.companySignature, 340, y + 52);
+    doc.text(t.customerSignature, 55, y + 62);
+    doc.text(`${rental.first_name} ${rental.last_name}`, 55, y + 71);
+    doc.text(t.companySignature, 340, y + 62);
     
     // ===== PIED DE PAGE =====
     doc.fontSize(6).fillColor('#999');
