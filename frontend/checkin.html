@@ -494,6 +494,16 @@
       display: block;
     }
     
+    /* === OCR BADGE === */
+    .ocr-badge {
+      background: var(--success);
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      margin-left: 5px;
+    }
+    
     /* === CGV === */
     .cgv-container {
       background: var(--bg-secondary);
@@ -715,8 +725,8 @@
     
     .photo-preview {
       width: 100%;
-      max-width: 400px;
-      height: 300px;
+      max-width: 500px;
+      height: 350px;
       background: var(--bg-tertiary);
       border-radius: 8px;
       margin: 20px auto;
@@ -724,6 +734,7 @@
       align-items: center;
       justify-content: center;
       overflow: hidden;
+      position: relative;
     }
     
     .photo-preview img {
@@ -739,6 +750,40 @@
     .photo-preview.empty::after {
       content: '📷 Sin foto';
       color: var(--text-secondary);
+    }
+    
+    /* === OCR RESULTS === */
+    .ocr-results-box {
+      background: var(--bg-tertiary);
+      border: 2px solid var(--success);
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 20px;
+      text-align: left;
+    }
+    
+    .ocr-results-box h3 {
+      color: var(--success);
+      margin-bottom: 15px;
+    }
+    
+    .ocr-result-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .ocr-result-row:last-child {
+      border-bottom: none;
+    }
+    
+    .ocr-result-label {
+      color: var(--text-secondary);
+    }
+    
+    .ocr-result-value {
+      font-weight: bold;
     }
     
     /* === RESPONSIVE === */
@@ -816,13 +861,13 @@
         <div class="wizard-step-label">Resumen</div>
       </div>
       <div class="wizard-step client-step" data-step="5">
-  <div class="wizard-step-icon">📷</div>
-  <div class="wizard-step-label">Foto ID</div>
-</div>
-<div class="wizard-step client-step" data-step="6">
-  <div class="wizard-step-icon">👤</div>
-  <div class="wizard-step-label">Cliente</div>
-</div>
+        <div class="wizard-step-icon">📷</div>
+        <div class="wizard-step-label">Foto ID</div>
+      </div>
+      <div class="wizard-step client-step" data-step="6">
+        <div class="wizard-step-icon">👤</div>
+        <div class="wizard-step-label">Cliente</div>
+      </div>
       <div class="wizard-step client-step" data-step="7">
         <div class="wizard-step-icon">📜</div>
         <div class="wizard-step-label">CGV</div>
@@ -976,10 +1021,42 @@
         </div>
       </div>
       
-      <!-- Step 5: Client Information -->
+      <!-- Step 5: Photo ID (AVANT Cliente) -->
       <div class="wizard-panel" id="step5">
+        <h2>📷 Foto del Documento de Identidad</h2>
+        
+        <div class="photo-capture">
+          <p style="margin-bottom: 10px;">Por favor, tome una foto de su documento de identidad (DNI, Pasaporte, NIE o Permiso de Conducir)</p>
+          <p style="margin-bottom: 20px; color: var(--accent); font-weight: bold;">🤖 La IA analizará automáticamente el documento y rellenará los datos</p>
+          
+          <div class="photo-preview empty" id="idPhotoPreview"></div>
+          
+          <div style="display: flex; justify-content: center; gap: 15px;">
+            <button class="btn btn-primary" onclick="captureIdPhoto()">📷 Tomar Foto</button>
+            <button class="btn btn-secondary" onclick="uploadIdPhoto()">📁 Subir Archivo</button>
+          </div>
+          <input type="file" id="idPhotoInput" accept="image/*" capture="environment" style="display: none;" onchange="handleIdPhoto(this)">
+          
+          <!-- OCR Results Preview -->
+          <div id="ocrResultsPreview" class="ocr-results-box" style="display: none;">
+            <h3>✅ Datos extraídos del documento:</h3>
+            <div id="ocrResultsContent"></div>
+          </div>
+        </div>
+        
+        <div class="wizard-buttons">
+          <button class="btn-wizard prev" onclick="prevStep()">← Anterior</button>
+          <button class="btn-wizard next" onclick="nextStep()" id="btnNext5">Siguiente →</button>
+        </div>
+      </div>
+      
+      <!-- Step 6: Client Information (DESPUÉS de Foto ID) -->
+      <div class="wizard-panel" id="step6">
         <div class="client-form">
-          <h2>👤 Sus Datos Personales</h2>
+          <h2>👤 Verificar y Completar Datos</h2>
+          <p style="text-align: center; color: var(--text-secondary); margin-bottom: 20px;">
+            Por favor, verifique que los datos extraídos sean correctos y complete la información faltante
+          </p>
           
           <!-- Client Search -->
           <div class="client-search-box">
@@ -996,11 +1073,11 @@
           
           <div class="form-row">
             <div class="form-group">
-              <label>Nombre *</label>
+              <label>Nombre * <span id="ocrBadgeFirstName" class="ocr-badge" style="display: none;">🤖 OCR</span></label>
               <input type="text" id="clientFirstName" placeholder="Juan" required>
             </div>
             <div class="form-group">
-              <label>Apellido *</label>
+              <label>Apellido * <span id="ocrBadgeLastName" class="ocr-badge" style="display: none;">🤖 OCR</span></label>
               <input type="text" id="clientLastName" placeholder="García" required>
             </div>
           </div>
@@ -1018,7 +1095,7 @@
           
           <div class="form-row">
             <div class="form-group">
-              <label>País *</label>
+              <label>País * <span id="ocrBadgeCountry" class="ocr-badge" style="display: none;">🤖 OCR</span></label>
               <select id="clientCountry" required>
                 <option value="">Seleccionar país...</option>
                 <option value="ES">🇪🇸 España</option>
@@ -1044,16 +1121,28 @@
           
           <div class="form-row">
             <div class="form-group">
-              <label>Tipo de Documento *</label>
+              <label>Tipo de Documento * <span id="ocrBadgeIdType" class="ocr-badge" style="display: none;">🤖 OCR</span></label>
               <select id="clientIdType" required>
                 <option value="passport">Pasaporte</option>
                 <option value="dni">DNI</option>
                 <option value="nie">NIE</option>
+                <option value="driving_license">Permiso de Conducir</option>
               </select>
             </div>
             <div class="form-group">
-              <label>Número de Documento *</label>
+              <label>Número de Documento * <span id="ocrBadgeIdNumber" class="ocr-badge" style="display: none;">🤖 OCR</span></label>
               <input type="text" id="clientIdNumber" placeholder="12345678A" required>
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label>Fecha Nacimiento <span id="ocrBadgeBirthDate" class="ocr-badge" style="display: none;">🤖 OCR</span></label>
+              <input type="date" id="clientBirthDate">
+            </div>
+            <div class="form-group">
+              <label>Validez Documento <span id="ocrBadgeExpiryDate" class="ocr-badge" style="display: none;">🤖 OCR</span></label>
+              <input type="date" id="clientDocExpiry">
             </div>
           </div>
           
@@ -1066,28 +1155,6 @@
         <div class="wizard-buttons">
           <button class="btn-wizard prev" onclick="prevStep()">← Anterior</button>
           <button class="btn-wizard next" onclick="nextStep()">Siguiente →</button>
-        </div>
-      </div>
-      
-      <!-- Step 6: Photo ID -->
-      <div class="wizard-panel" id="step6">
-        <h2>📷 Foto del Documento de Identidad</h2>
-        
-        <div class="photo-capture">
-          <p style="margin-bottom: 20px;">Por favor, tome una foto de su documento de identidad (DNI, Pasaporte o NIE)</p>
-          
-          <div class="photo-preview empty" id="idPhotoPreview"></div>
-          
-          <div style="display: flex; justify-content: center; gap: 15px;">
-            <button class="btn btn-primary" onclick="captureIdPhoto()">📷 Tomar Foto</button>
-            <button class="btn btn-secondary" onclick="uploadIdPhoto()">📁 Subir Archivo</button>
-          </div>
-          <input type="file" id="idPhotoInput" accept="image/*" capture="environment" style="display: none;" onchange="handleIdPhoto(this)">
-        </div>
-        
-        <div class="wizard-buttons">
-          <button class="btn-wizard prev" onclick="prevStep()">← Anterior</button>
-          <button class="btn-wizard next" onclick="nextStep()" id="btnNext6">Siguiente →</button>
         </div>
       </div>
       
