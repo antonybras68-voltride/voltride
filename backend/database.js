@@ -75,11 +75,8 @@ async function initDatabase() {
       )
     `);
 
-    // Ajouter la colonne preferred_language si elle n'existe pas (pour les bases existantes)
-    await client.query(`
-      ALTER TABLE customers 
-      ADD COLUMN IF NOT EXISTS preferred_language VARCHAR(5) DEFAULT 'es'
-    `);
+    // Ajouter colonnes si elles n'existent pas (pour les bases existantes)
+    await client.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS preferred_language VARCHAR(5) DEFAULT 'es'`);
 
     // Table des locations
     await client.query(`
@@ -103,21 +100,25 @@ async function initDatabase() {
         status VARCHAR(20) DEFAULT 'active',
         notes TEXT,
         signature_customer TEXT,
+        checkout_deductions DECIMAL(10,2) DEFAULT 0,
+        checkout_refund DECIMAL(10,2) DEFAULT 0,
+        checkout_refund_method VARCHAR(20),
+        checkout_inspection TEXT,
+        checkout_ticket_photo TEXT,
+        checkout_notes TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
-    // Ajouter la colonne deposit_method si elle n'existe pas (pour les bases existantes)
-    await client.query(`
-      ALTER TABLE rentals 
-      ADD COLUMN IF NOT EXISTS deposit_method VARCHAR(20)
-    `);
-
-    // Ajouter la colonne signature_customer si elle n'existe pas (pour les bases existantes)
-    await client.query(`
-      ALTER TABLE rentals 
-      ADD COLUMN IF NOT EXISTS signature_customer TEXT
-    `);
+    // Ajouter colonnes rentals si elles n'existent pas
+    await client.query(`ALTER TABLE rentals ADD COLUMN IF NOT EXISTS deposit_method VARCHAR(20)`);
+    await client.query(`ALTER TABLE rentals ADD COLUMN IF NOT EXISTS signature_customer TEXT`);
+    await client.query(`ALTER TABLE rentals ADD COLUMN IF NOT EXISTS checkout_deductions DECIMAL(10,2) DEFAULT 0`);
+    await client.query(`ALTER TABLE rentals ADD COLUMN IF NOT EXISTS checkout_refund DECIMAL(10,2) DEFAULT 0`);
+    await client.query(`ALTER TABLE rentals ADD COLUMN IF NOT EXISTS checkout_refund_method VARCHAR(20)`);
+    await client.query(`ALTER TABLE rentals ADD COLUMN IF NOT EXISTS checkout_inspection TEXT`);
+    await client.query(`ALTER TABLE rentals ADD COLUMN IF NOT EXISTS checkout_ticket_photo TEXT`);
+    await client.query(`ALTER TABLE rentals ADD COLUMN IF NOT EXISTS checkout_notes TEXT`);
 
     // Table des paiements (caisse)
     await client.query(`
