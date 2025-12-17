@@ -11,8 +11,8 @@
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-logo">
-        <h1>⚡ VOLTRIDE</h1>
-        <span id="currentAgency">AG-01 Torrevieja</span>
+        <img src="/assets/logo.png" alt="Voltride" style="height: 50px; margin-bottom: 5px;">
+        <span id="currentAgency" style="font-size: 12px; color: var(--text-secondary);">Cargando...</span>
       </div>
       
       <!-- Boutons Check-in / Check-out -->
@@ -48,6 +48,14 @@
           <span>💰</span>
           <span data-i18n="cash">Caja</span>
         </button>
+        <button class="nav-item" data-page="documents">
+          <span>📄</span>
+          <span data-i18n="documents">Documentos</span>
+        </button>
+        <button class="nav-item" data-page="settings">
+          <span>⚙️</span>
+          <span data-i18n="settings">Parámetros</span>
+        </button>
         <button class="nav-item" data-page="users" id="navUsers" style="display: none;">
           <span>👤</span>
           <span data-i18n="users">Usuarios</span>
@@ -79,7 +87,7 @@
       <!-- Mobile Header -->
       <div class="mobile-header" style="display: none;">
         <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
-        <h2>⚡ VOLTRIDE</h2>
+        <img src="/assets/logo.png" alt="Voltride" style="height: 30px;">
       </div>
       
       <!-- Pages Container -->
