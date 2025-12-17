@@ -1,5 +1,5 @@
 // =====================================================
-// VOLTRIDE - Application principale
+// VOLTRIDE - Application principale (v2.0)
 // =====================================================
 
 let currentPage = 'dashboard';
@@ -70,6 +70,8 @@ function loadPage(page) {
     case 'customers': renderCustomers(container); break;
     case 'cash': renderCash(container); break;
     case 'users': renderUsers(container); break;
+    case 'documents': renderDocuments(container); break;
+    case 'settings': renderSettings(container); break;
   }
 }
 
@@ -396,10 +398,10 @@ function showCustomerModal(id = null) {
         <div class="form-group"><label>${t('city')}</label><input type="text" id="customerCity" class="form-control"></div>
       </div>
       <div class="form-group">
-        <label>🌐 ${t('preferredLanguage') || 'Langue preferee / Idioma preferido'}</label>
+        <label>🌐 Idioma preferido</label>
         <select id="customerLanguage" class="form-control">
-          <option value="es">🇪🇸 Espanol</option>
-          <option value="fr">🇫🇷 Francais</option>
+          <option value="es">🇪🇸 Español</option>
+          <option value="fr">🇫🇷 Français</option>
           <option value="en">🇬🇧 English</option>
         </select>
       </div>
@@ -521,13 +523,12 @@ async function showNewRentalModal() {
           <option value="">${t('selectCustomer')}</option>
           ${customers.map(c => `<option value="${c.id}">${c.first_name} ${c.last_name} - ${c.phone||c.email||''}</option>`).join('')}
         </select>
-        <button type="button" class="btn btn-sm btn-secondary" style="margin-top:5px;" onclick="closeModal();showCustomerModal();">+ ${t('addCustomer')}</button>
       </div>
       <div class="form-group">
         <label>${t('vehicle')} *</label>
         <select id="rentalVehicle" class="form-control" required onchange="updateRentalPrice()">
           <option value="">${t('selectVehicle')}</option>
-          ${vehicles.map(v => `<option value="${v.id}" data-rate="${v.daily_rate}" data-deposit="${v.deposit}">${v.code} - ${v.brand||''} ${v.model||''} (${formatCurrency(v.daily_rate)}/dia)</option>`).join('')}
+          ${vehicles.map(v => `<option value="${v.id}" data-rate="${v.daily_rate}" data-deposit="${v.deposit}">${v.code} - ${v.brand||''} ${v.model||''} (${formatCurrency(v.daily_rate)}/día)</option>`).join('')}
         </select>
       </div>
       <div class="form-row">
@@ -535,17 +536,10 @@ async function showNewRentalModal() {
         <div class="form-group"><label>${t('plannedEndDate')} *</label><input type="datetime-local" id="rentalEnd" class="form-control" value="${endDate}" required onchange="updateRentalPrice()"></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>${t('dailyRate')} (EUR)</label><input type="number" id="rentalRate" class="form-control" step="0.01" readonly></div>
-        <div class="form-group"><label>${t('deposit')} (EUR)</label><input type="number" id="rentalDeposit" class="form-control" step="0.01" readonly></div>
+        <div class="form-group"><label>${t('dailyRate')} (€)</label><input type="number" id="rentalRate" class="form-control" step="0.01" readonly></div>
+        <div class="form-group"><label>${t('deposit')} (€)</label><input type="number" id="rentalDeposit" class="form-control" step="0.01" readonly></div>
       </div>
-      <div class="form-row">
-        <div class="form-group"><label>${t('totalAmount')} (EUR)</label><input type="number" id="rentalTotal" class="form-control" readonly></div>
-        <div class="form-group"><label>${t('paymentMethod')}</label><select id="rentalPayment" class="form-control"><option value="cash">${t('cash_method')}</option><option value="card">${t('card')}</option><option value="transfer">${t('transfer')}</option></select></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label>${t('deposit')} ${t('amountPaid')} (EUR)</label><input type="number" id="rentalDepositPaid" class="form-control" step="0.01" value="0"></div>
-        <div class="form-group"><label>${t('amountPaid')} (EUR)</label><input type="number" id="rentalAmountPaid" class="form-control" step="0.01" value="0"></div>
-      </div>
+      <div class="form-group"><label>${t('totalAmount')} (€)</label><input type="number" id="rentalTotal" class="form-control" readonly></div>
     </form>
   `, `<button class="btn btn-secondary" onclick="closeModal()">${t('cancel')}</button><button class="btn btn-primary" onclick="createRental()">${t('save')}</button>`);
 }
@@ -579,9 +573,7 @@ async function createRental() {
     planned_end_date: document.getElementById('rentalEnd').value,
     daily_rate: parseFloat(document.getElementById('rentalRate').value),
     deposit: parseFloat(document.getElementById('rentalDeposit').value),
-    deposit_paid: parseFloat(document.getElementById('rentalDepositPaid').value) || 0,
-    amount_paid: parseFloat(document.getElementById('rentalAmountPaid').value) || 0,
-    payment_method: document.getElementById('rentalPayment').value
+    payment_method: 'cash'
   };
   
   try {
@@ -600,15 +592,10 @@ async function showReturnModal(id) {
       <p><strong>${t('contract')}:</strong> ${rental.contract_number}</p>
       <p><strong>${t('customer')}:</strong> ${rental.first_name} ${rental.last_name}</p>
       <p><strong>${t('vehicle')}:</strong> ${rental.vehicle_code}</p>
-      <p><strong>${t('startDate')}:</strong> ${formatDate(rental.start_date)}</p>
       <hr style="border-color:var(--border);margin:15px 0;">
       <div class="form-group"><label>${t('endDate')} *</label><input type="datetime-local" id="returnDate" class="form-control" value="${now}" required></div>
-      <div class="form-row">
-        <div class="form-group"><label>${t('amountPaid')} (EUR)</label><input type="number" id="returnAmount" class="form-control" step="0.01" value="0"></div>
-        <div class="form-group"><label>${t('paymentMethod')}</label><select id="returnPayment" class="form-control"><option value="cash">${t('cash_method')}</option><option value="card">${t('card')}</option></select></div>
-      </div>
       <div class="form-group">
-        <label><input type="checkbox" id="returnDeposit" checked> Devolver deposito (${formatCurrency(rental.deposit_paid)})</label>
+        <label><input type="checkbox" id="returnDeposit" checked> Devolver depósito (${formatCurrency(rental.deposit_paid || rental.deposit)})</label>
       </div>
     </form>
   `, `<button class="btn btn-secondary" onclick="closeModal()">${t('cancel')}</button><button class="btn btn-success" onclick="processReturn()">${t('confirm')}</button>`);
@@ -618,8 +605,6 @@ async function processReturn() {
   const id = document.getElementById('returnRentalId').value;
   const data = {
     end_date: document.getElementById('returnDate').value,
-    amount_paid: parseFloat(document.getElementById('returnAmount').value) || 0,
-    payment_method: document.getElementById('returnPayment').value,
     return_deposit: document.getElementById('returnDeposit').checked
   };
   
@@ -679,7 +664,7 @@ async function renderCash(container) {
 }
 
 async function generateZReport() {
-  if (!confirm('Generar informe Z y cerrar la caja del dia?')) return;
+  if (!confirm('Generar informe Z y cerrar la caja del día?')) return;
   try {
     await reportsAPI.createZReport({ agency_id: currentUser.agency_id });
     showToast(t('zReportGenerated'), 'success');
@@ -780,7 +765,240 @@ async function deleteUser(id) {
 }
 
 // =====================================================
-// Contrats PDF
+// Documents (Contrats & Factures)
+// =====================================================
+
+async function renderDocuments(container) {
+  container.innerHTML = `
+    <div class="page-header">
+      <h1>📄 Documentos</h1>
+      <p>Contratos y facturas de alquileres</p>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="filters-bar" style="margin:0;flex:1;gap:10px;">
+          <div class="search-box"><span class="search-icon">🔍</span><input type="text" id="docSearch" placeholder="Buscar..." onkeyup="searchDocuments()"></div>
+          <select class="filter-select" id="docStatusFilter" onchange="loadDocuments()">
+            <option value="">Todos</option>
+            <option value="active">Activos</option>
+            <option value="completed">Finalizados</option>
+          </select>
+        </div>
+      </div>
+      <div id="documentsList"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+  `;
+  await loadDocuments();
+}
+
+async function loadDocuments() {
+  try {
+    const status = document.getElementById('docStatusFilter')?.value || '';
+    const params = { agency_id: currentUser.agency_id };
+    if (status) params.status = status;
+    const rentals = await rentalsAPI.getAll(params);
+    window.documentsData = rentals;
+    renderDocumentsTable(rentals);
+  } catch (e) { showToast(t('errorOccurred'), 'error'); }
+}
+
+function searchDocuments() {
+  const search = document.getElementById('docSearch').value.toLowerCase();
+  let filtered = window.documentsData || [];
+  if (search) {
+    filtered = filtered.filter(r => 
+      r.contract_number.toLowerCase().includes(search) ||
+      (r.first_name + ' ' + r.last_name).toLowerCase().includes(search) ||
+      (r.vehicle_code || '').toLowerCase().includes(search)
+    );
+  }
+  renderDocumentsTable(filtered);
+}
+
+function renderDocumentsTable(rentals) {
+  if (!rentals.length) {
+    document.getElementById('documentsList').innerHTML = `<div class="empty-state"><div class="empty-state-icon">📄</div><h3>${t('noResults')}</h3></div>`;
+    return;
+  }
+  document.getElementById('documentsList').innerHTML = `
+    <div class="table-container"><table><thead><tr>
+      <th>Contrato</th><th>Cliente</th><th>Vehículo</th><th>Fecha</th><th>Total</th><th>Estado</th><th>Documentos</th>
+    </tr></thead><tbody>
+      ${rentals.map(r => `<tr>
+        <td><strong>${r.contract_number}</strong></td>
+        <td>${r.first_name} ${r.last_name}</td>
+        <td>${getVehicleTypeIcon(r.vehicle_type)} ${r.vehicle_code}</td>
+        <td>${formatDateShort(r.start_date)}</td>
+        <td>${formatCurrency(r.total_amount)}</td>
+        <td>${getStatusBadge(r.status)}</td>
+        <td><div class="btn-group">
+          <button class="btn btn-sm btn-info" onclick="downloadContract(${r.id})" title="Contrato">📋</button>
+          ${r.status === 'completed' ? `<button class="btn btn-sm btn-success" onclick="downloadInvoice(${r.id})" title="Factura">🧾</button>` : ''}
+        </div></td>
+      </tr>`).join('')}
+    </tbody></table></div>
+  `;
+}
+
+function downloadInvoice(rentalId) {
+  window.open(`/api/invoices/${rentalId}/pdf`, '_blank');
+}
+
+// =====================================================
+// Paramètres (Settings)
+// =====================================================
+
+async function renderSettings(container) {
+  container.innerHTML = `
+    <div class="page-header">
+      <h1>⚙️ Parámetros</h1>
+      <p>Configuración de la aplicación</p>
+    </div>
+    
+    <div class="card">
+      <div class="card-header">
+        <h2>🏢 Agencias</h2>
+        <button class="btn btn-primary" onclick="showAgencyModal()">+ Nueva Agencia</button>
+      </div>
+      <div id="agenciesList"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+    
+    <div class="card">
+      <div class="card-header"><h2>🏪 Información de la Empresa</h2></div>
+      <div style="padding: 20px;">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nombre de la empresa</label>
+            <input type="text" id="companyName" class="form-control" value="Voltride">
+          </div>
+          <div class="form-group">
+            <label>NIF/CIF</label>
+            <input type="text" id="companyNif" class="form-control" placeholder="B12345678">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="companyEmail" class="form-control" placeholder="info@voltride.es">
+          </div>
+          <div class="form-group">
+            <label>Teléfono</label>
+            <input type="tel" id="companyPhone" class="form-control" placeholder="+34 600 000 001">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="saveCompanySettings()">💾 Guardar</button>
+      </div>
+    </div>
+  `;
+  
+  await loadAgenciesSettings();
+  loadCompanySettings();
+}
+
+async function loadAgenciesSettings() {
+  try {
+    const agenciesList = await agenciesAPI.getAll();
+    if (!agenciesList.length) {
+      document.getElementById('agenciesList').innerHTML = `<div class="empty-state"><div class="empty-state-icon">🏢</div><h3>No hay agencias</h3></div>`;
+      return;
+    }
+    document.getElementById('agenciesList').innerHTML = `
+      <div class="table-container"><table><thead><tr>
+        <th>Código</th><th>Nombre</th><th>Dirección</th><th>Teléfono</th><th></th>
+      </tr></thead><tbody>
+        ${agenciesList.map(a => `<tr>
+          <td><strong>${a.code}</strong></td>
+          <td>${a.name}</td>
+          <td>${a.address || '-'}</td>
+          <td>${a.phone || '-'}</td>
+          <td><div class="btn-group">
+            <button class="btn btn-sm btn-secondary" onclick="showAgencyModal(${a.id})">✏️</button>
+          </div></td>
+        </tr>`).join('')}
+      </tbody></table></div>
+    `;
+  } catch (e) { showToast(t('errorOccurred'), 'error'); }
+}
+
+function showAgencyModal(id = null) {
+  openModal(id ? 'Editar Agencia' : 'Nueva Agencia', `
+    <form id="agencyForm">
+      <input type="hidden" id="agencyId" value="${id || ''}">
+      <div class="form-row">
+        <div class="form-group"><label>Código *</label><input type="text" id="agencyCode" class="form-control" placeholder="AG-01" required></div>
+        <div class="form-group"><label>Nombre *</label><input type="text" id="agencyName" class="form-control" placeholder="Voltride Torrevieja" required></div>
+      </div>
+      <div class="form-group"><label>Dirección</label><input type="text" id="agencyAddress" class="form-control" placeholder="Calle Principal 123, Torrevieja"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Teléfono</label><input type="tel" id="agencyPhone" class="form-control" placeholder="+34 600 000 001"></div>
+        <div class="form-group"><label>Email</label><input type="email" id="agencyEmail" class="form-control" placeholder="torrevieja@voltride.es"></div>
+      </div>
+    </form>
+  `, `<button class="btn btn-secondary" onclick="closeModal()">${t('cancel')}</button><button class="btn btn-primary" onclick="saveAgency()">${t('save')}</button>`);
+  if (id) loadAgencyData(id);
+}
+
+async function loadAgencyData(id) {
+  try {
+    const agenciesList = await agenciesAPI.getAll();
+    const agency = agenciesList.find(a => a.id === id);
+    if (agency) {
+      document.getElementById('agencyCode').value = agency.code;
+      document.getElementById('agencyName').value = agency.name;
+      document.getElementById('agencyAddress').value = agency.address || '';
+      document.getElementById('agencyPhone').value = agency.phone || '';
+      document.getElementById('agencyEmail').value = agency.email || '';
+    }
+  } catch (e) { console.error(e); }
+}
+
+async function saveAgency() {
+  const id = document.getElementById('agencyId').value;
+  const data = {
+    code: document.getElementById('agencyCode').value,
+    name: document.getElementById('agencyName').value,
+    address: document.getElementById('agencyAddress').value,
+    phone: document.getElementById('agencyPhone').value,
+    email: document.getElementById('agencyEmail').value
+  };
+  
+  try {
+    if (id) {
+      await agenciesAPI.update(id, data);
+    } else {
+      await agenciesAPI.create(data);
+    }
+    closeModal();
+    showToast(t('savedSuccess'), 'success');
+    loadAgenciesSettings();
+    agencies = await agenciesAPI.getAll();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+function loadCompanySettings() {
+  const saved = localStorage.getItem('voltride_company');
+  if (saved) {
+    const settings = JSON.parse(saved);
+    document.getElementById('companyName').value = settings.name || 'Voltride';
+    document.getElementById('companyNif').value = settings.nif || '';
+    document.getElementById('companyEmail').value = settings.email || '';
+    document.getElementById('companyPhone').value = settings.phone || '';
+  }
+}
+
+function saveCompanySettings() {
+  const settings = {
+    name: document.getElementById('companyName').value,
+    nif: document.getElementById('companyNif').value,
+    email: document.getElementById('companyEmail').value,
+    phone: document.getElementById('companyPhone').value
+  };
+  localStorage.setItem('voltride_company', JSON.stringify(settings));
+  showToast('Configuración guardada', 'success');
+}
+
+// =====================================================
+// Contrats & Factures PDF
 // =====================================================
 
 function downloadContract(rentalId) {
