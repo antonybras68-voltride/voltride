@@ -56,10 +56,12 @@ router.post('/', authMiddleware, async (req, res) => {
     // 1. Récupérer les infos de la location
     const rentalInfo = await client.query(`
       SELECT r.*, c.email, c.first_name, c.last_name, c.preferred_language,
-             v.code as vehicle_code, v.type as vehicle_type, v.brand, v.model
+             v.code as vehicle_code, v.type as vehicle_type, v.brand, v.model,
+             a.name as agency_name, a.phone as agency_phone, a.email as agency_email
       FROM rentals r
       LEFT JOIN customers c ON r.customer_id = c.id
       LEFT JOIN vehicles v ON r.vehicle_id = v.id
+      LEFT JOIN agencies a ON r.agency_id = a.id
       WHERE r.id = $1
     `, [rental_id]);
     
@@ -124,9 +126,9 @@ router.post('/', authMiddleware, async (req, res) => {
     
     await client.query('COMMIT');
     
-    // 5. Envoyer l'email avec la facture PDF (async)
+    // 5. Envoyer l'email avec la facture PDF et photo ticket (async)
     if (rental.email) {
-      sendInvoiceEmailWithPDF(pool, rental_id, rental, total_deductions, deposit_refunded, deductions)
+      sendInvoiceEmailWithPDF(pool, rental_id, rental, total_deductions, deposit_refunded, deductions, ticket_photo, refund_method)
         .catch(err => console.error('Erreur envoi email facture:', err));
     }
     
@@ -148,8 +150,8 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
 
-// Fonction pour envoyer l'email de facture avec PDF
-async function sendInvoiceEmailWithPDF(pool, rentalId, rental, total_deductions, deposit_refunded, deductions) {
+// Fonction pour envoyer l'email de facture avec PDF et photo ticket
+async function sendInvoiceEmailWithPDF(pool, rentalId, rental, total_deductions, deposit_refunded, deductions, ticket_photo, refund_method) {
   const lang = rental.preferred_language || 'es';
   
   // Générer le PDF de la facture
@@ -176,18 +178,36 @@ async function sendInvoiceEmailWithPDF(pool, rentalId, rental, total_deductions,
     days: days,
     rental_amount: parseFloat(rental.total_amount).toFixed(2),
     deposit_paid: parseFloat(rental.deposit).toFixed(2),
-    deductions: total_deductions,
-    deposit_refunded: deposit_refunded.toFixed(2)
+    deductions: total_deductions.toFixed(2),
+    deposit_refunded: deposit_refunded.toFixed(2),
+    agency_phone: rental.agency_phone,
+    agency_email: rental.agency_email
   };
   
   const template = getInvoiceEmailTemplate(emailData, lang);
   
   // Préparer les pièces jointes
   const attachments = [];
+  
+  // 1. PDF Facture
   if (pdfBase64) {
     attachments.push({
       filename: `factura-${rental.contract_number}.pdf`,
       content: pdfBase64
+    });
+  }
+  
+  // 2. Photo du ticket de remboursement (si paiement par carte)
+  if (ticket_photo && refund_method === 'preauth') {
+    // Extraire le base64 de la data URL
+    let ticketBase64 = ticket_photo;
+    if (ticket_photo.includes('base64,')) {
+      ticketBase64 = ticket_photo.split('base64,')[1];
+    }
+    
+    attachments.push({
+      filename: `ticket-devolucion-${rental.contract_number}.jpg`,
+      content: ticketBase64
     });
   }
   
@@ -199,7 +219,7 @@ async function sendInvoiceEmailWithPDF(pool, rentalId, rental, total_deductions,
   });
   
   if (result.success) {
-    console.log(`✅ Email facture + PDF envoyé à ${rental.email}`);
+    console.log(`✅ Email facture + PDF${ticket_photo ? ' + ticket' : ''} envoyé à ${rental.email}`);
   } else {
     console.error(`❌ Erreur envoi email facture à ${rental.email}:`, result.error);
   }
