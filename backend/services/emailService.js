@@ -1,9 +1,27 @@
 // =====================================================
-// VOLTRIDE - Service d'envoi d'emails (Resend)
+// VOLTRIDE - Service Email & PDF (v3.0)
+// Avec logo, accessoires, déductions, photo ticket
 // =====================================================
+
+const fs = require('fs');
+const path = require('path');
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const EMAIL_FROM = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+
+// Charger le logo en base64
+function getLogoBase64() {
+  try {
+    const logoPath = path.join(__dirname, '../assets/logo.png');
+    if (fs.existsSync(logoPath)) {
+      const logoBuffer = fs.readFileSync(logoPath);
+      return logoBuffer.toString('base64');
+    }
+  } catch (e) {
+    console.error('Error loading logo:', e);
+  }
+  return null;
+}
 
 // Envoyer un email
 async function sendEmail({ to, subject, html, attachments = [] }) {
@@ -20,7 +38,6 @@ async function sendEmail({ to, subject, html, attachments = [] }) {
       html: html
     };
     
-    // Ajouter les pièces jointes si présentes
     if (attachments && attachments.length > 0) {
       emailData.attachments = attachments;
     }
@@ -58,9 +75,9 @@ async function generateContractPDF(rentalId, pool) {
       SELECT 
         r.*,
         c.first_name, c.last_name, c.email, c.phone, c.address, c.id_number, c.id_type,
-        c.preferred_language,
+        c.preferred_language, c.country,
         v.code as vehicle_code, v.type as vehicle_type, v.brand, v.model,
-        a.name as agency_name, a.address as agency_address, a.phone as agency_phone
+        a.name as agency_name, a.address as agency_address, a.phone as agency_phone, a.email as agency_email
       FROM rentals r
       LEFT JOIN customers c ON r.customer_id = c.id
       LEFT JOIN vehicles v ON r.vehicle_id = v.id
@@ -71,6 +88,7 @@ async function generateContractPDF(rentalId, pool) {
     if (result.rows.length === 0) return null;
     
     const rental = result.rows[0];
+    const logoBase64 = getLogoBase64();
     
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
@@ -83,74 +101,139 @@ async function generateContractPDF(rentalId, pool) {
       });
       doc.on('error', reject);
       
-      // Générer le contenu du PDF
-      doc.fontSize(24).fillColor('#f59e0b').text('⚡ VOLTRIDE', 50, 50);
-      doc.fontSize(10).fillColor('#666')
-         .text(rental.agency_name || 'Voltride', 50, 80)
-         .text(rental.agency_address || '', 50, 95);
+      // === EN-TÊTE AVEC LOGO ===
+      if (logoBase64) {
+        try {
+          const logoBuffer = Buffer.from(logoBase64, 'base64');
+          doc.image(logoBuffer, 50, 40, { width: 120 });
+        } catch (e) {
+          doc.fontSize(24).fillColor('#f59e0b').text('VOLTRIDE', 50, 50);
+        }
+      } else {
+        doc.fontSize(24).fillColor('#f59e0b').text('VOLTRIDE', 50, 50);
+      }
       
-      doc.fontSize(20).fillColor('#333').text('CONTRATO DE ALQUILER', 300, 50, { align: 'right' });
+      // Infos agence
+      doc.fontSize(9).fillColor('#666')
+         .text(rental.agency_name || 'Voltride', 50, 100)
+         .text(rental.agency_address || '', 50, 112)
+         .text(rental.agency_phone || '', 50, 124);
+      
+      // Titre et numéro de contrat
+      doc.fontSize(22).fillColor('#333').text('CONTRATO DE ALQUILER', 300, 50, { align: 'right' });
       doc.fontSize(11).fillColor('#666')
          .text(`Nº: ${rental.contract_number}`, 300, 80, { align: 'right' })
          .text(`Fecha: ${new Date(rental.start_date).toLocaleDateString('es-ES')}`, 300, 95, { align: 'right' });
       
-      doc.moveTo(50, 130).lineTo(545, 130).strokeColor('#ddd').stroke();
+      // Ligne séparatrice
+      doc.moveTo(50, 145).lineTo(545, 145).strokeColor('#f59e0b').lineWidth(2).stroke();
       
-      let y = 150;
-      doc.fontSize(12).fillColor('#f59e0b').text('CLIENTE', 50, y);
+      // === SECTION CLIENT ===
+      let y = 165;
+      doc.fontSize(12).fillColor('#f59e0b').text('DATOS DEL CLIENTE', 50, y);
       y += 20;
-      doc.fontSize(11).fillColor('#333')
-         .text(`${rental.first_name} ${rental.last_name}`, 50, y);
+      
+      doc.fontSize(10).fillColor('#333');
+      doc.text(`Nombre: ${rental.first_name} ${rental.last_name}`, 50, y);
       y += 15;
       if (rental.id_number) {
-        doc.text(`${rental.id_type?.toUpperCase() || 'ID'}: ${rental.id_number}`, 50, y);
+        doc.text(`${(rental.id_type || 'ID').toUpperCase()}: ${rental.id_number}`, 50, y);
         y += 15;
       }
-      if (rental.email) doc.text(rental.email, 50, y);
-      y += 15;
-      if (rental.phone) doc.text(rental.phone, 50, y);
+      if (rental.phone) {
+        doc.text(`Teléfono: ${rental.phone}`, 50, y);
+        y += 15;
+      }
+      if (rental.email) {
+        doc.text(`Email: ${rental.email}`, 50, y);
+        y += 15;
+      }
+      if (rental.country) {
+        doc.text(`País: ${rental.country}`, 50, y);
+        y += 15;
+      }
       
-      y += 30;
-      doc.fontSize(12).fillColor('#f59e0b').text('VEHÍCULO', 50, y);
+      // === SECTION VÉHICULE ===
+      y += 10;
+      doc.fontSize(12).fillColor('#f59e0b').text('VEHÍCULO ALQUILADO', 50, y);
       y += 20;
+      
       const vehicleIcon = rental.vehicle_type === 'bike' ? '🚲' : rental.vehicle_type === 'ebike' ? '⚡' : '🛵';
       doc.fontSize(11).fillColor('#333')
          .text(`${vehicleIcon} ${rental.vehicle_code} - ${rental.brand || ''} ${rental.model || ''}`, 50, y);
+      y += 15;
+      doc.fontSize(10).text(`Tipo: ${rental.vehicle_type === 'bike' ? 'Bicicleta' : rental.vehicle_type === 'ebike' ? 'Bicicleta Eléctrica' : 'Scooter'}`, 50, y);
       
-      y += 30;
-      doc.fontSize(12).fillColor('#f59e0b').text('PERÍODO', 50, y);
+      // === ACCESSOIRES ===
+      if (rental.notes && rental.notes.includes('Accesorios:')) {
+        y += 25;
+        doc.fontSize(12).fillColor('#f59e0b').text('ACCESORIOS INCLUIDOS', 50, y);
+        y += 20;
+        
+        const accStr = rental.notes.replace('Accesorios:', '').trim();
+        const accessories = accStr.split(',').map(a => a.trim()).filter(a => a);
+        
+        doc.fontSize(10).fillColor('#333');
+        accessories.forEach(acc => {
+          doc.text(`• ${acc}`, 60, y);
+          y += 14;
+        });
+      }
+      
+      // === PÉRIODE ET TARIFS ===
+      y += 15;
+      doc.fontSize(12).fillColor('#f59e0b').text('PERÍODO Y TARIFAS', 50, y);
       y += 20;
+      
       const startDate = new Date(rental.start_date);
       const endDate = new Date(rental.planned_end_date);
       const days = Math.max(1, Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)));
-      doc.fontSize(11).fillColor('#333')
-         .text(`Inicio: ${startDate.toLocaleDateString('es-ES')} ${startDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`, 50, y);
-      y += 15;
-      doc.text(`Fin: ${endDate.toLocaleDateString('es-ES')} ${endDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`, 50, y);
-      y += 15;
-      doc.text(`Duración: ${days} día(s)`, 50, y);
-      
-      y += 30;
-      doc.fontSize(12).fillColor('#f59e0b').text('TARIFAS', 50, y);
-      y += 20;
       const totalAmount = parseFloat(rental.total_amount) || 0;
       const deposit = parseFloat(rental.deposit) || 0;
-      doc.fontSize(11).fillColor('#333')
-         .text(`Alquiler: ${totalAmount.toFixed(2)} €`, 50, y);
+      
+      doc.fontSize(10).fillColor('#333');
+      doc.text(`Inicio: ${startDate.toLocaleDateString('es-ES')} ${startDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`, 50, y);
       y += 15;
-      doc.text(`Depósito: ${deposit.toFixed(2)} €`, 50, y);
+      doc.text(`Fin previsto: ${endDate.toLocaleDateString('es-ES')} ${endDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`, 50, y);
       y += 15;
-      doc.fontSize(12).fillColor('#f59e0b').text(`TOTAL: ${(totalAmount + deposit).toFixed(2)} €`, 50, y);
+      doc.text(`Duración: ${days} día(s)`, 50, y);
+      y += 20;
       
-      y += 40;
-      doc.fontSize(10).fillColor('#666')
-         .text('El cliente declara haber recibido el vehículo en perfecto estado y se compromete a devolverlo en las mismas condiciones.', 50, y, { width: 500 });
+      // Tableau des tarifs
+      doc.rect(50, y, 250, 80).fillColor('#f5f5f5').fill();
+      doc.fillColor('#333');
+      y += 10;
+      doc.text(`Tarifa diaria: ${parseFloat(rental.daily_rate).toFixed(2)} €`, 60, y);
+      y += 18;
+      doc.text(`Total alquiler: ${totalAmount.toFixed(2)} €`, 60, y);
+      y += 18;
+      doc.text(`Depósito: ${deposit.toFixed(2)} €`, 60, y);
+      y += 18;
+      doc.fontSize(11).fillColor('#f59e0b').text(`TOTAL A PAGAR: ${(totalAmount + deposit).toFixed(2)} €`, 60, y);
       
-      y = 650;
-      doc.fontSize(12).fillColor('#333').text('Firma del cliente:', 50, y);
-      doc.rect(50, y + 20, 200, 60).stroke();
+      // === CONDITIONS ===
+      y += 50;
+      doc.fontSize(9).fillColor('#666')
+         .text('CONDICIONES:', 50, y);
+      y += 12;
+      doc.text('• El cliente se compromete a devolver el vehículo en el mismo estado en que lo recibió.', 50, y, { width: 500 });
+      y += 20;
+      doc.text('• En caso de daños o pérdida, el cliente será responsable de los costes de reparación/reemplazo.', 50, y, { width: 500 });
+      y += 20;
+      doc.text('• El depósito será devuelto tras la inspección del vehículo al momento de la devolución.', 50, y, { width: 500 });
       
-      doc.fontSize(9).fillColor('#999').text('Voltride - NIF: B12345678 | info@voltride.es', 50, 770, { align: 'center' });
+      // === SIGNATURES ===
+      y = 680;
+      doc.fontSize(10).fillColor('#333');
+      doc.text('Firma del cliente:', 50, y);
+      doc.rect(50, y + 15, 200, 50).stroke();
+      
+      doc.text('Firma de la agencia:', 320, y);
+      doc.rect(320, y + 15, 200, 50).stroke();
+      
+      // Pied de page
+      doc.fontSize(8).fillColor('#999')
+         .text(`Voltride - ${rental.agency_name || ''} | ${rental.agency_email || 'info@voltride.es'} | ${rental.agency_phone || ''}`, 50, 780, { align: 'center' });
       
       doc.end();
     });
@@ -170,7 +253,7 @@ async function generateInvoicePDF(rentalId, pool) {
         r.*,
         c.first_name, c.last_name, c.email, c.phone, c.address, c.id_number, c.id_type,
         v.code as vehicle_code, v.type as vehicle_type, v.brand, v.model,
-        a.name as agency_name, a.address as agency_address
+        a.name as agency_name, a.address as agency_address, a.phone as agency_phone, a.email as agency_email
       FROM rentals r
       LEFT JOIN customers c ON r.customer_id = c.id
       LEFT JOIN vehicles v ON r.vehicle_id = v.id
@@ -181,6 +264,7 @@ async function generateInvoicePDF(rentalId, pool) {
     if (result.rows.length === 0) return null;
     
     const rental = result.rows[0];
+    const logoBase64 = getLogoBase64();
     
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
@@ -193,79 +277,154 @@ async function generateInvoicePDF(rentalId, pool) {
       });
       doc.on('error', reject);
       
-      // En-tête
-      doc.fontSize(24).fillColor('#f59e0b').text('⚡ VOLTRIDE', 50, 50);
-      doc.fontSize(10).fillColor('#666').text(rental.agency_name || 'Voltride', 50, 80);
+      // === EN-TÊTE AVEC LOGO ===
+      if (logoBase64) {
+        try {
+          const logoBuffer = Buffer.from(logoBase64, 'base64');
+          doc.image(logoBuffer, 50, 40, { width: 120 });
+        } catch (e) {
+          doc.fontSize(24).fillColor('#f59e0b').text('VOLTRIDE', 50, 50);
+        }
+      } else {
+        doc.fontSize(24).fillColor('#f59e0b').text('VOLTRIDE', 50, 50);
+      }
       
-      doc.fontSize(28).fillColor('#333').text('FACTURA', 350, 50, { align: 'right' });
+      // Infos agence
+      doc.fontSize(9).fillColor('#666')
+         .text(rental.agency_name || 'Voltride', 50, 100)
+         .text(rental.agency_address || '', 50, 112)
+         .text(rental.agency_phone || '', 50, 124);
+      
+      // Titre FACTURA
+      doc.fontSize(28).fillColor('#10b981').text('FACTURA', 350, 50, { align: 'right' });
       doc.fontSize(11).fillColor('#666')
          .text(`Nº: F-${rental.contract_number}`, 350, 85, { align: 'right' })
          .text(`Fecha: ${new Date().toLocaleDateString('es-ES')}`, 350, 100, { align: 'right' });
       
-      doc.moveTo(50, 130).lineTo(545, 130).strokeColor('#ddd').stroke();
+      // Ligne séparatrice
+      doc.moveTo(50, 145).lineTo(545, 145).strokeColor('#10b981').lineWidth(2).stroke();
       
-      // Client
-      let y = 150;
-      doc.fontSize(12).fillColor('#f59e0b').text('CLIENTE', 50, y);
+      // === CLIENT ===
+      let y = 165;
+      doc.fontSize(12).fillColor('#10b981').text('CLIENTE', 50, y);
       y += 20;
-      doc.fontSize(11).fillColor('#333').text(`${rental.first_name} ${rental.last_name}`, 50, y);
+      doc.fontSize(10).fillColor('#333')
+         .text(`${rental.first_name} ${rental.last_name}`, 50, y);
       if (rental.id_number) {
-        y += 15;
-        doc.text(`${rental.id_type?.toUpperCase()}: ${rental.id_number}`, 50, y);
+        y += 14;
+        doc.text(`${(rental.id_type || 'ID').toUpperCase()}: ${rental.id_number}`, 50, y);
       }
       
-      // Détails
-      y += 40;
-      doc.fontSize(12).fillColor('#f59e0b').text('DETALLE', 50, y);
+      // === DÉTAIL DE LA LOCATION ===
+      y += 30;
+      doc.fontSize(12).fillColor('#10b981').text('DETALLE DEL ALQUILER', 50, y);
       y += 25;
       
+      // Tableau
+      const col1 = 50, col2 = 280, col3 = 380, col4 = 480;
+      
+      // En-tête tableau
+      doc.rect(50, y - 5, 495, 25).fillColor('#f0fdf4').fill();
+      doc.fontSize(10).fillColor('#333')
+         .text('Descripción', col1 + 10, y)
+         .text('Cantidad', col2, y)
+         .text('Precio', col3, y)
+         .text('Total', col4, y);
+      y += 30;
+      
+      // Calculs
       const startDate = new Date(rental.start_date);
       const endDate = new Date(rental.end_date || rental.planned_end_date);
       const days = Math.max(1, Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)));
-      const totalTTC = parseFloat(rental.total_amount) || 0;
-      const totalHT = totalTTC / 1.21;
-      const tva = totalTTC - totalHT;
+      const dailyRate = parseFloat(rental.daily_rate) || 0;
+      const rentalTotal = parseFloat(rental.total_amount) || (days * dailyRate);
       
+      // Ligne véhicule
       const vehicleIcon = rental.vehicle_type === 'bike' ? '🚲' : rental.vehicle_type === 'ebike' ? '⚡' : '🛵';
-      doc.fontSize(11).fillColor('#333')
-         .text(`${vehicleIcon} ${rental.vehicle_code} - ${rental.brand || ''} ${rental.model || ''}`, 50, y)
-         .text(`${totalTTC.toFixed(2)} €`, 450, y);
-      y += 15;
-      doc.fontSize(10).fillColor('#666').text(`${days} día(s) x ${parseFloat(rental.daily_rate).toFixed(2)} €/día`, 50, y);
+      doc.fontSize(10).fillColor('#333')
+         .text(`${vehicleIcon} ${rental.vehicle_code} - ${rental.brand || ''} ${rental.model || ''}`, col1, y)
+         .text(`${days} día(s)`, col2, y)
+         .text(`${dailyRate.toFixed(2)} €`, col3, y)
+         .text(`${rentalTotal.toFixed(2)} €`, col4, y);
+      y += 20;
       
-      // Totaux
-      y += 40;
-      doc.moveTo(300, y).lineTo(545, y).strokeColor('#ddd').stroke();
+      // Accessoires (si présents)
+      if (rental.notes && rental.notes.includes('Accesorios:')) {
+        const accStr = rental.notes.replace('Accesorios:', '').trim();
+        const accessories = accStr.split(',').map(a => a.trim()).filter(a => a);
+        accessories.forEach(acc => {
+          doc.text(`   🎒 ${acc}`, col1, y).text('Incluido', col4, y);
+          y += 15;
+        });
+      }
+      
+      // Ligne séparatrice
+      y += 10;
+      doc.moveTo(50, y).lineTo(545, y).strokeColor('#ddd').stroke();
       y += 15;
-      doc.fontSize(10).fillColor('#666').text('Base imponible', 300, y);
-      doc.fillColor('#333').text(`${totalHT.toFixed(2)} €`, 450, y);
+      
+      // === DÉDUCTIONS (si présentes) ===
+      const deductions = parseFloat(rental.checkout_deductions) || 0;
+      if (deductions > 0 && rental.checkout_notes) {
+        doc.fontSize(11).fillColor('#e74c3c').text('DEDUCCIONES:', col1, y);
+        y += 18;
+        
+        const deductionsList = rental.checkout_notes.split(',').map(d => d.trim());
+        doc.fontSize(10);
+        deductionsList.forEach(ded => {
+          doc.text(`• ${ded}`, col1 + 10, y);
+          y += 15;
+        });
+        
+        doc.text(`Total deducciones:`, col3, y);
+        doc.fillColor('#e74c3c').text(`-${deductions.toFixed(2)} €`, col4, y);
+        y += 25;
+      }
+      
+      // === TOTAUX ===
+      const deposit = parseFloat(rental.deposit) || 0;
+      const depositRefund = parseFloat(rental.checkout_refund) || (deposit - deductions);
+      
+      // Base HT et TVA
+      const rentalHT = rentalTotal / 1.21;
+      const tva = rentalTotal - rentalHT;
+      
+      doc.fontSize(10).fillColor('#666');
+      doc.text('Base imponible:', col3, y);
+      doc.fillColor('#333').text(`${rentalHT.toFixed(2)} €`, col4, y);
       y += 18;
-      doc.fillColor('#666').text('IVA 21%', 300, y);
-      doc.fillColor('#333').text(`${tva.toFixed(2)} €`, 450, y);
+      
+      doc.fillColor('#666').text('IVA 21%:', col3, y);
+      doc.fillColor('#333').text(`${tva.toFixed(2)} €`, col4, y);
       y += 25;
       
-      doc.rect(290, y - 5, 260, 35).fillColor('#f59e0b').fill();
-      doc.fontSize(12).fillColor('#fff').text('TOTAL', 300, y + 5);
-      doc.fontSize(14).text(`${totalTTC.toFixed(2)} €`, 450, y + 3);
+      // Total TTC
+      doc.rect(col3 - 10, y - 5, 175, 30).fillColor('#10b981').fill();
+      doc.fontSize(12).fillColor('#fff')
+         .text('TOTAL:', col3, y + 3)
+         .text(`${rentalTotal.toFixed(2)} €`, col4, y + 3);
+      y += 45;
       
-      // Dépôt info
-      const deposit = parseFloat(rental.deposit) || 0;
-      const deductions = parseFloat(rental.checkout_deductions) || 0;
-      const refund = parseFloat(rental.checkout_refund) || (deposit - deductions);
+      // === DÉPÔT ===
+      doc.fontSize(10).fillColor('#333');
+      doc.text(`Depósito pagado:`, col3, y);
+      doc.text(`${deposit.toFixed(2)} €`, col4, y);
+      y += 18;
       
-      y += 60;
-      doc.fontSize(11).fillColor('#333')
-         .text(`Depósito pagado: ${deposit.toFixed(2)} €`, 300, y);
-      y += 15;
       if (deductions > 0) {
-        doc.fillColor('#e74c3c').text(`Deducciones: -${deductions.toFixed(2)} €`, 300, y);
-        y += 15;
+        doc.fillColor('#e74c3c').text(`Deducciones:`, col3, y);
+        doc.text(`-${deductions.toFixed(2)} €`, col4, y);
+        y += 18;
       }
-      doc.fillColor('#27ae60').text(`Depósito devuelto: ${refund.toFixed(2)} €`, 300, y);
       
-      // Pied de page
-      doc.fontSize(12).fillColor('#27ae60').text('¡Gracias por confiar en Voltride!', 50, 700, { align: 'center' });
-      doc.fontSize(9).fillColor('#999').text('Voltride - NIF: B12345678 | info@voltride.es', 50, 750, { align: 'center' });
+      doc.fillColor('#10b981').text(`Depósito devuelto:`, col3, y);
+      doc.fontSize(12).text(`${depositRefund.toFixed(2)} €`, col4, y);
+      
+      // === PIED DE PAGE ===
+      doc.fontSize(14).fillColor('#10b981').text('¡Gracias por confiar en Voltride!', 50, 700, { align: 'center' });
+      
+      doc.fontSize(8).fillColor('#999')
+         .text(`Voltride - ${rental.agency_name || ''} | ${rental.agency_email || 'info@voltride.es'} | ${rental.agency_phone || ''}`, 50, 750, { align: 'center' });
       
       doc.end();
     });
@@ -285,47 +444,65 @@ function getContractEmailTemplate(data, lang = 'es') {
         <html>
         <head>
           <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+            .container { max-width: 600px; margin: 0 auto; }
+            .header { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 30px; text-align: center; }
+            .header img { max-height: 60px; margin-bottom: 10px; }
+            .content { background: #f9f9f9; padding: 30px; }
             .info-box { background: white; padding: 20px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #f59e0b; }
-            .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
-            h1 { margin: 0; }
+            .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; background: #333; color: #999; }
+            h1 { margin: 0; font-size: 24px; }
+            h3 { margin: 0 0 15px 0; color: #f59e0b; }
             .highlight { color: #f59e0b; font-weight: bold; }
+            .accessories { background: #fff8e1; padding: 15px; border-radius: 8px; margin: 15px 0; }
+            .accessories ul { margin: 10px 0; padding-left: 20px; }
           </style>
         </head>
         <body>
           <div class="container">
             <div class="header">
               <h1>⚡ VOLTRIDE</h1>
-              <p>Tu contrato de alquiler</p>
+              <p style="margin: 5px 0 0 0; opacity: 0.9;">Tu contrato de alquiler</p>
             </div>
             <div class="content">
               <p>Hola <strong>${data.customer_name}</strong>,</p>
-              <p>Gracias por confiar en Voltride. Aquí tienes los detalles de tu alquiler:</p>
+              <p>¡Gracias por elegir Voltride! Aquí tienes los detalles de tu alquiler:</p>
               
               <div class="info-box">
                 <h3>📋 Contrato: <span class="highlight">${data.contract_number}</span></h3>
                 <p><strong>Vehículo:</strong> ${data.vehicle}</p>
                 <p><strong>Inicio:</strong> ${data.start_date}</p>
                 <p><strong>Fin previsto:</strong> ${data.end_date}</p>
-                <p><strong>Total:</strong> ${data.total} €</p>
-                <p><strong>Depósito:</strong> ${data.deposit} €</p>
               </div>
               
-              <p>📎 Encontrarás el contrato completo en el archivo adjunto.</p>
+              ${data.accessories ? `
+              <div class="accessories">
+                <h3>🎒 Accesorios incluidos</h3>
+                <ul>
+                  ${data.accessories.split(',').map(a => `<li>${a.trim()}</li>`).join('')}
+                </ul>
+              </div>
+              ` : ''}
               
               <div class="info-box">
-                <h3>📞 Contacto</h3>
-                <p>📱 +34 600 000 001</p>
-                <p>📧 info@voltride.es</p>
+                <h3>💰 Resumen económico</h3>
+                <p><strong>Total alquiler:</strong> ${data.total} €</p>
+                <p><strong>Depósito:</strong> ${data.deposit} €</p>
+                <p style="font-size: 18px; color: #f59e0b; margin-top: 15px;"><strong>Total pagado: ${(parseFloat(data.total) + parseFloat(data.deposit)).toFixed(2)} €</strong></p>
               </div>
               
-              <p>¡Disfruta de tu paseo! 🚲</p>
+              <p>📎 Encontrarás el contrato completo en el archivo PDF adjunto.</p>
+              
+              <div class="info-box">
+                <h3>📞 ¿Necesitas ayuda?</h3>
+                <p>📱 ${data.agency_phone || '+34 600 000 001'}</p>
+                <p>📧 ${data.agency_email || 'info@voltride.es'}</p>
+              </div>
+              
+              <p style="text-align: center; font-size: 18px;">¡Disfruta de tu paseo! 🚲</p>
             </div>
             <div class="footer">
-              <p>© ${new Date().getFullYear()} Voltride</p>
+              <p>© ${new Date().getFullYear()} Voltride - Alquiler de bicicletas y vehículos eléctricos</p>
             </div>
           </div>
         </body>
@@ -340,12 +517,13 @@ function getContractEmailTemplate(data, lang = 'es') {
         <head>
           <style>
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+            .container { max-width: 600px; margin: 0 auto; }
+            .header { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 30px; text-align: center; }
+            .content { background: #f9f9f9; padding: 30px; }
             .info-box { background: white; padding: 20px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #f59e0b; }
-            .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+            .footer { text-align: center; padding: 20px; background: #333; color: #999; font-size: 12px; }
             h1 { margin: 0; }
+            h3 { color: #f59e0b; margin: 0 0 15px 0; }
             .highlight { color: #f59e0b; font-weight: bold; }
           </style>
         </head>
@@ -357,7 +535,7 @@ function getContractEmailTemplate(data, lang = 'es') {
             </div>
             <div class="content">
               <p>Bonjour <strong>${data.customer_name}</strong>,</p>
-              <p>Merci de votre confiance. Voici les détails de votre location :</p>
+              <p>Merci d'avoir choisi Voltride ! Voici les détails de votre location :</p>
               
               <div class="info-box">
                 <h3>📋 Contrat : <span class="highlight">${data.contract_number}</span></h3>
@@ -370,13 +548,7 @@ function getContractEmailTemplate(data, lang = 'es') {
               
               <p>📎 Vous trouverez le contrat complet en pièce jointe.</p>
               
-              <div class="info-box">
-                <h3>📞 Contact</h3>
-                <p>📱 +34 600 000 001</p>
-                <p>📧 info@voltride.es</p>
-              </div>
-              
-              <p>Bonne balade ! 🚲</p>
+              <p style="text-align: center; font-size: 18px;">Bonne balade ! 🚲</p>
             </div>
             <div class="footer">
               <p>© ${new Date().getFullYear()} Voltride</p>
@@ -394,12 +566,13 @@ function getContractEmailTemplate(data, lang = 'es') {
         <head>
           <style>
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+            .container { max-width: 600px; margin: 0 auto; }
+            .header { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 30px; text-align: center; }
+            .content { background: #f9f9f9; padding: 30px; }
             .info-box { background: white; padding: 20px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #f59e0b; }
-            .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+            .footer { text-align: center; padding: 20px; background: #333; color: #999; font-size: 12px; }
             h1 { margin: 0; }
+            h3 { color: #f59e0b; margin: 0 0 15px 0; }
             .highlight { color: #f59e0b; font-weight: bold; }
           </style>
         </head>
@@ -411,7 +584,7 @@ function getContractEmailTemplate(data, lang = 'es') {
             </div>
             <div class="content">
               <p>Hello <strong>${data.customer_name}</strong>,</p>
-              <p>Thank you for choosing Voltride. Here are your rental details:</p>
+              <p>Thank you for choosing Voltride! Here are your rental details:</p>
               
               <div class="info-box">
                 <h3>📋 Contract: <span class="highlight">${data.contract_number}</span></h3>
@@ -424,13 +597,7 @@ function getContractEmailTemplate(data, lang = 'es') {
               
               <p>📎 You will find the complete contract attached.</p>
               
-              <div class="info-box">
-                <h3>📞 Contact</h3>
-                <p>📱 +34 600 000 001</p>
-                <p>📧 info@voltride.es</p>
-              </div>
-              
-              <p>Enjoy your ride! 🚲</p>
+              <p style="text-align: center; font-size: 18px;">Enjoy your ride! 🚲</p>
             </div>
             <div class="footer">
               <p>© ${new Date().getFullYear()} Voltride</p>
@@ -456,29 +623,33 @@ function getInvoiceEmailTemplate(data, lang = 'es') {
         <head>
           <style>
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+            .container { max-width: 600px; margin: 0 auto; }
+            .header { background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 30px; text-align: center; }
+            .content { background: #f9f9f9; padding: 30px; }
             .info-box { background: white; padding: 20px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #10b981; }
-            .refund-box { background: #ecfdf5; padding: 20px; border-radius: 8px; margin: 15px 0; border: 2px solid #10b981; text-align: center; }
-            .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+            .refund-box { background: #ecfdf5; padding: 25px; border-radius: 8px; margin: 20px 0; border: 2px solid #10b981; text-align: center; }
+            .deductions-box { background: #fef2f2; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ef4444; }
+            .footer { text-align: center; padding: 20px; background: #333; color: #999; font-size: 12px; }
             h1 { margin: 0; }
+            h3 { color: #10b981; margin: 0 0 15px 0; }
             .highlight { color: #10b981; font-weight: bold; }
-            .amount { font-size: 28px; color: #10b981; font-weight: bold; }
+            .amount { font-size: 32px; color: #10b981; font-weight: bold; }
+            .warning { color: #ef4444; }
           </style>
         </head>
         <body>
           <div class="container">
             <div class="header">
               <h1>⚡ VOLTRIDE</h1>
-              <p>Factura y resumen</p>
+              <p>Factura y resumen de tu alquiler</p>
             </div>
             <div class="content">
               <p>Hola <strong>${data.customer_name}</strong>,</p>
-              <p>Gracias por haber elegido Voltride. Aquí tienes el resumen:</p>
+              <p>¡Gracias por haber elegido Voltride! Aquí tienes el resumen de tu alquiler:</p>
               
               <div class="info-box">
-                <h3>📋 Contrato: ${data.contract_number}</h3>
+                <h3>📋 Resumen del alquiler</h3>
+                <p><strong>Contrato:</strong> ${data.contract_number}</p>
                 <p><strong>Vehículo:</strong> ${data.vehicle}</p>
                 <p><strong>Período:</strong> ${data.start_date} → ${data.end_date}</p>
                 <p><strong>Duración:</strong> ${data.days} día(s)</p>
@@ -486,22 +657,29 @@ function getInvoiceEmailTemplate(data, lang = 'es') {
               
               <div class="info-box">
                 <h3>🧾 Factura: <span class="highlight">${data.invoice_number}</span></h3>
-                <p><strong>Alquiler:</strong> ${data.rental_amount} €</p>
-                ${data.deductions > 0 ? `<p><strong>Deducciones:</strong> -${data.deductions} €</p>` : ''}
+                <p><strong>Total alquiler:</strong> ${data.rental_amount} €</p>
                 <p><strong>Depósito pagado:</strong> ${data.deposit_paid} €</p>
               </div>
               
+              ${parseFloat(data.deductions) > 0 ? `
+              <div class="deductions-box">
+                <h3 class="warning">⚠️ Deducciones aplicadas</h3>
+                <p><strong>Total deducciones:</strong> <span class="warning">-${data.deductions} €</span></p>
+                <p style="font-size: 12px; color: #666;">Ver detalle en la factura adjunta</p>
+              </div>
+              ` : ''}
+              
               <div class="refund-box">
-                <p>💰 Depósito devuelto:</p>
+                <p style="margin: 0; font-size: 14px; color: #666;">💰 Depósito devuelto:</p>
                 <p class="amount">${data.deposit_refunded} €</p>
               </div>
               
-              <p>📎 Encontrarás la factura en el archivo adjunto.</p>
+              <p>📎 Encontrarás la factura detallada en el archivo PDF adjunto.</p>
               
-              <p>¡Esperamos verte pronto! 🚲</p>
+              <p style="text-align: center; font-size: 18px; margin-top: 30px;">¡Esperamos verte pronto! 🚲</p>
             </div>
             <div class="footer">
-              <p>© ${new Date().getFullYear()} Voltride</p>
+              <p>© ${new Date().getFullYear()} Voltride - Alquiler de bicicletas y vehículos eléctricos</p>
             </div>
           </div>
         </body>
@@ -516,15 +694,14 @@ function getInvoiceEmailTemplate(data, lang = 'es') {
         <head>
           <style>
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+            .container { max-width: 600px; margin: 0 auto; }
+            .header { background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 30px; text-align: center; }
+            .content { background: #f9f9f9; padding: 30px; }
             .info-box { background: white; padding: 20px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #10b981; }
-            .refund-box { background: #ecfdf5; padding: 20px; border-radius: 8px; margin: 15px 0; border: 2px solid #10b981; text-align: center; }
-            .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+            .refund-box { background: #ecfdf5; padding: 25px; border-radius: 8px; margin: 20px 0; border: 2px solid #10b981; text-align: center; }
+            .footer { text-align: center; padding: 20px; background: #333; color: #999; font-size: 12px; }
             h1 { margin: 0; }
-            .highlight { color: #10b981; font-weight: bold; }
-            .amount { font-size: 28px; color: #10b981; font-weight: bold; }
+            .amount { font-size: 32px; color: #10b981; font-weight: bold; }
           </style>
         </head>
         <body>
@@ -535,20 +712,13 @@ function getInvoiceEmailTemplate(data, lang = 'es') {
             </div>
             <div class="content">
               <p>Bonjour <strong>${data.customer_name}</strong>,</p>
-              <p>Merci d'avoir choisi Voltride. Voici le résumé :</p>
+              <p>Merci d'avoir choisi Voltride !</p>
               
               <div class="info-box">
-                <h3>📋 Contrat : ${data.contract_number}</h3>
+                <p><strong>Contrat :</strong> ${data.contract_number}</p>
                 <p><strong>Véhicule :</strong> ${data.vehicle}</p>
                 <p><strong>Période :</strong> ${data.start_date} → ${data.end_date}</p>
-                <p><strong>Durée :</strong> ${data.days} jour(s)</p>
-              </div>
-              
-              <div class="info-box">
-                <h3>🧾 Facture : <span class="highlight">${data.invoice_number}</span></h3>
-                <p><strong>Location :</strong> ${data.rental_amount} €</p>
-                ${data.deductions > 0 ? `<p><strong>Déductions :</strong> -${data.deductions} €</p>` : ''}
-                <p><strong>Caution payée :</strong> ${data.deposit_paid} €</p>
+                <p><strong>Total :</strong> ${data.rental_amount} €</p>
               </div>
               
               <div class="refund-box">
@@ -556,9 +726,8 @@ function getInvoiceEmailTemplate(data, lang = 'es') {
                 <p class="amount">${data.deposit_refunded} €</p>
               </div>
               
-              <p>📎 Vous trouverez la facture en pièce jointe.</p>
-              
-              <p>À bientôt ! 🚲</p>
+              <p>📎 Facture en pièce jointe.</p>
+              <p style="text-align: center;">À bientôt ! 🚲</p>
             </div>
             <div class="footer">
               <p>© ${new Date().getFullYear()} Voltride</p>
@@ -576,15 +745,14 @@ function getInvoiceEmailTemplate(data, lang = 'es') {
         <head>
           <style>
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+            .container { max-width: 600px; margin: 0 auto; }
+            .header { background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 30px; text-align: center; }
+            .content { background: #f9f9f9; padding: 30px; }
             .info-box { background: white; padding: 20px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #10b981; }
-            .refund-box { background: #ecfdf5; padding: 20px; border-radius: 8px; margin: 15px 0; border: 2px solid #10b981; text-align: center; }
-            .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+            .refund-box { background: #ecfdf5; padding: 25px; border-radius: 8px; margin: 20px 0; border: 2px solid #10b981; text-align: center; }
+            .footer { text-align: center; padding: 20px; background: #333; color: #999; font-size: 12px; }
             h1 { margin: 0; }
-            .highlight { color: #10b981; font-weight: bold; }
-            .amount { font-size: 28px; color: #10b981; font-weight: bold; }
+            .amount { font-size: 32px; color: #10b981; font-weight: bold; }
           </style>
         </head>
         <body>
@@ -595,20 +763,13 @@ function getInvoiceEmailTemplate(data, lang = 'es') {
             </div>
             <div class="content">
               <p>Hello <strong>${data.customer_name}</strong>,</p>
-              <p>Thank you for choosing Voltride. Here is your summary:</p>
+              <p>Thank you for choosing Voltride!</p>
               
               <div class="info-box">
-                <h3>📋 Contract: ${data.contract_number}</h3>
+                <p><strong>Contract:</strong> ${data.contract_number}</p>
                 <p><strong>Vehicle:</strong> ${data.vehicle}</p>
                 <p><strong>Period:</strong> ${data.start_date} → ${data.end_date}</p>
-                <p><strong>Duration:</strong> ${data.days} day(s)</p>
-              </div>
-              
-              <div class="info-box">
-                <h3>🧾 Invoice: <span class="highlight">${data.invoice_number}</span></h3>
-                <p><strong>Rental:</strong> ${data.rental_amount} €</p>
-                ${data.deductions > 0 ? `<p><strong>Deductions:</strong> -${data.deductions} €</p>` : ''}
-                <p><strong>Deposit paid:</strong> ${data.deposit_paid} €</p>
+                <p><strong>Total:</strong> ${data.rental_amount} €</p>
               </div>
               
               <div class="refund-box">
@@ -616,9 +777,8 @@ function getInvoiceEmailTemplate(data, lang = 'es') {
                 <p class="amount">${data.deposit_refunded} €</p>
               </div>
               
-              <p>📎 You will find the invoice attached.</p>
-              
-              <p>See you soon! 🚲</p>
+              <p>📎 Invoice attached.</p>
+              <p style="text-align: center;">See you soon! 🚲</p>
             </div>
             <div class="footer">
               <p>© ${new Date().getFullYear()} Voltride</p>
@@ -638,5 +798,6 @@ module.exports = {
   generateContractPDF,
   generateInvoicePDF,
   getContractEmailTemplate,
-  getInvoiceEmailTemplate
+  getInvoiceEmailTemplate,
+  getLogoBase64
 };
