@@ -1,5 +1,5 @@
 // =====================================================
-// VOLTRIDE - API Module
+// VOLTRIDE - API Module (v2.0)
 // Communication avec le backend
 // =====================================================
 
@@ -33,7 +33,6 @@ function getHeaders() {
 // Gestionnaire d'erreurs
 async function handleResponse(response) {
   if (response.status === 401) {
-    // Token expiré ou invalide
     localStorage.removeItem('voltride_token');
     localStorage.removeItem('voltride_user');
     window.location.href = '/';
@@ -336,6 +335,32 @@ const agenciesAPI = {
   
   async getById(id) {
     const response = await fetch(`${API_BASE}/agencies/${id}`, {
+      headers: getHeaders()
+    });
+    return handleResponse(response);
+  },
+  
+  async create(agencyData) {
+    const response = await fetch(`${API_BASE}/agencies`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(agencyData)
+    });
+    return handleResponse(response);
+  },
+  
+  async update(id, agencyData) {
+    const response = await fetch(`${API_BASE}/agencies/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(agencyData)
+    });
+    return handleResponse(response);
+  },
+  
+  async delete(id) {
+    const response = await fetch(`${API_BASE}/agencies/${id}`, {
+      method: 'DELETE',
       headers: getHeaders()
     });
     return handleResponse(response);
