@@ -1,5 +1,5 @@
 // =====================================================
-// VOLTRIDE - Check-out (Version 1.0)
+// VOLTRIDE - Check-out (Version 1.1 - avec Facture & Email)
 // =====================================================
 
 let currentStep = 1;
@@ -25,7 +25,7 @@ const accessoryValues = {
 // Coûts des dommages
 const damageCosts = {
   chassis: { rayado: 10, tordu: 50 },
-  wheels: { crevé: 0, voilé: 15 }, // crevé = maintenance only
+  wheels: { crevé: 0, voilé: 15 },
   lights: { no_funciona: 0, cassé: 20 },
   cleaning: { sale: 6 }
 };
@@ -90,7 +90,6 @@ function renderContracts() {
     const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
     const vehicleIcon = contract.vehicle_type === 'bike' ? '🚲' : contract.vehicle_type === 'ebike' ? '⚡' : '🛵';
     
-    // Parse accessories from notes
     let accessories = [];
     if (contract.notes && contract.notes.includes('Accesorios:')) {
       const accStr = contract.notes.replace('Accesorios:', '').trim();
@@ -105,6 +104,10 @@ function renderContracts() {
           <div class="contract-info-row">
             <span class="contract-info-label">Cliente:</span>
             <span class="contract-info-value">${contract.first_name} ${contract.last_name}</span>
+          </div>
+          <div class="contract-info-row">
+            <span class="contract-info-label">Email:</span>
+            <span class="contract-info-value">${contract.email || 'Sin email'}</span>
           </div>
           <div class="contract-info-row">
             <span class="contract-info-label">Vehículo:</span>
@@ -150,7 +153,6 @@ function renderAccessories() {
     return;
   }
   
-  // Parse accessories from notes
   let accessories = [];
   if (selectedContract.notes.includes('Accesorios:')) {
     const accStr = selectedContract.notes.replace('Accesorios:', '').trim();
@@ -166,19 +168,16 @@ function renderAccessories() {
     return;
   }
   
-  // Calculate rental days
   const startDate = new Date(selectedContract.start_date);
   const endDate = new Date(selectedContract.planned_end_date);
   const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
   
   list.innerHTML = accessories.map((accName, index) => {
-    // Find accessory value
     const accKey = Object.keys(accessoryValues).find(k => 
       accessoryValues[k].name.toLowerCase() === accName.toLowerCase()
     );
-    const accValue = accKey ? accessoryValues[accKey].value : 20; // Default 20€
+    const accValue = accKey ? accessoryValues[accKey].value : 20;
     
-    // Initialize status if not exists
     if (accessoriesStatus[index] === undefined) {
       accessoriesStatus[index] = false;
     }
@@ -211,14 +210,12 @@ function toggleAccessory(index) {
 }
 
 function selectAllAccessories() {
-  // Parse accessories count
   let accessories = [];
   if (selectedContract?.notes?.includes('Accesorios:')) {
     const accStr = selectedContract.notes.replace('Accesorios:', '').trim();
     accessories = accStr.split(',').map(a => a.trim()).filter(a => a);
   }
   
-  // Mark all as returned
   accessories.forEach((_, index) => {
     accessoriesStatus[index] = true;
   });
@@ -241,7 +238,6 @@ function renderInspection() {
   const vehicleIcon = selectedContract.vehicle_type === 'bike' ? '🚲' : 
                       selectedContract.vehicle_type === 'ebike' ? '⚡' : '🛵';
   
-  // Initialize inspection data
   if (!inspectionData[selectedContract.vehicle_id]) {
     inspectionData[selectedContract.vehicle_id] = {
       chassis: 'excelente',
@@ -260,7 +256,6 @@ function renderInspection() {
     <div style="background: var(--bg-secondary); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
       <h3 style="margin-bottom: 20px;">${vehicleIcon} ${selectedContract.vehicle_code} - ${selectedContract.brand || ''} ${selectedContract.model || ''}</h3>
       
-      <!-- Inspection Grid -->
       <div class="inspection-grid">
         <div class="inspection-item">
           <label>Cuadro/Chasis</label>
@@ -310,7 +305,6 @@ function renderInspection() {
       </div>
     </div>
     
-    <!-- Photo Comparison -->
     <div class="photo-comparison">
       <h3>📷 Comparación de Fotos (Antes / Después)</h3>
       <p style="color: var(--text-secondary); margin-bottom: 15px;">Compara el estado del vehículo al inicio y al final del alquiler</p>
@@ -362,7 +356,6 @@ function renderInspection() {
       </div>
     </div>
     
-    <!-- Additional Damage Photos -->
     <div class="additional-photos">
       <h3>📸 Fotos Adicionales (Daños)</h3>
       <p style="color: var(--text-secondary); margin-bottom: 15px;">Añade fotos de cualquier daño encontrado</p>
@@ -379,7 +372,6 @@ function renderInspection() {
       </div>
     </div>
     
-    <!-- Hidden file inputs -->
     <input type="file" id="inspectionPhotoInput" accept="image/*" capture="environment" style="display: none;">
     <input type="file" id="damagePhotoInput" accept="image/*" capture="environment" style="display: none;">
   `;
@@ -457,7 +449,6 @@ function renderSummary() {
   const vehicleIcon = selectedContract.vehicle_type === 'bike' ? '🚲' : 
                       selectedContract.vehicle_type === 'ebike' ? '⚡' : '🛵';
   
-  // Contract summary
   document.getElementById('contractSummary').innerHTML = `
     <div class="summary-row">
       <span>Contrato:</span>
@@ -466,6 +457,10 @@ function renderSummary() {
     <div class="summary-row">
       <span>Cliente:</span>
       <span>${selectedContract.first_name} ${selectedContract.last_name}</span>
+    </div>
+    <div class="summary-row">
+      <span>Email:</span>
+      <span>${selectedContract.email || 'Sin email'}</span>
     </div>
     <div class="summary-row">
       <span>Vehículo:</span>
@@ -477,13 +472,11 @@ function renderSummary() {
     </div>
   `;
   
-  // Calculate deductions
   const deductions = calculateDeductions();
   const deposit = parseFloat(selectedContract.deposit) || 0;
   const totalDeductions = deductions.reduce((sum, d) => sum + d.amount, 0);
   const toRefund = Math.max(0, deposit - totalDeductions);
   
-  // Show deductions
   const deductionsBox = document.getElementById('deductionsBox');
   if (deductions.length > 0) {
     deductionsBox.style.display = 'block';
@@ -502,15 +495,12 @@ function renderSummary() {
     deductionsBox.style.display = 'none';
   }
   
-  // Update deposit refund display
   document.getElementById('depositToRefund').textContent = toRefund.toFixed(2) + '€';
   
-  // Refund method
   const depositMethod = selectedContract.deposit_method || 'cash';
   const refundMethodsContainer = document.getElementById('refundMethods');
   
   if (depositMethod === 'preauth') {
-    // Must refund via preauth
     refundMethodsContainer.innerHTML = `
       <div class="refund-method selected">
         <div class="refund-method-icon">💳</div>
@@ -526,7 +516,6 @@ function renderSummary() {
     document.getElementById('refundMethodDisplay').textContent = 'Devolver vía: Cancelación Pre-autorización';
     document.getElementById('photoTicketBox').style.display = 'block';
   } else {
-    // Cash refund
     refundMethodsContainer.innerHTML = `
       <div class="refund-method disabled">
         <div class="refund-method-icon">💳</div>
@@ -547,7 +536,6 @@ function renderSummary() {
 function calculateDeductions() {
   const deductions = [];
   
-  // 1. Missing accessories
   if (selectedContract?.notes?.includes('Accesorios:')) {
     const accStr = selectedContract.notes.replace('Accesorios:', '').trim();
     const accessories = accStr.split(',').map(a => a.trim()).filter(a => a);
@@ -566,7 +554,6 @@ function calculateDeductions() {
     });
   }
   
-  // 2. Inspection damages
   if (selectedContract && inspectionData[selectedContract.vehicle_id]) {
     const inspection = inspectionData[selectedContract.vehicle_id];
     
@@ -589,7 +576,6 @@ function calculateDeductions() {
     }
   }
   
-  // 3. Additional damages
   additionalDamages.forEach(d => {
     deductions.push({
       description: d.description,
@@ -711,7 +697,6 @@ async function finishCheckout() {
     return;
   }
   
-  // Check if preauth refund needs photo
   const depositMethod = selectedContract.deposit_method || 'cash';
   if (depositMethod === 'preauth' && !ticketPhotoData) {
     alert('Por favor, tome una foto del ticket de cancelación de pre-autorización');
@@ -723,7 +708,6 @@ async function finishCheckout() {
   const totalDeductions = deductions.reduce((sum, d) => sum + d.amount, 0);
   const toRefund = Math.max(0, deposit - totalDeductions);
   
-  // Determine if vehicle needs maintenance
   const inspection = inspectionData[selectedContract.vehicle_id] || {};
   const needsMaintenance = 
     inspection.wheels === 'crevé' || 
@@ -764,12 +748,19 @@ async function finishCheckout() {
     const result = await response.json();
     
     if (response.ok) {
-      alert(`✅ Check-out completado!\n\nDepósito devuelto: ${toRefund.toFixed(2)}€\n${needsMaintenance ? '⚠️ Vehículo enviado a mantenimiento' : '✅ Vehículo disponible'}`);
-      
-      // Open PDF if available
-      if (result.pdf_url) {
-        window.open(result.pdf_url, '_blank');
+      // Ouvrir la facture PDF
+      if (result.invoice_url) {
+        window.open(result.invoice_url, '_blank');
       }
+      
+      // Message de succès
+      const emailMsg = selectedContract.email ? 
+        `\n\n📧 Factura enviada a: ${selectedContract.email}` : '';
+      
+      alert(`✅ Check-out completado!\n\n` +
+            `💰 Depósito devuelto: ${toRefund.toFixed(2)}€\n` +
+            `${needsMaintenance ? '⚠️ Vehículo enviado a mantenimiento' : '✅ Vehículo disponible'}` +
+            emailMsg);
       
       window.location.href = '/app.html';
     } else {
