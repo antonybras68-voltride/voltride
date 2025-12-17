@@ -1,416 +1,242 @@
 const express = require('express');
 const router = express.Router();
 const PDFDocument = require('pdfkit');
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
 
-// Conditions générales multilingues
-const conditions = {
-  es: [
-    '1. El cliente se compromete a devolver el vehiculo en el mismo estado en que lo recibio.',
-    '2. El cliente es responsable de cualquier dano o perdida del vehiculo durante el alquiler.',
-    '3. El deposito sera devuelto integramente si el vehiculo se devuelve sin danos.',
-    '4. En caso de retraso en la devolucion, se aplicara un cargo adicional por dia.',
-    '5. El cliente debe respetar el codigo de circulacion vigente.',
-    '6. Esta prohibido el uso del vehiculo bajo los efectos del alcohol o drogas.',
-    '7. El vehiculo no puede ser subalquilado ni prestado a terceros.',
-    '8. En caso de averia, contactar inmediatamente con la agencia.',
-    '9. Entre las 21h y las 7h, el vehiculo debe estar guardado en un lugar cerrado y seguro. En caso de robo, el cliente debera abonar el importe total del vehiculo.',
-    '10. Si el vehiculo se devuelve sucio, se aplicara un cargo de 5 EUR que se facturara o deducira del deposito.'
-  ],
-  fr: [
-    '1. Le client s\'engage a restituer le vehicule dans le meme etat qu\'a la reception.',
-    '2. Le client est responsable de tout dommage ou perte du vehicule pendant la location.',
-    '3. La caution sera integralement restituee si le vehicule est rendu sans dommages.',
-    '4. En cas de retard dans la restitution, un supplement journalier sera applique.',
-    '5. Le client doit respecter le code de la route en vigueur.',
-    '6. L\'utilisation du vehicule sous l\'influence de l\'alcool ou de drogues est interdite.',
-    '7. Le vehicule ne peut etre sous-loue ni prete a des tiers.',
-    '8. En cas de panne, contacter immediatement l\'agence.',
-    '9. Entre 21h et 7h, le vehicule doit etre stationne dans un endroit clos et securise. En cas de vol, le client devra payer le montant total du vehicule.',
-    '10. Si le vehicule est rendu sale, des frais de 5 EUR seront factures ou deduits de la caution.'
-  ],
-  en: [
-    '1. The customer agrees to return the vehicle in the same condition as received.',
-    '2. The customer is responsible for any damage or loss of the vehicle during the rental.',
-    '3. The deposit will be fully refunded if the vehicle is returned without damage.',
-    '4. In case of late return, an additional daily charge will be applied.',
-    '5. The customer must comply with current traffic regulations.',
-    '6. Use of the vehicle under the influence of alcohol or drugs is prohibited.',
-    '7. The vehicle cannot be sublet or lent to third parties.',
-    '8. In case of breakdown, contact the agency immediately.',
-    '9. Between 9pm and 7am, the vehicle must be stored in a closed and secure location. In case of theft, the customer must pay the full amount of the vehicle.',
-    '10. If the vehicle is returned dirty, a 5 EUR cleaning fee will be charged or deducted from the deposit.'
-  ]
-};
-
-// Titres multilingues
-const titles = {
-  es: {
-    contract: 'CONTRATO DE ALQUILER',
-    companyData: 'DATOS DE LA EMPRESA',
-    customerData: 'DATOS DEL CLIENTE',
-    vehicle: 'VEHICULO ALQUILADO',
-    period: 'PERIODO DE ALQUILER',
-    breakdown: 'DESGLOSE ECONOMICO',
-    conditions: 'CONDICIONES GENERALES',
-    signatures: 'FIRMAS',
-    customerSignature: 'Firma del Cliente',
-    companySignature: 'Firma Voltride',
-    generated: 'Generado el',
-    code: 'Codigo',
-    type: 'Tipo',
-    brand: 'Marca',
-    model: 'Modelo',
-    color: 'Color',
-    start: 'Inicio',
-    end: 'Fin',
-    duration: 'Duracion',
-    days: 'dia(s)',
-    concept: 'Concepto',
-    amount: 'Importe',
-    rental: 'Alquiler',
-    baseAmount: 'Base imponible',
-    vat: 'IVA',
-    subtotal: 'Subtotal',
-    deposit: 'Deposito/Fianza (reembolsable)',
-    total: 'TOTAL',
-    bike: 'Bicicleta',
-    ebike: 'Bicicleta Electrica',
-    scooter: 'Patinete Electrico',
-    document: 'Documento',
-    payment: 'FORMA DE PAGO',
-    rentalPayment: 'Pago alquiler',
-    depositPayment: 'Pago deposito',
-    card: 'Tarjeta',
-    cash: 'Efectivo',
-    bizum: 'Bizum',
-    preauth: 'Pre-autorizacion'
-  },
-  fr: {
-    contract: 'CONTRAT DE LOCATION',
-    companyData: 'DONNEES DE L\'ENTREPRISE',
-    customerData: 'DONNEES DU CLIENT',
-    vehicle: 'VEHICULE LOUE',
-    period: 'PERIODE DE LOCATION',
-    breakdown: 'DETAIL FINANCIER',
-    conditions: 'CONDITIONS GENERALES',
-    signatures: 'SIGNATURES',
-    customerSignature: 'Signature du Client',
-    companySignature: 'Signature Voltride',
-    generated: 'Genere le',
-    code: 'Code',
-    type: 'Type',
-    brand: 'Marque',
-    model: 'Modele',
-    color: 'Couleur',
-    start: 'Debut',
-    end: 'Fin',
-    duration: 'Duree',
-    days: 'jour(s)',
-    concept: 'Concept',
-    amount: 'Montant',
-    rental: 'Location',
-    baseAmount: 'Base HT',
-    vat: 'TVA',
-    subtotal: 'Sous-total',
-    deposit: 'Caution (remboursable)',
-    total: 'TOTAL',
-    bike: 'Velo',
-    ebike: 'Velo Electrique',
-    scooter: 'Trottinette Electrique',
-    document: 'Document',
-    payment: 'MODE DE PAIEMENT',
-    rentalPayment: 'Paiement location',
-    depositPayment: 'Paiement caution',
-    card: 'Carte',
-    cash: 'Especes',
-    bizum: 'Bizum',
-    preauth: 'Pre-autorisation'
-  },
-  en: {
-    contract: 'RENTAL CONTRACT',
-    companyData: 'COMPANY INFORMATION',
-    customerData: 'CUSTOMER INFORMATION',
-    vehicle: 'RENTED VEHICLE',
-    period: 'RENTAL PERIOD',
-    breakdown: 'PRICE BREAKDOWN',
-    conditions: 'TERMS AND CONDITIONS',
-    signatures: 'SIGNATURES',
-    customerSignature: 'Customer Signature',
-    companySignature: 'Voltride Signature',
-    generated: 'Generated on',
-    code: 'Code',
-    type: 'Type',
-    brand: 'Brand',
-    model: 'Model',
-    color: 'Color',
-    start: 'Start',
-    end: 'End',
-    duration: 'Duration',
-    days: 'day(s)',
-    concept: 'Concept',
-    amount: 'Amount',
-    rental: 'Rental',
-    baseAmount: 'Base amount',
-    vat: 'VAT',
-    subtotal: 'Subtotal',
-    deposit: 'Deposit (refundable)',
-    total: 'TOTAL',
-    bike: 'Bike',
-    ebike: 'Electric Bike',
-    scooter: 'Electric Scooter',
-    document: 'Document',
-    payment: 'PAYMENT METHOD',
-    rentalPayment: 'Rental payment',
-    depositPayment: 'Deposit payment',
-    card: 'Card',
-    cash: 'Cash',
-    bizum: 'Bizum',
-    preauth: 'Pre-authorization'
+// Charger le logo
+function getLogoBuffer() {
+  try {
+    const logoPath = path.join(__dirname, '../assets/logo.png');
+    if (fs.existsSync(logoPath)) {
+      return fs.readFileSync(logoPath);
+    }
+  } catch (e) {
+    console.error('Error loading logo:', e);
   }
-};
+  return null;
+}
 
-// Generation de contrat PDF
+// GET /api/contracts/:rentalId/pdf
 router.get('/:rentalId/pdf', async (req, res) => {
-  const { rentalId } = req.params;
   const pool = req.app.get('pool');
+  const { rentalId } = req.params;
   
   try {
-    const rentalResult = await pool.query(`
+    const result = await pool.query(`
       SELECT 
         r.*,
-        c.first_name, c.last_name, c.email, c.phone, 
-        c.id_type, c.id_number, c.address, c.city, c.country, c.preferred_language,
+        c.first_name, c.last_name, c.email, c.phone, c.address, c.id_number, c.id_type, c.country,
         v.code as vehicle_code, v.type as vehicle_type, v.brand, v.model, v.color,
-        a.name as agency_name, a.address as agency_address, a.phone as agency_phone,
-        u.full_name as employee_name
+        a.name as agency_name, a.address as agency_address, a.phone as agency_phone, a.email as agency_email
       FROM rentals r
       LEFT JOIN customers c ON r.customer_id = c.id
       LEFT JOIN vehicles v ON r.vehicle_id = v.id
       LEFT JOIN agencies a ON r.agency_id = a.id
-      LEFT JOIN users u ON r.user_id = u.id
       WHERE r.id = $1
     `, [rentalId]);
     
-    if (rentalResult.rows.length === 0) {
+    if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Contrato no encontrado' });
     }
     
-    const rental = rentalResult.rows[0];
-    const lang = rental.preferred_language || 'es';
-    const t = titles[lang] || titles.es;
-    const cond = conditions[lang] || conditions.es;
+    const rental = result.rows[0];
+    const logoBuffer = getLogoBuffer();
     
-    const doc = new PDFDocument({ size: 'A4', margins: { top: 40, bottom: 40, left: 50, right: 50 } });
+    const doc = new PDFDocument({ size: 'A4', margin: 50 });
     
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=contrato-${rental.contract_number}.pdf`);
+    res.setHeader('Content-Disposition', `inline; filename=contrato-${rental.contract_number}.pdf`);
+    
     doc.pipe(res);
     
-    // ===== LOGO =====
-    const logoPath = path.join(__dirname, '../assets/logo.png');
-    if (fs.existsSync(logoPath)) {
+    // === EN-TÊTE AVEC LOGO ===
+    if (logoBuffer) {
       try {
-        doc.image(logoPath, 50, 25, { width: 130 });
+        doc.image(logoBuffer, 50, 30, { width: 100 });
       } catch (e) {
-        doc.fontSize(24).fillColor('#f59e0b').text('VOLTRIDE', 50, 40);
+        doc.fontSize(20).fillColor('#f59e0b').text('VOLTRIDE', 50, 40);
       }
     } else {
-      doc.fontSize(24).fillColor('#f59e0b').text('VOLTRIDE', 50, 40);
+      doc.fontSize(20).fillColor('#f59e0b').text('VOLTRIDE', 50, 40);
     }
     
-    // ===== NUMERO DE CONTRAT =====
-    doc.fontSize(11).fillColor('#333').font('Helvetica').text(t.contract, 350, 35, { align: 'right' });
-    doc.fontSize(12).fillColor('#f59e0b').font('Helvetica-Bold').text(rental.contract_number, 350, 50, { align: 'right' });
+    // Titre à droite
+    doc.fontSize(16).fillColor('#333').text('CONTRATO DE ALQUILER', 300, 35, { width: 245, align: 'right' });
+    doc.fontSize(12).fillColor('#f59e0b').text(rental.contract_number, 300, 55, { width: 245, align: 'right' });
     
-    doc.moveTo(50, 90).lineTo(545, 90).strokeColor('#f59e0b').lineWidth(2).stroke();
+    // Ligne séparatrice
+    doc.moveTo(50, 85).lineTo(545, 85).strokeColor('#f59e0b').lineWidth(2).stroke();
     
-    // ===== DONNEES ENTREPRISE =====
-    let y = 105;
-    doc.font('Helvetica-Bold').fontSize(9).fillColor('#333').text(t.companyData, 50, y);
-    doc.font('Helvetica').fontSize(8);
-    y += 13;
-    doc.text('Antony Felicien Bras', 50, y);
-    y += 11;
-    doc.text('Av. Doctor Mariano Ruiz Canovas 7', 50, y);
-    y += 11;
-    doc.text('03183 Torrevieja, Alicante', 50, y);
-    y += 11;
-    doc.text('NIE: Z0320770V', 50, y);
-    y += 11;
-    doc.text('Tel: +34 635 992 987', 50, y);
+    // === DONNÉES ENTREPRISE ET CLIENT (2 colonnes) ===
+    let y = 100;
     
-    // ===== DONNEES CLIENT =====
-    y = 105;
-    doc.font('Helvetica-Bold').fontSize(9).text(t.customerData, 320, y);
-    doc.font('Helvetica').fontSize(8);
-    y += 13;
-    doc.text(`${rental.first_name} ${rental.last_name}`, 320, y);
-    y += 11;
-    const idType = rental.id_type ? rental.id_type.toUpperCase() : t.document;
-    doc.text(`${idType}: ${rental.id_number || 'N/A'}`, 320, y);
-    y += 11;
-    doc.text(`Tel: ${rental.phone || 'N/A'}`, 320, y);
-    y += 11;
-    if (rental.email) doc.text(rental.email, 320, y);
-    
-    // ===== VEHICULE =====
-    y = 195;
-    doc.moveTo(50, y).lineTo(545, y).strokeColor('#ddd').lineWidth(1).stroke();
-    y += 10;
-    doc.font('Helvetica-Bold').fontSize(9).fillColor('#333').text(t.vehicle, 50, y);
+    // Colonne gauche - Entreprise
+    doc.fontSize(10).fillColor('#f59e0b').text('DATOS DE LA EMPRESA', 50, y);
     y += 15;
+    doc.fontSize(9).fillColor('#333')
+       .text('Antony Felicien Bras', 50, y)
+       .text('Av. Doctor Mariano Ruiz Canovas 7', 50, y + 12)
+       .text('03183 Torrevieja, Alicante', 50, y + 24)
+       .text('NIE: Z0320770V', 50, y + 36)
+       .text('Tel: +34 635 992 987', 50, y + 48);
     
-    const vehicleTypes = { bike: t.bike, ebike: t.ebike, scooter: t.scooter };
-    const vehicleType = vehicleTypes[rental.vehicle_type] || rental.vehicle_type;
+    // Colonne droite - Client
+    doc.fontSize(10).fillColor('#f59e0b').text('DATOS DEL CLIENTE', 300, 100);
+    doc.fontSize(9).fillColor('#333')
+       .text(`${rental.first_name} ${rental.last_name}`, 300, 115)
+       .text(`${(rental.id_type || 'DNI').toUpperCase()}: ${rental.id_number || '-'}`, 300, 127)
+       .text(`Tel: ${rental.phone || '-'}`, 300, 139)
+       .text(rental.email || '-', 300, 151);
     
-    doc.rect(50, y, 495, 35).fillColor('#f5f5f5').fill();
-    doc.fillColor('#333').font('Helvetica').fontSize(8);
-    y += 8;
-    doc.text(`${t.code}: ${rental.vehicle_code}`, 60, y);
-    doc.text(`${t.type}: ${vehicleType}`, 180, y);
-    doc.text(`${t.brand}: ${rental.brand || '-'}`, 350, y);
-    y += 13;
-    doc.text(`${t.model}: ${rental.model || '-'}`, 60, y);
-    doc.text(`${t.color}: ${rental.color || '-'}`, 180, y);
+    // Ligne séparatrice
+    y = 175;
+    doc.moveTo(50, y).lineTo(545, y).strokeColor('#eee').lineWidth(1).stroke();
     
-    // ===== PERIODE =====
+    // === VÉHICULE ===
+    y = 190;
+    doc.fontSize(10).fillColor('#333').text('VEHICULO ALQUILADO', 50, y, { underline: true });
+    y += 18;
+    
+    doc.fontSize(9).fillColor('#666');
+    doc.text(`Codigo: ${rental.vehicle_code}`, 50, y);
+    doc.text(`Tipo: ${rental.vehicle_type === 'bike' ? 'Bicicleta' : rental.vehicle_type === 'ebike' ? 'Bicicleta Electrica' : 'Scooter'}`, 200, y);
+    doc.text(`Marca: ${rental.brand || '-'}`, 380, y);
+    y += 14;
+    doc.text(`Modelo: ${rental.model || '-'}`, 50, y);
+    doc.text(`Color: ${rental.color || '-'}`, 200, y);
+    
+    // Ligne séparatrice
     y += 25;
-    doc.font('Helvetica-Bold').fontSize(9).text(t.period, 50, y);
+    doc.moveTo(50, y).lineTo(545, y).strokeColor('#eee').lineWidth(1).stroke();
+    
+    // === PÉRIODE ===
     y += 15;
+    doc.fontSize(10).fillColor('#333').text('PERIODO DE ALQUILER', 50, y, { underline: true });
+    y += 18;
     
     const startDate = new Date(rental.start_date);
-    const endDate = rental.end_date ? new Date(rental.end_date) : new Date(rental.planned_end_date);
-    const formatDate = (d) => {
-      const locale = lang === 'en' ? 'en-GB' : lang === 'fr' ? 'fr-FR' : 'es-ES';
-      return d.toLocaleDateString(locale) + ' ' + d.toLocaleTimeString(locale, {hour: '2-digit', minute:'2-digit'});
-    };
+    const endDate = new Date(rental.planned_end_date);
+    const days = Math.max(1, Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)));
     
-    const diffHours = Math.abs(endDate - startDate) / (1000 * 60 * 60);
-    let days = Math.floor(diffHours / 24);
-    if (diffHours % 24 > 1) days++;
-    days = Math.max(1, days);
+    doc.fontSize(9).fillColor('#666');
+    doc.text(`Inicio: ${startDate.toLocaleDateString('es-ES')} ${startDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`, 50, y);
+    doc.text(`Fin: ${endDate.toLocaleDateString('es-ES')} ${endDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`, 280, y);
+    y += 14;
+    doc.text(`Duracion: ${days} dia(s)`, 50, y);
     
-    doc.rect(50, y, 495, 30).fillColor('#f5f5f5').fill();
-    doc.fillColor('#333').font('Helvetica').fontSize(8);
-    y += 8;
-    doc.text(`${t.start}: ${formatDate(startDate)}`, 60, y);
-    doc.text(`${t.end}: ${formatDate(endDate)}`, 300, y);
-    y += 12;
-    doc.text(`${t.duration}: ${days} ${t.days}`, 60, y);
+    // Ligne séparatrice
+    y += 25;
+    doc.moveTo(50, y).lineTo(545, y).strokeColor('#eee').lineWidth(1).stroke();
     
-    // ===== DECOMPTE ECONOMIQUE (Prix TTC -> HT) =====
-    y += 28;
-    doc.font('Helvetica-Bold').fontSize(9).text(t.breakdown, 50, y);
+    // === DÉCOMPTE ÉCONOMIQUE ===
+    y += 15;
+    doc.fontSize(10).fillColor('#333').text('DESGLOSE ECONOMICO', 50, y, { underline: true });
+    y += 18;
+    
+    const dailyRate = parseFloat(rental.daily_rate) || 0;
+    const totalAmount = parseFloat(rental.total_amount) || (days * dailyRate);
+    const deposit = parseFloat(rental.deposit) || 0;
+    const baseHT = totalAmount / 1.21;
+    const tva = totalAmount - baseHT;
+    
+    // Tableau économique
+    doc.rect(50, y, 495, 18).fillColor('#f5f5f5').fill();
+    doc.fontSize(9).fillColor('#333').text('Concepto', 60, y + 4).text('Importe', 480, y + 4);
+    y += 22;
+    
+    doc.fillColor('#666');
+    doc.text(`Base imponible (${days} dia(s) x ${baseHT.toFixed(2)} EUR)`, 60, y);
+    doc.text(`${baseHT.toFixed(2)} EUR`, 470, y);
+    y += 16;
+    doc.text('IVA 21%', 60, y);
+    doc.text(`${tva.toFixed(2)} EUR`, 470, y);
+    y += 16;
+    doc.fillColor('#333').text('Subtotal (Alquiler)', 60, y);
+    doc.text(`${totalAmount.toFixed(2)} EUR`, 470, y);
+    y += 16;
+    doc.fillColor('#666').text('Deposito/Fianza (reembolsable)', 60, y);
+    doc.text(`${deposit.toFixed(2)} EUR`, 470, y);
+    y += 18;
+    
+    doc.moveTo(50, y).lineTo(545, y).strokeColor('#333').lineWidth(1).stroke();
+    y += 5;
+    doc.fontSize(10).fillColor('#333').text('TOTAL', 60, y);
+    doc.fontSize(10).fillColor('#333').text(`${(totalAmount + deposit).toFixed(2)} EUR`, 460, y);
+    
+    // === FORMA DE PAGO ===
+    y += 25;
+    doc.fontSize(10).fillColor('#333').text('FORMA DE PAGO', 50, y, { underline: true });
+    y += 15;
+    doc.fontSize(9).fillColor('#666');
+    doc.text(`Pago alquiler: ${rental.payment_method === 'cash' ? 'Efectivo' : rental.payment_method === 'card' ? 'Tarjeta' : rental.payment_method || 'Tarjeta'}`, 50, y);
+    doc.text(`Pago deposito: ${rental.deposit_method === 'preauth' ? 'Pre-autorizacion' : rental.deposit_method === 'cash' ? 'Efectivo' : 'Tarjeta'}`, 280, y);
+    
+    // === CONDITIONS ===
+    y += 25;
+    doc.fontSize(10).fillColor('#333').text('CONDICIONES GENERALES', 50, y, { underline: true });
     y += 15;
     
-    // Prix TTC (ce qui est stocké en base)
-    const dailyRate = parseFloat(rental.daily_rate) || 0;
-    const rentalAmountTTC = days * dailyRate;
+    const conditions = [
+      'El cliente se compromete a devolver el vehiculo en el mismo estado en que lo recibio.',
+      'El cliente es responsable de cualquier dano o perdida del vehiculo durante el alquiler.',
+      'El deposito sera devuelto integramente si el vehiculo se devuelve sin danos.',
+      'En caso de retraso en la devolucion, se aplicara un cargo adicional por dia.',
+      'El cliente debe respetar el codigo de circulacion vigente.',
+      'Esta prohibido el uso del vehiculo bajo los efectos del alcohol o drogas.',
+      'El vehiculo no puede ser subalquilado ni prestado a terceros.',
+      'En caso de averia, contactar inmediatamente con la agencia.',
+      'Entre las 21h y las 7h, el vehiculo debe estar guardado en un lugar cerrado y seguro. En caso de robo, el cliente debera abonar el importe total del vehiculo.',
+      'Si el vehiculo se devuelve sucio, se aplicara un cargo de 6 EUR que se facturara o deducira del deposito.'
+    ];
     
-    // Calcul inverse TVA : TTC / 1.21 = HT
-    const rentalAmountHT = rentalAmountTTC / 1.21;
-    const vatAmount = rentalAmountTTC - rentalAmountHT;
-    
-    const deposit = parseFloat(rental.deposit) || 0;
-    const total = rentalAmountTTC + deposit;
-    
-    doc.rect(50, y, 495, 80).strokeColor('#ddd').lineWidth(1).stroke();
-    doc.font('Helvetica-Bold').fontSize(8);
-    y += 8;
-    doc.text(t.concept, 60, y);
-    doc.text(t.amount, 480, y, { align: 'right' });
-    doc.moveTo(50, y + 10).lineTo(545, y + 10).strokeColor('#eee').stroke();
-    
-    doc.font('Helvetica').fontSize(8);
-    y += 16;
-    doc.text(`${t.baseAmount} (${days} ${t.days} x ${(dailyRate / 1.21).toFixed(2)} EUR)`, 60, y);
-    doc.text(`${rentalAmountHT.toFixed(2)} EUR`, 480, y, { align: 'right' });
-    
-    y += 12;
-    doc.text(`${t.vat} 21%`, 60, y);
-    doc.text(`${vatAmount.toFixed(2)} EUR`, 480, y, { align: 'right' });
-    
-    y += 12;
-    doc.font('Helvetica-Bold');
-    doc.text(`${t.subtotal} (${t.rental})`, 60, y);
-    doc.text(`${rentalAmountTTC.toFixed(2)} EUR`, 480, y, { align: 'right' });
-    
-    y += 12;
-    doc.font('Helvetica');
-    doc.text(t.deposit, 60, y);
-    doc.text(`${deposit.toFixed(2)} EUR`, 480, y, { align: 'right' });
-    
-    y += 14;
-    doc.font('Helvetica-Bold').fontSize(9);
-    doc.text(t.total, 60, y);
-    doc.text(`${total.toFixed(2)} EUR`, 480, y, { align: 'right' });
-    
-    // ===== MODE DE PAIEMENT =====
-    y += 25;
-    doc.font('Helvetica-Bold').fontSize(9).text(t.payment, 50, y);
-    y += 12;
-    doc.font('Helvetica').fontSize(8);
-    
-    const paymentMethods = { card: t.card, cash: t.cash, bizum: t.bizum, preauth: t.preauth };
-    const rentalMethod = rental.payment_method ? (paymentMethods[rental.payment_method] || rental.payment_method) : '-';
-    const depositMethod = rental.deposit_method ? (paymentMethods[rental.deposit_method] || rental.deposit_method) : '-';
-    
-    doc.text(`${t.rentalPayment}: ${rentalMethod}`, 50, y);
-    doc.text(`${t.depositPayment}: ${depositMethod}`, 250, y);
-    
-    // ===== CONDITIONS GENERALES =====
-    y += 20;
-    doc.font('Helvetica-Bold').fontSize(9).text(t.conditions, 50, y);
-    y += 12;
-    doc.font('Helvetica').fontSize(6.5).fillColor('#555');
-    cond.forEach(c => { 
-      doc.text(c, 50, y, { width: 495 }); 
-      y += 9; 
+    doc.fontSize(7).fillColor('#666');
+    conditions.forEach((cond, i) => {
+      doc.text(`${i + 1}. ${cond}`, 50, y, { width: 500 });
+      y += 11;
     });
     
-    // ===== SIGNATURES =====
-    y += 10;
-    doc.font('Helvetica-Bold').fontSize(9).fillColor('#333').text(t.signatures, 50, y);
-    y += 10;
+    // === SIGNATURE CLIENT ===
+    y += 15;
+    doc.fontSize(10).fillColor('#333').text('FIRMA', 50, y, { underline: true });
+    y += 15;
     
-    // Zone signature client
-    doc.rect(50, y, 200, 60).strokeColor('#ccc').stroke();
+    // Encadré signature
+    doc.rect(50, y, 200, 70).strokeColor('#ccc').stroke();
     
-    // Ajouter la signature du client si elle existe
-    if (rental.signature_customer) {
+    // Afficher la signature si elle existe
+    if (rental.signature) {
       try {
-        // La signature est stockée en base64
-        const signatureData = rental.signature_customer;
-        if (signatureData.startsWith('data:image')) {
-          const base64Data = signatureData.replace(/^data:image\/\w+;base64,/, '');
-          const signatureBuffer = Buffer.from(base64Data, 'base64');
-          doc.image(signatureBuffer, 55, y + 5, { width: 190, height: 50, fit: [190, 50] });
+        let signatureData = rental.signature;
+        if (signatureData.includes('base64,')) {
+          signatureData = signatureData.split('base64,')[1];
         }
+        const signatureBuffer = Buffer.from(signatureData, 'base64');
+        doc.image(signatureBuffer, 55, y + 5, { width: 190, height: 60, fit: [190, 60] });
       } catch (e) {
-        console.error('Erreur chargement signature:', e.message);
+        console.error('Error loading signature:', e);
       }
     }
     
-    // Zone signature entreprise
-    doc.rect(335, y, 160, 60).strokeColor('#ccc').stroke();
+    // Légende sous la signature
+    y += 75;
+    doc.fontSize(8).fillColor('#666')
+       .text('Firma del Cliente', 50, y)
+       .text(`${rental.first_name} ${rental.last_name}`, 50, y + 10);
     
-    doc.font('Helvetica').fontSize(7).fillColor('#666');
-    doc.text(t.customerSignature, 55, y + 62);
-    doc.text(`${rental.first_name} ${rental.last_name}`, 55, y + 71);
-    doc.text(t.companySignature, 340, y + 62);
+    // === MENTION VOLTRIDE ===
+    y += 35;
+    doc.fontSize(9).fillColor('#333').text('Contrato emitido por Voltride (Z0320770V)', 50, y);
     
-    // ===== PIED DE PAGE =====
-    doc.fontSize(6).fillColor('#999');
-    const locale = lang === 'en' ? 'en-GB' : lang === 'fr' ? 'fr-FR' : 'es-ES';
-    doc.text(`${t.generated} ${new Date().toLocaleDateString(locale)} - Voltride - Just Rent and Ride`, 50, 810, { align: 'center', width: 495 });
+    // === PIED DE PAGE ===
+    doc.fontSize(7).fillColor('#999')
+       .text(`Generado el ${new Date().toLocaleDateString('es-ES')} - Voltride - Just Rent and Ride`, 50, 800, { align: 'center', width: 495 });
     
     doc.end();
     
   } catch (error) {
-    console.error('Error generando contrato:', error);
-    res.status(500).json({ error: 'Error generando el contrato' });
+    console.error('Error generating contract PDF:', error);
+    res.status(500).json({ error: 'Error generating contract' });
   }
 });
 
