@@ -54,33 +54,33 @@ router.get('/:rentalId/pdf', async (req, res) => {
     // === EN-TÊTE AVEC LOGO ===
     if (logoBuffer) {
       try {
-        doc.image(logoBuffer, 50, 40, { width: 120 });
+        doc.image(logoBuffer, 50, 40, { width: 100 });
       } catch (e) {
-        doc.fontSize(24).fillColor('#f59e0b').text('VOLTRIDE', 50, 50);
+        doc.fontSize(20).fillColor('#f59e0b').text('VOLTRIDE', 50, 50);
       }
     } else {
-      doc.fontSize(24).fillColor('#f59e0b').text('VOLTRIDE', 50, 50);
+      doc.fontSize(20).fillColor('#f59e0b').text('VOLTRIDE', 50, 50);
     }
     
     // Infos agence
     doc.fontSize(9).fillColor('#666')
-       .text(rental.agency_name || 'Voltride', 50, 100)
-       .text(rental.agency_address || '', 50, 112)
-       .text(rental.agency_phone || '', 50, 124);
+       .text(rental.agency_name || 'Voltride', 50, 95)
+       .text(rental.agency_address || '', 50, 107)
+       .text(rental.agency_phone || '', 50, 119);
     
     // Titre FACTURA
-    doc.fontSize(28).fillColor('#10b981').text('FACTURA', 350, 50, { align: 'right' });
+    doc.fontSize(28).fillColor('#10b981').text('FACTURA', 400, 50, { width: 145, align: 'right' });
     doc.fontSize(10).fillColor('#666')
-       .text(`N°: F-${rental.contract_number}`, 350, 85, { align: 'right' })
-       .text(`Fecha: ${new Date(rental.end_date || new Date()).toLocaleDateString('es-ES')}`, 350, 100, { align: 'right' });
+       .text(`N.: F-${rental.contract_number}`, 400, 85, { width: 145, align: 'right' })
+       .text(`Fecha: ${new Date(rental.end_date || new Date()).toLocaleDateString('es-ES')}`, 400, 100, { width: 145, align: 'right' });
     
     // Ligne séparatrice
-    doc.moveTo(50, 145).lineTo(545, 145).strokeColor('#10b981').lineWidth(2).stroke();
+    doc.moveTo(50, 140).lineTo(545, 140).strokeColor('#10b981').lineWidth(2).stroke();
     
     // === CLIENT ===
-    let y = 165;
-    doc.fontSize(12).fillColor('#10b981').text('CLIENTE', 50, y);
-    y += 20;
+    let y = 160;
+    doc.fontSize(11).fillColor('#10b981').text('CLIENTE', 50, y);
+    y += 18;
     doc.fontSize(10).fillColor('#333')
        .text(`${rental.first_name} ${rental.last_name}`, 50, y);
     if (rental.id_number) {
@@ -98,18 +98,22 @@ router.get('/:rentalId/pdf', async (req, res) => {
     
     // === DÉTAIL ===
     y += 30;
-    doc.fontSize(12).fillColor('#10b981').text('DETALLE DEL ALQUILER', 50, y);
+    doc.fontSize(11).fillColor('#10b981').text('DETALLE DEL ALQUILER', 50, y);
     y += 25;
     
-    const col1 = 50, col2 = 300, col3 = 400, col4 = 500;
+    // Colonnes avec positions fixes
+    const colDesc = 60;
+    const colQty = 320;
+    const colPrice = 400;
+    const colTotal = 480;
     
     // En-tête tableau
     doc.rect(50, y - 5, 495, 22).fillColor('#f0fdf4').fill();
     doc.fontSize(9).fillColor('#666')
-       .text('Descripcion', col1 + 10, y)
-       .text('Cantidad', col2, y)
-       .text('Precio', col3, y)
-       .text('Total', col4, y);
+       .text('Descripcion', colDesc, y)
+       .text('Cantidad', colQty, y)
+       .text('Precio', colPrice, y)
+       .text('Total', colTotal, y);
     y += 28;
     
     // Calculs
@@ -121,10 +125,10 @@ router.get('/:rentalId/pdf', async (req, res) => {
     
     // Ligne véhicule
     doc.fontSize(10).fillColor('#333')
-       .text(`${rental.vehicle_code} - ${rental.brand || ''} ${rental.model || ''}`, col1, y)
-       .text(`${days} dia(s)`, col2, y)
-       .text(`${dailyRate.toFixed(2)} EUR`, col3, y)
-       .text(`${rentalTotal.toFixed(2)} EUR`, col4, y);
+       .text(`${rental.vehicle_code} - ${rental.brand || ''} ${rental.model || ''}`, colDesc, y)
+       .text(`${days} dia(s)`, colQty, y)
+       .text(`${dailyRate.toFixed(2)} EUR`, colPrice, y)
+       .text(`${rentalTotal.toFixed(2)} EUR`, colTotal, y);
     y += 20;
     
     // Accessoires
@@ -133,7 +137,8 @@ router.get('/:rentalId/pdf', async (req, res) => {
       const accessories = accStr.split(',').map(a => a.trim()).filter(a => a);
       doc.fontSize(9).fillColor('#666');
       accessories.forEach(acc => {
-        doc.text(`   - ${acc}`, col1, y).text('Incluido', col4, y);
+        doc.text(`  - ${acc}`, colDesc, y);
+        doc.text('Incluido', colTotal, y);
         y += 14;
       });
     }
@@ -146,73 +151,75 @@ router.get('/:rentalId/pdf', async (req, res) => {
     // === DÉDUCTIONS ===
     const deductions = parseFloat(rental.checkout_deductions) || 0;
     if (deductions > 0) {
-      doc.fontSize(11).fillColor('#e74c3c').text('DEDUCCIONES:', col1, y);
+      doc.fontSize(10).fillColor('#e74c3c').text('DEDUCCIONES:', 50, y);
       y += 18;
       
       if (rental.checkout_notes) {
         const deductionsList = rental.checkout_notes.split(',').map(d => d.trim());
         doc.fontSize(9).fillColor('#666');
         deductionsList.forEach(ded => {
-          doc.text(`  - ${ded}`, col1 + 10, y);
+          doc.text(`  - ${ded}`, 60, y);
           y += 14;
         });
       }
       
-      y += 5;
-      doc.fontSize(10).fillColor('#333').text(`Total deducciones:`, col3, y);
-      doc.fillColor('#e74c3c').text(`-${deductions.toFixed(2)} EUR`, col4, y);
-      y += 25;
+      y += 8;
     }
     
-    // === TOTAUX ===
+    // === TOTAUX (alignés à droite) ===
+    const labelX = 350;
+    const valueX = 480;
+    
     const deposit = parseFloat(rental.deposit) || 0;
     const depositRefund = parseFloat(rental.checkout_refund) || (deposit - deductions);
     const rentalHT = rentalTotal / 1.21;
     const tva = rentalTotal - rentalHT;
     
     // Ligne séparatrice avant totaux
-    doc.moveTo(300, y).lineTo(545, y).strokeColor('#ddd').stroke();
+    doc.moveTo(labelX - 20, y).lineTo(545, y).strokeColor('#ddd').stroke();
     y += 15;
     
-    doc.fontSize(10).fillColor('#666');
-    doc.text('Base imponible:', col3, y);
-    doc.fillColor('#333').text(`${rentalHT.toFixed(2)} EUR`, col4, y);
-    y += 18;
+    // Base imponible
+    doc.fontSize(10).fillColor('#666').text('Base imponible:', labelX, y);
+    doc.fillColor('#333').text(`${rentalHT.toFixed(2)} EUR`, valueX, y);
+    y += 20;
     
-    doc.fillColor('#666').text('IVA 21%:', col3, y);
-    doc.fillColor('#333').text(`${tva.toFixed(2)} EUR`, col4, y);
+    // TVA
+    doc.fillColor('#666').text('IVA 21%:', labelX, y);
+    doc.fillColor('#333').text(`${tva.toFixed(2)} EUR`, valueX, y);
     y += 25;
     
-    // Total TTC
-    doc.rect(col3 - 20, y - 5, 185, 28).fillColor('#10b981').fill();
-    doc.fontSize(11).fillColor('#fff')
-       .text('TOTAL:', col3 - 10, y + 2)
-       .text(`${rentalTotal.toFixed(2)} EUR`, col4, y + 2);
+    // Total TTC (encadré vert)
+    doc.rect(labelX - 20, y - 5, 215, 28).fillColor('#10b981').fill();
+    doc.fontSize(12).fillColor('#fff')
+       .text('TOTAL:', labelX - 10, y + 3)
+       .text(`${rentalTotal.toFixed(2)} EUR`, valueX, y + 3);
     y += 45;
     
-    // === DÉPÔT ===
+    // Dépôt payé
     doc.fontSize(10).fillColor('#333');
-    doc.text(`Deposito pagado:`, col3, y);
-    doc.text(`${deposit.toFixed(2)} EUR`, col4, y);
-    y += 18;
+    doc.text('Deposito pagado:', labelX, y);
+    doc.text(`${deposit.toFixed(2)} EUR`, valueX, y);
+    y += 20;
     
+    // Déductions (si présentes)
     if (deductions > 0) {
-      doc.fillColor('#e74c3c').text(`Deducciones:`, col3, y);
-      doc.text(`-${deductions.toFixed(2)} EUR`, col4, y);
-      y += 18;
+      doc.fillColor('#e74c3c').text('Deducciones:', labelX, y);
+      doc.text(`-${deductions.toFixed(2)} EUR`, valueX, y);
+      y += 20;
     }
     
-    // Encadré dépôt remboursé
-    doc.rect(col3 - 20, y - 5, 185, 28).fillColor('#ecfdf5').fill();
-    doc.rect(col3 - 20, y - 5, 185, 28).strokeColor('#10b981').stroke();
-    doc.fontSize(10).fillColor('#10b981').text(`Deposito devuelto:`, col3 - 10, y + 2);
-    doc.fontSize(12).fillColor('#10b981').text(`${depositRefund.toFixed(2)} EUR`, col4, y);
+    // Dépôt remboursé (encadré)
+    doc.rect(labelX - 20, y - 5, 215, 28).fillColor('#ecfdf5').fill();
+    doc.rect(labelX - 20, y - 5, 215, 28).strokeColor('#10b981').stroke();
+    doc.fontSize(10).fillColor('#10b981').text('Deposito devuelto:', labelX - 10, y + 3);
+    doc.fontSize(12).text(`${depositRefund.toFixed(2)} EUR`, valueX, y + 3);
     
     // === PIED DE PAGE ===
-    doc.fontSize(14).fillColor('#10b981').text('Gracias por confiar en Voltride!', 50, 700, { align: 'center' });
+    doc.fontSize(12).fillColor('#10b981').text('Gracias por confiar en Voltride!', 50, 700, { align: 'center', width: 495 });
     
     doc.fontSize(8).fillColor('#999')
-       .text(`Voltride - ${rental.agency_name || ''} | ${rental.agency_email || 'info@voltride.es'} | ${rental.agency_phone || ''}`, 50, 750, { align: 'center' });
+       .text(`Voltride - ${rental.agency_name || ''} | ${rental.agency_email || 'info@voltride.es'} | ${rental.agency_phone || ''}`, 50, 750, { align: 'center', width: 495 });
     
     doc.end();
     
