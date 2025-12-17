@@ -4,7 +4,7 @@ const PDFDocument = require('pdfkit');
 const { authMiddleware } = require('./auth');
 
 // GET /api/invoices/:rentalId/pdf - Générer la facture PDF
-router.get('/:rentalId/pdf', authMiddleware, async (req, res) => {
+router.get('/:rentalId/pdf', async (req, res) => {
   const pool = req.app.get('pool');
   const { rentalId } = req.params;
   
