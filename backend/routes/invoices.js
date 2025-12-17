@@ -1,7 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const PDFDocument = require('pdfkit');
-const { authMiddleware } = require('./auth');
+const fs = require('fs');
+const path = require('path');
+
+// Charger le logo
+function getLogoBuffer() {
+  try {
+    const logoPath = path.join(__dirname, '../assets/logo.png');
+    if (fs.existsSync(logoPath)) {
+      return fs.readFileSync(logoPath);
+    }
+  } catch (e) {
+    console.error('Error loading logo:', e);
+  }
+  return null;
+}
 
 // GET /api/invoices/:rentalId/pdf - Générer la facture PDF
 router.get('/:rentalId/pdf', async (req, res) => {
@@ -9,14 +23,13 @@ router.get('/:rentalId/pdf', async (req, res) => {
   const { rentalId } = req.params;
   
   try {
-    // Récupérer les données de la location
     const result = await pool.query(`
       SELECT 
         r.*,
         c.first_name, c.last_name, c.email, c.phone, c.address, c.id_number, c.id_type,
         c.preferred_language,
         v.code as vehicle_code, v.type as vehicle_type, v.brand, v.model,
-        a.name as agency_name, a.address as agency_address, a.phone as agency_phone
+        a.name as agency_name, a.address as agency_address, a.phone as agency_phone, a.email as agency_email
       FROM rentals r
       LEFT JOIN customers c ON r.customer_id = c.id
       LEFT JOIN vehicles v ON r.vehicle_id = v.id
@@ -29,9 +42,8 @@ router.get('/:rentalId/pdf', async (req, res) => {
     }
     
     const rental = result.rows[0];
-    const lang = rental.preferred_language || 'es';
+    const logoBuffer = getLogoBuffer();
     
-    // Créer le PDF
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
     
     res.setHeader('Content-Type', 'application/pdf');
@@ -39,215 +51,168 @@ router.get('/:rentalId/pdf', async (req, res) => {
     
     doc.pipe(res);
     
-    // Textes multilingues
-    const texts = {
-      es: {
-        invoice: 'FACTURA',
-        invoiceNumber: 'Nº Factura',
-        date: 'Fecha',
-        client: 'CLIENTE',
-        rental: 'DETALLE DEL ALQUILER',
-        vehicle: 'Vehículo',
-        period: 'Período',
-        days: 'días',
-        unitPrice: 'Precio/día',
-        subtotal: 'Subtotal',
-        deposit: 'Depósito pagado',
-        deductions: 'Deducciones',
-        depositRefund: 'Depósito devuelto',
-        total: 'TOTAL PAGADO',
-        baseHT: 'Base imponible',
-        vat: 'IVA 21%',
-        totalTTC: 'Total (IVA incl.)',
-        paymentMethod: 'Método de pago',
-        thankYou: '¡Gracias por confiar en Voltride!',
-        footer: 'Voltride - Alquiler de bicicletas y vehículos eléctricos'
-      },
-      fr: {
-        invoice: 'FACTURE',
-        invoiceNumber: 'N° Facture',
-        date: 'Date',
-        client: 'CLIENT',
-        rental: 'DÉTAIL DE LA LOCATION',
-        vehicle: 'Véhicule',
-        period: 'Période',
-        days: 'jours',
-        unitPrice: 'Prix/jour',
-        subtotal: 'Sous-total',
-        deposit: 'Caution payée',
-        deductions: 'Déductions',
-        depositRefund: 'Caution remboursée',
-        total: 'TOTAL PAYÉ',
-        baseHT: 'Base HT',
-        vat: 'TVA 21%',
-        totalTTC: 'Total (TTC)',
-        paymentMethod: 'Mode de paiement',
-        thankYou: 'Merci de votre confiance !',
-        footer: 'Voltride - Location de vélos et véhicules électriques'
-      },
-      en: {
-        invoice: 'INVOICE',
-        invoiceNumber: 'Invoice No.',
-        date: 'Date',
-        client: 'CLIENT',
-        rental: 'RENTAL DETAILS',
-        vehicle: 'Vehicle',
-        period: 'Period',
-        days: 'days',
-        unitPrice: 'Price/day',
-        subtotal: 'Subtotal',
-        deposit: 'Deposit paid',
-        deductions: 'Deductions',
-        depositRefund: 'Deposit refunded',
-        total: 'TOTAL PAID',
-        baseHT: 'Net amount',
-        vat: 'VAT 21%',
-        totalTTC: 'Total (incl. VAT)',
-        paymentMethod: 'Payment method',
-        thankYou: 'Thank you for choosing Voltride!',
-        footer: 'Voltride - Bike and electric vehicle rental'
+    // === EN-TÊTE AVEC LOGO ===
+    if (logoBuffer) {
+      try {
+        doc.image(logoBuffer, 50, 40, { width: 120 });
+      } catch (e) {
+        doc.fontSize(24).fillColor('#f59e0b').text('VOLTRIDE', 50, 50);
       }
-    };
+    } else {
+      doc.fontSize(24).fillColor('#f59e0b').text('VOLTRIDE', 50, 50);
+    }
     
-    const t = texts[lang] || texts.es;
+    // Infos agence
+    doc.fontSize(9).fillColor('#666')
+       .text(rental.agency_name || 'Voltride', 50, 100)
+       .text(rental.agency_address || '', 50, 112)
+       .text(rental.agency_phone || '', 50, 124);
+    
+    // Titre FACTURA
+    doc.fontSize(28).fillColor('#10b981').text('FACTURA', 350, 50, { align: 'right' });
+    doc.fontSize(10).fillColor('#666')
+       .text(`N°: F-${rental.contract_number}`, 350, 85, { align: 'right' })
+       .text(`Fecha: ${new Date(rental.end_date || new Date()).toLocaleDateString('es-ES')}`, 350, 100, { align: 'right' });
+    
+    // Ligne séparatrice
+    doc.moveTo(50, 145).lineTo(545, 145).strokeColor('#10b981').lineWidth(2).stroke();
+    
+    // === CLIENT ===
+    let y = 165;
+    doc.fontSize(12).fillColor('#10b981').text('CLIENTE', 50, y);
+    y += 20;
+    doc.fontSize(10).fillColor('#333')
+       .text(`${rental.first_name} ${rental.last_name}`, 50, y);
+    if (rental.id_number) {
+      y += 14;
+      doc.text(`${(rental.id_type || 'ID').toUpperCase()}: ${rental.id_number}`, 50, y);
+    }
+    if (rental.email) {
+      y += 14;
+      doc.text(`Email: ${rental.email}`, 50, y);
+    }
+    if (rental.phone) {
+      y += 14;
+      doc.text(`Tel: ${rental.phone}`, 50, y);
+    }
+    
+    // === DÉTAIL ===
+    y += 30;
+    doc.fontSize(12).fillColor('#10b981').text('DETALLE DEL ALQUILER', 50, y);
+    y += 25;
+    
+    const col1 = 50, col2 = 300, col3 = 400, col4 = 500;
+    
+    // En-tête tableau
+    doc.rect(50, y - 5, 495, 22).fillColor('#f0fdf4').fill();
+    doc.fontSize(9).fillColor('#666')
+       .text('Descripcion', col1 + 10, y)
+       .text('Cantidad', col2, y)
+       .text('Precio', col3, y)
+       .text('Total', col4, y);
+    y += 28;
     
     // Calculs
     const startDate = new Date(rental.start_date);
     const endDate = new Date(rental.end_date || rental.planned_end_date);
     const days = Math.max(1, Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)));
-    
-    const rentalTTC = parseFloat(rental.total_amount) || (days * parseFloat(rental.daily_rate));
-    const rentalHT = rentalTTC / 1.21;
-    const vatAmount = rentalTTC - rentalHT;
-    const depositPaid = parseFloat(rental.deposit) || 0;
-    const deductions = parseFloat(rental.checkout_deductions) || 0;
-    const depositRefunded = parseFloat(rental.checkout_refund) || (depositPaid - deductions);
-    
-    const invoiceNumber = `F-${rental.contract_number}`;
-    const invoiceDate = rental.end_date ? new Date(rental.end_date) : new Date();
-    
-    // === EN-TÊTE ===
-    doc.fontSize(24).fillColor('#f59e0b').text('⚡ VOLTRIDE', 50, 50);
-    doc.fontSize(10).fillColor('#666')
-       .text(rental.agency_name || 'Voltride', 50, 80)
-       .text(rental.agency_address || '', 50, 95)
-       .text(rental.agency_phone || '', 50, 110);
-    
-    // Titre facture
-    doc.fontSize(28).fillColor('#333').text(t.invoice, 350, 50, { align: 'right' });
-    doc.fontSize(11).fillColor('#666')
-       .text(`${t.invoiceNumber}: ${invoiceNumber}`, 350, 85, { align: 'right' })
-       .text(`${t.date}: ${invoiceDate.toLocaleDateString(lang === 'fr' ? 'fr-FR' : lang === 'en' ? 'en-GB' : 'es-ES')}`, 350, 100, { align: 'right' });
-    
-    // Ligne séparatrice
-    doc.moveTo(50, 140).lineTo(545, 140).strokeColor('#ddd').stroke();
-    
-    // === CLIENT ===
-    let y = 160;
-    doc.fontSize(12).fillColor('#f59e0b').text(t.client, 50, y);
-    y += 20;
-    doc.fontSize(11).fillColor('#333')
-       .text(`${rental.first_name} ${rental.last_name}`, 50, y);
-    y += 15;
-    if (rental.id_number) {
-      doc.text(`${rental.id_type?.toUpperCase() || 'ID'}: ${rental.id_number}`, 50, y);
-      y += 15;
-    }
-    if (rental.email) {
-      doc.text(rental.email, 50, y);
-      y += 15;
-    }
-    if (rental.phone) {
-      doc.text(rental.phone, 50, y);
-      y += 15;
-    }
-    if (rental.address) {
-      doc.text(rental.address, 50, y);
-      y += 15;
-    }
-    
-    // === DÉTAIL LOCATION ===
-    y += 20;
-    doc.fontSize(12).fillColor('#f59e0b').text(t.rental, 50, y);
-    y += 25;
-    
-    // Tableau
-    const tableTop = y;
-    const col1 = 50, col2 = 250, col3 = 350, col4 = 450;
-    
-    // En-tête tableau
-    doc.fontSize(10).fillColor('#666')
-       .text('Description', col1, tableTop)
-       .text(t.unitPrice, col2, tableTop)
-       .text('Qté', col3, tableTop)
-       .text('Total', col4, tableTop);
-    
-    y = tableTop + 20;
-    doc.moveTo(50, y).lineTo(545, y).strokeColor('#ddd').stroke();
-    y += 10;
+    const dailyRate = parseFloat(rental.daily_rate) || 0;
+    const rentalTotal = parseFloat(rental.total_amount) || (days * dailyRate);
     
     // Ligne véhicule
-    const vehicleIcon = rental.vehicle_type === 'bike' ? '🚲' : rental.vehicle_type === 'ebike' ? '⚡' : '🛵';
-    doc.fontSize(11).fillColor('#333')
-       .text(`${vehicleIcon} ${rental.vehicle_code} - ${rental.brand || ''} ${rental.model || ''}`, col1, y)
-       .text(`${parseFloat(rental.daily_rate).toFixed(2)} €`, col2, y)
-       .text(`${days} ${t.days}`, col3, y)
-       .text(`${rentalTTC.toFixed(2)} €`, col4, y);
-    
-    y += 30;
-    doc.moveTo(50, y).lineTo(545, y).strokeColor('#ddd').stroke();
-    
-    // === TOTAUX ===
+    doc.fontSize(10).fillColor('#333')
+       .text(`${rental.vehicle_code} - ${rental.brand || ''} ${rental.model || ''}`, col1, y)
+       .text(`${days} dia(s)`, col2, y)
+       .text(`${dailyRate.toFixed(2)} EUR`, col3, y)
+       .text(`${rentalTotal.toFixed(2)} EUR`, col4, y);
     y += 20;
     
-    // Base HT
-    doc.fontSize(10).fillColor('#666').text(t.baseHT, col3, y);
-    doc.fillColor('#333').text(`${rentalHT.toFixed(2)} €`, col4, y);
-    y += 18;
+    // Accessoires
+    if (rental.notes && rental.notes.includes('Accesorios:')) {
+      const accStr = rental.notes.replace('Accesorios:', '').trim();
+      const accessories = accStr.split(',').map(a => a.trim()).filter(a => a);
+      doc.fontSize(9).fillColor('#666');
+      accessories.forEach(acc => {
+        doc.text(`   - ${acc}`, col1, y).text('Incluido', col4, y);
+        y += 14;
+      });
+    }
     
-    // TVA
-    doc.fillColor('#666').text(t.vat, col3, y);
-    doc.fillColor('#333').text(`${vatAmount.toFixed(2)} €`, col4, y);
-    y += 18;
-    
-    // Total TTC
-    doc.fillColor('#666').text(t.totalTTC, col3, y);
-    doc.fontSize(11).fillColor('#333').text(`${rentalTTC.toFixed(2)} €`, col4, y);
-    y += 25;
-    
-    // Ligne
-    doc.moveTo(350, y).lineTo(545, y).strokeColor('#ddd').stroke();
+    // Ligne séparatrice
+    y += 10;
+    doc.moveTo(50, y).lineTo(545, y).strokeColor('#ddd').stroke();
     y += 15;
     
-    // Dépôt
-    doc.fontSize(10).fillColor('#666').text(t.deposit, col3, y);
-    doc.fillColor('#333').text(`${depositPaid.toFixed(2)} €`, col4, y);
+    // === DÉDUCTIONS ===
+    const deductions = parseFloat(rental.checkout_deductions) || 0;
+    if (deductions > 0) {
+      doc.fontSize(11).fillColor('#e74c3c').text('DEDUCCIONES:', col1, y);
+      y += 18;
+      
+      if (rental.checkout_notes) {
+        const deductionsList = rental.checkout_notes.split(',').map(d => d.trim());
+        doc.fontSize(9).fillColor('#666');
+        deductionsList.forEach(ded => {
+          doc.text(`  - ${ded}`, col1 + 10, y);
+          y += 14;
+        });
+      }
+      
+      y += 5;
+      doc.fontSize(10).fillColor('#333').text(`Total deducciones:`, col3, y);
+      doc.fillColor('#e74c3c').text(`-${deductions.toFixed(2)} EUR`, col4, y);
+      y += 25;
+    }
+    
+    // === TOTAUX ===
+    const deposit = parseFloat(rental.deposit) || 0;
+    const depositRefund = parseFloat(rental.checkout_refund) || (deposit - deductions);
+    const rentalHT = rentalTotal / 1.21;
+    const tva = rentalTotal - rentalHT;
+    
+    // Ligne séparatrice avant totaux
+    doc.moveTo(300, y).lineTo(545, y).strokeColor('#ddd').stroke();
+    y += 15;
+    
+    doc.fontSize(10).fillColor('#666');
+    doc.text('Base imponible:', col3, y);
+    doc.fillColor('#333').text(`${rentalHT.toFixed(2)} EUR`, col4, y);
     y += 18;
     
-    // Déductions (si applicable)
+    doc.fillColor('#666').text('IVA 21%:', col3, y);
+    doc.fillColor('#333').text(`${tva.toFixed(2)} EUR`, col4, y);
+    y += 25;
+    
+    // Total TTC
+    doc.rect(col3 - 20, y - 5, 185, 28).fillColor('#10b981').fill();
+    doc.fontSize(11).fillColor('#fff')
+       .text('TOTAL:', col3 - 10, y + 2)
+       .text(`${rentalTotal.toFixed(2)} EUR`, col4, y + 2);
+    y += 45;
+    
+    // === DÉPÔT ===
+    doc.fontSize(10).fillColor('#333');
+    doc.text(`Deposito pagado:`, col3, y);
+    doc.text(`${deposit.toFixed(2)} EUR`, col4, y);
+    y += 18;
+    
     if (deductions > 0) {
-      doc.fillColor('#666').text(t.deductions, col3, y);
-      doc.fillColor('#e74c3c').text(`-${deductions.toFixed(2)} €`, col4, y);
+      doc.fillColor('#e74c3c').text(`Deducciones:`, col3, y);
+      doc.text(`-${deductions.toFixed(2)} EUR`, col4, y);
       y += 18;
     }
     
-    // Dépôt remboursé
-    doc.fillColor('#666').text(t.depositRefund, col3, y);
-    doc.fillColor('#27ae60').text(`${depositRefunded.toFixed(2)} €`, col4, y);
-    y += 30;
-    
-    // TOTAL FINAL
-    doc.rect(340, y - 5, 210, 35).fillColor('#f59e0b').fill();
-    doc.fontSize(12).fillColor('#fff').text(t.total, 350, y + 5);
-    doc.fontSize(14).text(`${rentalTTC.toFixed(2)} €`, col4, y + 3);
+    // Encadré dépôt remboursé
+    doc.rect(col3 - 20, y - 5, 185, 28).fillColor('#ecfdf5').fill();
+    doc.rect(col3 - 20, y - 5, 185, 28).strokeColor('#10b981').stroke();
+    doc.fontSize(10).fillColor('#10b981').text(`Deposito devuelto:`, col3 - 10, y + 2);
+    doc.fontSize(12).fillColor('#10b981').text(`${depositRefund.toFixed(2)} EUR`, col4, y);
     
     // === PIED DE PAGE ===
-    y = 700;
-    doc.fontSize(12).fillColor('#27ae60').text(t.thankYou, 50, y, { align: 'center' });
+    doc.fontSize(14).fillColor('#10b981').text('Gracias por confiar en Voltride!', 50, 700, { align: 'center' });
     
-    y += 30;
-    doc.fontSize(9).fillColor('#999').text(t.footer, 50, y, { align: 'center' });
-    doc.text('NIF: B12345678 | info@voltride.es | +34 600 000 001', 50, y + 15, { align: 'center' });
+    doc.fontSize(8).fillColor('#999')
+       .text(`Voltride - ${rental.agency_name || ''} | ${rental.agency_email || 'info@voltride.es'} | ${rental.agency_phone || ''}`, 50, 750, { align: 'center' });
     
     doc.end();
     
