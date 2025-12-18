@@ -10,6 +10,7 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
 // Servir les assets (logo, etc.)
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 app.use(express.static(path.join(__dirname, '../frontend')));
@@ -30,6 +31,7 @@ const checkinRoutes = require('./routes/checkin');
 const checkoutRoutes = require('./routes/checkout');
 const ocrRoutes = require('./routes/ocr');
 const invoicesRoutes = require('./routes/invoices');
+const pricingRoutes = require('./routes/pricing');
 
 // Routes API
 app.use('/api/auth', authRoutes);
@@ -44,7 +46,6 @@ app.use('/api/checkin', checkinRoutes);
 app.use('/api/checkout', checkoutRoutes);
 app.use('/api/ocr', ocrRoutes);
 app.use('/api/invoices', invoicesRoutes);
-const pricingRoutes = require('./routes/pricing');
 app.use('/api/pricing', pricingRoutes);
 
 // Route par défaut - renvoie l'application
@@ -62,7 +63,7 @@ async function startServer() {
       console.log('╔════════════════════════════════════════════╗');
       console.log('║                                            ║');
       console.log('║   ⚡ VOLTRIDE - Servidor iniciado          ║');
-      console.log(`║   🌐 Puerto: ${PORT}                           ║`);
+      console.log('║   🌐 Puerto: ' + PORT + '                           ║');
       console.log('║   ✅ Base de datos conectada               ║');
       console.log('║                                            ║');
       console.log('╚════════════════════════════════════════════╝');
