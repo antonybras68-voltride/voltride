@@ -3,6 +3,19 @@ const router = express.Router();
 const { pool } = require('../database');
 const { authMiddleware } = require('./auth');
 
+// Vérifier et ajouter les colonnes si elles n'existent pas
+async function ensureColumns() {
+  try {
+    await pool.query(`
+      ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS license_plate VARCHAR(20);
+      ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS chassis_number VARCHAR(50);
+    `);
+  } catch (e) {
+    console.log('Columns may already exist or error:', e.message);
+  }
+}
+ensureColumns();
+
 // GET /api/vehicles - Listar todos los vehículos
 router.get('/', authMiddleware, async (req, res) => {
   try {
@@ -104,7 +117,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // POST /api/vehicles - Crear vehículo
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { code, type, brand, model, color, daily_rate, deposit, status, agency_id, notes } = req.body;
+    const { code, type, brand, model, color, daily_rate, deposit, status, agency_id, notes, license_plate, chassis_number } = req.body;
     
     // Verificar si el código ya existe
     const existingVehicle = await pool.query('SELECT id FROM vehicles WHERE code = $1', [code]);
@@ -113,10 +126,10 @@ router.post('/', authMiddleware, async (req, res) => {
     }
     
     const result = await pool.query(`
-      INSERT INTO vehicles (code, type, brand, model, color, daily_rate, deposit, status, agency_id, notes)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      INSERT INTO vehicles (code, type, brand, model, color, daily_rate, deposit, status, agency_id, notes, license_plate, chassis_number)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING *
-    `, [code, type, brand, model, color, daily_rate || 0, deposit || 0, status || 'available', agency_id, notes]);
+    `, [code, type, brand, model, color, daily_rate || 0, deposit || 0, status || 'available', agency_id, notes, license_plate, chassis_number]);
     
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -147,7 +160,7 @@ router.post('/:id/duplicate', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'El código de vehículo ya existe' });
     }
     
-    // Crear el duplicado
+    // Crear el duplicado (sin placa ni chasis, deben ser únicos)
     const result = await pool.query(`
       INSERT INTO vehicles (code, type, brand, model, color, daily_rate, deposit, status, agency_id, notes)
       VALUES ($1, $2, $3, $4, $5, $6, $7, 'available', $8, $9)
@@ -165,7 +178,7 @@ router.post('/:id/duplicate', authMiddleware, async (req, res) => {
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const { code, type, brand, model, color, daily_rate, deposit, status, agency_id, notes } = req.body;
+    const { code, type, brand, model, color, daily_rate, deposit, status, agency_id, notes, license_plate, chassis_number } = req.body;
     
     // Verificar si el código ya existe en otro vehículo
     const existingVehicle = await pool.query('SELECT id FROM vehicles WHERE code = $1 AND id != $2', [code, id]);
@@ -176,10 +189,11 @@ router.put('/:id', authMiddleware, async (req, res) => {
     const result = await pool.query(`
       UPDATE vehicles 
       SET code = $1, type = $2, brand = $3, model = $4, color = $5, 
-          daily_rate = $6, deposit = $7, status = $8, agency_id = $9, notes = $10
-      WHERE id = $11
+          daily_rate = $6, deposit = $7, status = $8, agency_id = $9, notes = $10,
+          license_plate = $11, chassis_number = $12
+      WHERE id = $13
       RETURNING *
-    `, [code, type, brand, model, color, daily_rate || 0, deposit || 0, status, agency_id, notes, id]);
+    `, [code, type, brand, model, color, daily_rate || 0, deposit || 0, status, agency_id, notes, license_plate, chassis_number, id]);
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Vehículo no encontrado' });
