@@ -237,12 +237,19 @@ async function renderDashboard(container) {
 // =====================================================
 
 async function renderVehicles(container) {
+  // Charger les tarifs pour avoir les images des types de véhicules
+  await loadPricingData();
+  
   container.innerHTML = `
     <div class="page-header"><h1>${t('vehicles')}</h1></div>
     <div class="card">
       <div class="card-header">
         <div class="filters-bar" style="margin:0;flex:1;">
-          <div class="search-box"><span class="search-icon">🔍</span><input type="text" id="vehicleSearch" placeholder="${t('search')}..." onkeyup="filterVehicles()"></div>
+          <div class="search-box"><input type="text" id="vehicleSearch" placeholder="${t('search')}..." onkeyup="filterVehicles()"></div>
+          <select class="filter-select" id="vehicleAgencyFilter" onchange="filterVehicles()">
+            <option value="">Toutes agences</option>
+            ${agencies.map(a => `<option value="${a.id}">${a.name}</option>`).join('')}
+          </select>
           <select class="filter-select" id="vehicleStatusFilter" onchange="filterVehicles()">
             <option value="">${t('all')}</option><option value="available">${t('available')}</option><option value="rented">${t('rented')}</option><option value="maintenance">${t('maintenance')}</option>
           </select>
@@ -257,65 +264,165 @@ async function renderVehicles(container) {
 
 async function loadVehicles() {
   try {
-    const vehicles = await vehiclesAPI.getAll({ agency_id: currentUser.agency_id });
+    // Admin voit tous les véhicules, employé seulement ceux de son agence
+    const params = currentUser.role === 'admin' ? {} : { agency_id: currentUser.agency_id };
+    const vehicles = await vehiclesAPI.getAll(params);
     window.vehiclesData = vehicles;
     renderVehiclesTable(vehicles);
   } catch (e) { console.error(e); showToast(t('errorOccurred'), 'error'); }
 }
 
+// Fonction pour récupérer l'image du type de véhicule depuis les tarifs
+function getVehicleTypeImage(type) {
+  const vType = vehicleTypes.find(v => v.id === type);
+  if (vType && vType.image) {
+    return `<img src="${vType.image}" alt="${vType.name}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;">`;
+  }
+  // Placeholder si pas d'image
+  return `<div style="width:40px;height:40px;background:var(--bg-input);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--text-secondary);">${type.substring(0,2).toUpperCase()}</div>`;
+}
+
+// Fonction pour récupérer le nom de l'agence
+function getAgencyName(agencyId) {
+  const agency = agencies.find(a => a.id === agencyId);
+  return agency ? agency.name : '-';
+}
+
 function renderVehiclesTable(vehicles) {
   if (!vehicles.length) {
-    document.getElementById('vehiclesList').innerHTML = `<div class="empty-state"><div class="empty-state-icon">🚲</div><h3>${t('noResults')}</h3></div>`;
+    document.getElementById('vehiclesList').innerHTML = `<div class="empty-state"><h3>${t('noResults')}</h3></div>`;
     return;
   }
   document.getElementById('vehiclesList').innerHTML = `
     <div class="table-container"><table><thead><tr>
-      <th>${t('vehicleCode')}</th><th>${t('vehicleType')}</th><th>${t('brand')}</th><th>${t('dailyRate')}</th><th>${t('status')}</th><th></th>
+      <th></th>
+      <th>${t('vehicleCode')}</th>
+      <th>${t('vehicleType')}</th>
+      <th>${t('brand')}</th>
+      <th>Agencia</th>
+      <th>${t('status')}</th>
+      <th></th>
     </tr></thead><tbody>
       ${vehicles.map(v => `<tr>
+        <td>${getVehicleTypeImage(v.type)}</td>
         <td><strong>${v.code}</strong></td>
-        <td>${getVehicleTypeIcon(v.type)} ${t(v.type)}</td>
+        <td>${t(v.type)}</td>
         <td>${v.brand || '-'} ${v.model || ''}</td>
-        <td>${formatCurrency(v.daily_rate)}</td>
+        <td><span style="font-size:0.85rem;color:var(--text-secondary);">${getAgencyName(v.agency_id)}</span></td>
         <td>${getStatusBadge(v.status)}</td>
         <td><div class="btn-group">
-          <button class="btn btn-sm btn-secondary" onclick="showVehicleModal(${v.id})">✏️</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteVehicle(${v.id})">🗑️</button>
+          <button class="btn btn-sm btn-secondary" onclick="showVehicleModal(${v.id})" title="Editar">Editar</button>
+          <button class="btn btn-sm btn-info" onclick="duplicateVehicle(${v.id})" title="Duplicar">Copiar</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteVehicle(${v.id})" title="Eliminar">Suppr.</button>
         </div></td>
       </tr>`).join('')}
     </tbody></table></div>
   `;
 }
 
+async function duplicateVehicle(id) {
+  try {
+    const v = await vehiclesAPI.getById(id);
+    
+    // Afficher une modal pour demander le nouveau code
+    openModal('Duplicar vehículo', `
+      <form id="duplicateForm">
+        <p style="color:var(--text-secondary);margin-bottom:15px;">Duplicando: <strong>${v.code}</strong> (${v.brand || ''} ${v.model || ''})</p>
+        <div class="form-group">
+          <label>Nuevo código *</label>
+          <input type="text" id="newVehicleCode" class="form-control" value="${v.code}-2" required>
+        </div>
+        <div class="form-group">
+          <label>Agencia</label>
+          <select id="newVehicleAgency" class="form-control">
+            ${agencies.map(a => `<option value="${a.id}" ${a.id === v.agency_id ? 'selected' : ''}>${a.code} - ${a.name}</option>`).join('')}
+          </select>
+        </div>
+      </form>
+    `, `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="confirmDuplicateVehicle(${id})">Duplicar</button>`);
+  } catch (e) { 
+    showToast(e.message || 'Error al cargar el vehículo', 'error'); 
+  }
+}
+
+async function confirmDuplicateVehicle(originalId) {
+  const newCode = document.getElementById('newVehicleCode').value;
+  const newAgencyId = document.getElementById('newVehicleAgency').value;
+  
+  if (!newCode) {
+    alert('El código es obligatorio');
+    return;
+  }
+  
+  try {
+    const v = await vehiclesAPI.getById(originalId);
+    const data = {
+      code: newCode,
+      type: v.type,
+      brand: v.brand,
+      model: v.model,
+      color: v.color,
+      daily_rate: v.daily_rate || 0,
+      deposit: v.deposit || 0,
+      status: 'available',
+      agency_id: newAgencyId,
+      notes: v.notes
+    };
+    await vehiclesAPI.create(data);
+    closeModal();
+    showToast('Vehículo duplicado correctamente', 'success');
+    loadVehicles();
+  } catch (e) { 
+    showToast(e.message || 'Error al duplicar', 'error'); 
+  }
+}
+
 function filterVehicles() {
   const search = document.getElementById('vehicleSearch').value.toLowerCase();
   const status = document.getElementById('vehicleStatusFilter').value;
+  const agencyId = document.getElementById('vehicleAgencyFilter').value;
   let filtered = window.vehiclesData || [];
-  if (search) filtered = filtered.filter(v => v.code.toLowerCase().includes(search) || (v.brand||'').toLowerCase().includes(search));
+  if (search) filtered = filtered.filter(v => v.code.toLowerCase().includes(search) || (v.brand||'').toLowerCase().includes(search) || (v.model||'').toLowerCase().includes(search));
   if (status) filtered = filtered.filter(v => v.status === status);
+  if (agencyId) filtered = filtered.filter(v => v.agency_id == agencyId);
   renderVehiclesTable(filtered);
 }
 
 function showVehicleModal(id = null) {
+  // Créer les options de type depuis les tarifs configurés
+  const typeOptions = vehicleTypes.length > 0 
+    ? vehicleTypes.map(vt => `<option value="${vt.id}">${vt.name}</option>`).join('')
+    : `<option value="bike">${t('bike')}</option><option value="ebike">${t('ebike')}</option><option value="scooter">${t('scooter')}</option>`;
+  
+  // Options d'agences
+  const agencyOptions = agencies.map(a => `<option value="${a.id}">${a.code} - ${a.name}</option>`).join('');
+  
   openModal(id ? t('editVehicle') : t('addVehicle'), `
     <form id="vehicleForm">
       <input type="hidden" id="vehicleId" value="${id||''}">
       <div class="form-row">
-        <div class="form-group"><label>${t('vehicleCode')} *</label><input type="text" id="vehicleCode" class="form-control" required></div>
-        <div class="form-group"><label>${t('vehicleType')} *</label><select id="vehicleType" class="form-control"><option value="bike">${t('bike')}</option><option value="ebike">${t('ebike')}</option><option value="scooter">${t('scooter')}</option></select></div>
+        <div class="form-group"><label>${t('vehicleCode')} *</label><input type="text" id="vehicleCode" class="form-control" required placeholder="EB1, CB2, SC3..."></div>
+        <div class="form-group"><label>${t('vehicleType')} *</label><select id="vehicleType" class="form-control">${typeOptions}</select></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>${t('brand')}</label><input type="text" id="vehicleBrand" class="form-control"></div>
-        <div class="form-group"><label>${t('model')}</label><input type="text" id="vehicleModel" class="form-control"></div>
+        <div class="form-group"><label>${t('brand')}</label><input type="text" id="vehicleBrand" class="form-control" placeholder="FIIDO, MBM..."></div>
+        <div class="form-group"><label>${t('model')}</label><input type="text" id="vehicleModel" class="form-control" placeholder="C11 PRO, Touring 28..."></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>${t('dailyRate')} (€) *</label><input type="number" id="vehicleDailyRate" class="form-control" required min="0" step="0.01"></div>
-        <div class="form-group"><label>${t('deposit')} (€)</label><input type="number" id="vehicleDeposit" class="form-control" min="0" step="0.01" value="0"></div>
+        <div class="form-group"><label>Agencia *</label><select id="vehicleAgency" class="form-control" required>${agencyOptions}</select></div>
+        <div class="form-group"><label>${t('status')}</label><select id="vehicleStatus" class="form-control"><option value="available">${t('available')}</option><option value="maintenance">${t('maintenance')}</option></select></div>
       </div>
-      <div class="form-group"><label>${t('status')}</label><select id="vehicleStatus" class="form-control"><option value="available">${t('available')}</option><option value="maintenance">${t('maintenance')}</option></select></div>
+      <div class="form-group"><label>Color</label><input type="text" id="vehicleColor" class="form-control" placeholder="Negro, Blanco, Rojo..."></div>
+      <div class="form-group"><label>Notas</label><textarea id="vehicleNotes" class="form-control" rows="2" placeholder="Observaciones adicionales..."></textarea></div>
     </form>
   `, `<button class="btn btn-secondary" onclick="closeModal()">${t('cancel')}</button><button class="btn btn-primary" onclick="saveVehicle()">${t('save')}</button>`);
-  if (id) loadVehicleData(id);
+  
+  // Sélectionner l'agence de l'utilisateur par défaut
+  if (!id) {
+    document.getElementById('vehicleAgency').value = currentUser.agency_id;
+  } else {
+    loadVehicleData(id);
+  }
 }
 
 async function loadVehicleData(id) {
@@ -325,9 +432,10 @@ async function loadVehicleData(id) {
     document.getElementById('vehicleType').value = v.type;
     document.getElementById('vehicleBrand').value = v.brand || '';
     document.getElementById('vehicleModel').value = v.model || '';
-    document.getElementById('vehicleDailyRate').value = v.daily_rate;
-    document.getElementById('vehicleDeposit').value = v.deposit || 0;
+    document.getElementById('vehicleAgency').value = v.agency_id || currentUser.agency_id;
     document.getElementById('vehicleStatus').value = v.status;
+    document.getElementById('vehicleColor').value = v.color || '';
+    document.getElementById('vehicleNotes').value = v.notes || '';
   } catch (e) { console.error(e); }
 }
 
@@ -338,10 +446,12 @@ async function saveVehicle() {
     type: document.getElementById('vehicleType').value,
     brand: document.getElementById('vehicleBrand').value,
     model: document.getElementById('vehicleModel').value,
-    daily_rate: parseFloat(document.getElementById('vehicleDailyRate').value),
-    deposit: parseFloat(document.getElementById('vehicleDeposit').value) || 0,
+    color: document.getElementById('vehicleColor').value,
     status: document.getElementById('vehicleStatus').value,
-    agency_id: currentUser.agency_id
+    agency_id: document.getElementById('vehicleAgency').value,
+    notes: document.getElementById('vehicleNotes').value,
+    daily_rate: 0,
+    deposit: 0
   };
   try {
     if (id) await vehiclesAPI.update(id, data); else await vehiclesAPI.create(data);
