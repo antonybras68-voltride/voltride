@@ -1,17 +1,25 @@
 // =====================================================
-// VOLTRIDE - Check-in Walk-in (Version 2.2 - OCR amélioré)
+// VOLTRIDE - Check-in Walk-in (Version 3.0)
+// Dates d'abord, tarifs depuis config, photos, KM motos
 // =====================================================
 
 let currentStep = 1;
-let selectedVehicles = [];
+let selectedVehicle = null;
 let vehiclesData = [];
-let accessoriesData = {};
+let selectedAccessories = [];
 let clientMode = false;
 let signatureCanvas, signatureCtx;
 let isDrawing = false;
 let hasSignature = false;
 let idPhotoData = null;
 let foundClient = null;
+let rentalDays = 1;
+
+// Données de configuration (chargées depuis Tarifas)
+let pricingConfig = {
+  vehicleTypes: [],
+  accessories: []
+};
 
 // Payment data
 let paymentData = {
@@ -19,103 +27,70 @@ let paymentData = {
   deposit: { method: null, amount: 0 }
 };
 
-// Accessoires disponibles
-const availableAccessories = [
-  { id: 'lock', name: 'Candado', icon: '🔒', price: 0, mandatory: true, vehicleTypes: ['bike', 'ebike'] },
-  { id: 'helmet', name: 'Casco', icon: '⛑️', price: 0, mandatory: false, vehicleTypes: ['bike', 'ebike', 'scooter'] },
-  { id: 'basket', name: 'Cesta', icon: '🧺', price: 0, mandatory: false, vehicleTypes: ['bike', 'ebike'] },
-  { id: 'phone_holder', name: 'Soporte Móvil', icon: '📱', price: 5, mandatory: false, vehicleTypes: ['bike', 'ebike', 'scooter'] },
-  { id: 'child_seat', name: 'Silla Niño', icon: '👶', price: 10, mandatory: false, vehicleTypes: ['bike', 'ebike'] },
-  { id: 'panniers', name: 'Alforjas', icon: '🎒', price: 8, mandatory: false, vehicleTypes: ['bike', 'ebike'] },
-  { id: 'gps', name: 'GPS', icon: '🗺️', price: 5, mandatory: false, vehicleTypes: ['scooter'] },
-  { id: 'rain_cover', name: 'Chubasquero', icon: '🌧️', price: 3, mandatory: false, vehicleTypes: ['bike', 'ebike', 'scooter'] }
-];
+// Types motorisés (nécessitent KM)
+const MOTORIZED_TYPES = ['scooter', 'e-motocross', 'emotocross', 'e_motocross', 'moto', 'motocross'];
 
 // CGV multilingues
 const cgvTexts = {
-  es: `
-    <h3>CONDICIONES GENERALES DE ALQUILER - VOLTRIDE</h3>
-    <p><strong>1. Objeto del contrato</strong><br>
-    El presente contrato tiene por objeto la cesión temporal del uso de un vehículo de movilidad personal por parte de VOLTRIDE al Cliente.</p>
-    <p><strong>2. Estado del vehículo</strong><br>
-    El cliente reconoce haber recibido el vehículo en perfecto estado de funcionamiento y se compromete a devolverlo en las mismas condiciones.</p>
-    <p><strong>3. Responsabilidad del cliente</strong><br>
-    El cliente es responsable de cualquier daño o pérdida del vehículo durante el período de alquiler.</p>
-    <p><strong>4. Depósito</strong><br>
-    El depósito será devuelto íntegramente si el vehículo se devuelve sin daños y en el plazo acordado.</p>
-    <p><strong>5. Retraso en la devolución</strong><br>
-    En caso de retraso, se aplicará un cargo adicional equivalente a la tarifa diaria.</p>
-    <p><strong>6. Normas de circulación</strong><br>
-    El cliente se compromete a respetar el código de circulación vigente.</p>
-    <p><strong>7. Prohibiciones</strong><br>
-    - Uso bajo efectos del alcohol o drogas prohibido.<br>
-    - No subalquilar ni prestar a terceros.<br>
-    - Guardar en lugar seguro entre 21h y 7h.</p>
-    <p><strong>8. Averías</strong><br>
-    Contactar inmediatamente con la agencia en caso de avería.</p>
-    <p><strong>9. Limpieza</strong><br>
-    Cargo de 5 EUR si el vehículo se devuelve sucio.</p>
-    <p><strong>10. Protección de datos</strong><br>
-    Datos tratados conforme al RGPD.</p>
-  `,
-  fr: `
-    <h3>CONDITIONS GÉNÉRALES DE LOCATION - VOLTRIDE</h3>
-    <p><strong>1. Objet du contrat</strong><br>
-    Mise à disposition temporaire d'un véhicule de mobilité personnelle par VOLTRIDE au Client.</p>
-    <p><strong>2. État du véhicule</strong><br>
-    Le client reconnaît avoir reçu le véhicule en parfait état.</p>
-    <p><strong>3. Responsabilité du client</strong><br>
-    Le client est responsable de tout dommage ou perte pendant la location.</p>
-    <p><strong>4. Caution</strong><br>
-    Restituée intégralement si le véhicule est rendu sans dommages.</p>
-    <p><strong>5. Retard de restitution</strong><br>
-    Supplément journalier appliqué en cas de retard.</p>
-    <p><strong>6. Code de la route</strong><br>
-    Le client s'engage à respecter le code de la route.</p>
-    <p><strong>7. Interdictions</strong><br>
-    - Usage sous alcool/drogues interdit.<br>
-    - Ne pas sous-louer ni prêter.<br>
-    - Stationner en lieu sûr entre 21h et 7h.</p>
-    <p><strong>8. Pannes</strong><br>
-    Contacter immédiatement l'agence.</p>
-    <p><strong>9. Propreté</strong><br>
-    Frais de 5 EUR si véhicule rendu sale.</p>
-    <p><strong>10. Protection des données</strong><br>
-    Données traitées conformément au RGPD.</p>
-  `,
-  en: `
-    <h3>GENERAL RENTAL CONDITIONS - VOLTRIDE</h3>
-    <p><strong>1. Purpose</strong><br>
-    Temporary rental of a personal mobility vehicle from VOLTRIDE to Customer.</p>
-    <p><strong>2. Vehicle condition</strong><br>
-    Customer acknowledges receiving the vehicle in perfect condition.</p>
-    <p><strong>3. Customer responsibility</strong><br>
-    Customer is responsible for any damage or loss during the rental.</p>
-    <p><strong>4. Deposit</strong><br>
-    Fully refunded if vehicle is returned without damage.</p>
-    <p><strong>5. Late return</strong><br>
-    Additional daily charge applied for late returns.</p>
-    <p><strong>6. Traffic rules</strong><br>
-    Customer agrees to comply with traffic regulations.</p>
-    <p><strong>7. Prohibitions</strong><br>
-    - No use under alcohol/drugs.<br>
-    - No subletting or lending.<br>
-    - Store securely between 9pm-7am.</p>
-    <p><strong>8. Breakdowns</strong><br>
-    Contact agency immediately.</p>
-    <p><strong>9. Cleanliness</strong><br>
-    5 EUR fee if returned dirty.</p>
-    <p><strong>10. Data protection</strong><br>
-    Data processed per GDPR.</p>
-  `
+  es: `<h3>CONDICIONES GENERALES DE ALQUILER - VOLTRIDE</h3>
+    <p><strong>1. Objeto del contrato</strong><br>El presente contrato tiene por objeto la cesión temporal del uso de un vehículo de movilidad personal por parte de VOLTRIDE al Cliente.</p>
+    <p><strong>2. Estado del vehículo</strong><br>El cliente reconoce haber recibido el vehículo en perfecto estado de funcionamiento.</p>
+    <p><strong>3. Responsabilidad del cliente</strong><br>El cliente es responsable de cualquier daño o pérdida del vehículo durante el período de alquiler.</p>
+    <p><strong>4. Depósito</strong><br>El depósito será devuelto íntegramente si el vehículo se devuelve sin daños.</p>
+    <p><strong>5. Retraso en la devolución</strong><br>En caso de retraso, se aplicará un cargo adicional equivalente a la tarifa diaria.</p>
+    <p><strong>6. Normas de circulación</strong><br>El cliente se compromete a respetar el código de circulación vigente.</p>
+    <p><strong>7. Prohibiciones</strong><br>- Uso bajo efectos del alcohol o drogas prohibido.<br>- No subalquilar ni prestar a terceros.<br>- Guardar en lugar seguro entre 21h y 7h.</p>
+    <p><strong>8. Averías</strong><br>Contactar inmediatamente con la agencia en caso de avería.</p>
+    <p><strong>9. Limpieza</strong><br>Cargo de 5 EUR si el vehículo se devuelve sucio.</p>
+    <p><strong>10. Protección de datos</strong><br>Datos tratados conforme al RGPD.</p>`,
+  fr: `<h3>CONDITIONS GÉNÉRALES DE LOCATION - VOLTRIDE</h3>
+    <p><strong>1. Objet du contrat</strong><br>Mise à disposition temporaire d'un véhicule de mobilité personnelle par VOLTRIDE au Client.</p>
+    <p><strong>2. État du véhicule</strong><br>Le client reconnaît avoir reçu le véhicule en parfait état.</p>
+    <p><strong>3. Responsabilité du client</strong><br>Le client est responsable de tout dommage ou perte pendant la location.</p>
+    <p><strong>4. Caution</strong><br>Restituée intégralement si le véhicule est rendu sans dommages.</p>
+    <p><strong>5. Retard de restitution</strong><br>Supplément journalier appliqué en cas de retard.</p>
+    <p><strong>6. Code de la route</strong><br>Le client s'engage à respecter le code de la route.</p>
+    <p><strong>7. Interdictions</strong><br>- Usage sous alcool/drogues interdit.<br>- Ne pas sous-louer ni prêter.<br>- Stationner en lieu sûr entre 21h et 7h.</p>
+    <p><strong>8. Pannes</strong><br>Contacter immédiatement l'agence.</p>
+    <p><strong>9. Propreté</strong><br>Frais de 5 EUR si véhicule rendu sale.</p>
+    <p><strong>10. Protection des données</strong><br>Données traitées conformément au RGPD.</p>`,
+  en: `<h3>GENERAL RENTAL CONDITIONS - VOLTRIDE</h3>
+    <p><strong>1. Purpose</strong><br>Temporary rental of a personal mobility vehicle from VOLTRIDE to Customer.</p>
+    <p><strong>2. Vehicle condition</strong><br>Customer acknowledges receiving the vehicle in perfect condition.</p>
+    <p><strong>3. Customer responsibility</strong><br>Customer is responsible for any damage or loss during the rental.</p>
+    <p><strong>4. Deposit</strong><br>Fully refunded if vehicle is returned without damage.</p>
+    <p><strong>5. Late return</strong><br>Additional daily charge applied for late returns.</p>
+    <p><strong>6. Traffic rules</strong><br>Customer agrees to comply with traffic regulations.</p>
+    <p><strong>7. Prohibitions</strong><br>- No use under alcohol/drugs.<br>- No subletting or lending.<br>- Store securely between 9pm-7am.</p>
+    <p><strong>8. Breakdowns</strong><br>Contact agency immediately.</p>
+    <p><strong>9. Cleanliness</strong><br>5 EUR fee if returned dirty.</p>
+    <p><strong>10. Data protection</strong><br>Data processed per GDPR.</p>`
 };
+
+// =====================================================
+// Utilitaires
+// =====================================================
+
+function isMotorizedVehicle(type) {
+  if (!type) return false;
+  const normalizedType = type.toLowerCase().replace(/[-_\s]/g, '');
+  return MOTORIZED_TYPES.some(t => normalizedType.includes(t.replace(/[-_\s]/g, '')));
+}
+
+function formatDateInput(date) {
+  return date.toISOString().split('T')[0];
+}
+
+function getToken() {
+  return localStorage.getItem('voltride_token');
+}
 
 // =====================================================
 // Initialisation
 // =====================================================
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const token = localStorage.getItem('voltride_token');
+  const token = getToken();
   if (!token) {
     window.location.href = '/';
     return;
@@ -126,7 +101,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   initHourSelects();
   initSignatureCanvas();
-  await loadVehicles();
+  
+  // Charger la configuration des tarifs
+  await loadPricingConfig();
   
   // Set default dates
   const today = new Date();
@@ -143,11 +120,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('startMinute').value = String(currentMinute % 60).padStart(2, '0');
   document.getElementById('endHour').value = String(currentHour).padStart(2, '0');
   document.getElementById('endMinute').value = String(currentMinute % 60).padStart(2, '0');
+  
+  updateDaysDisplay();
 });
-
-function formatDateInput(date) {
-  return date.toISOString().split('T')[0];
-}
 
 function initHourSelects() {
   const hours = [];
@@ -159,110 +134,96 @@ function initHourSelects() {
 }
 
 // =====================================================
-// Vehicles
+// Chargement des tarifs depuis config
 // =====================================================
 
-async function loadVehicles() {
+async function loadPricingConfig() {
   try {
-    const user = JSON.parse(localStorage.getItem('voltride_user') || '{}');
-    const response = await fetch(`/api/vehicles?agency_id=${user.agency_id}`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('voltride_token')}` }
+    const response = await fetch('/api/pricing', {
+      headers: { 'Authorization': 'Bearer ' + getToken() }
     });
-    vehiclesData = await response.json();
-    renderVehicles(vehiclesData);
+    if (response.ok) {
+      const data = await response.json();
+      pricingConfig.vehicleTypes = data.vehicleTypes || [];
+      pricingConfig.accessories = data.accessories || [];
+      console.log('✅ Config tarifs chargée:', pricingConfig);
+    }
   } catch (e) {
-    console.error('Error loading vehicles:', e);
+    console.error('Erreur chargement tarifs:', e);
   }
 }
 
-function renderVehicles(vehicles) {
-  const grid = document.getElementById('vehicleGrid');
-  grid.innerHTML = vehicles.map(v => {
-    const isSelected = selectedVehicles.find(sv => sv.id === v.id);
-    const isAvailable = v.status === 'available';
-    const icon = v.type === 'bike' ? '🚲' : v.type === 'ebike' ? '⚡' : '🛵';
+// Récupérer le tarif d'un type de véhicule pour X jours
+function getVehicleTypePrice(type, days) {
+  const vehicleType = pricingConfig.vehicleTypes.find(vt => 
+    vt.id.toLowerCase() === type.toLowerCase() || 
+    vt.name.toLowerCase() === type.toLowerCase()
+  );
+  
+  if (!vehicleType || !vehicleType.prices) {
+    return { dailyRate: 0, total: 0, deposit: 0 };
+  }
+  
+  // Trouver le meilleur tarif selon le nombre de jours (tarif dégressif)
+  let dailyRate = vehicleType.prices['1'] || 0;
+  
+  const sortedDays = Object.keys(vehicleType.prices)
+    .map(Number)
+    .filter(d => !isNaN(d))
+    .sort((a, b) => a - b);
+  
+  for (const d of sortedDays) {
+    if (days >= d) {
+      dailyRate = vehicleType.prices[String(d)];
+    }
+  }
+  
+  return {
+    dailyRate: dailyRate,
+    total: dailyRate * days,
+    deposit: vehicleType.deposit || 0,
+    image: vehicleType.image || null,
+    name: vehicleType.name
+  };
+}
+
+// Récupérer le tarif d'un accessoire pour X jours
+function getAccessoryPrice(accessoryId, days) {
+  const accessory = pricingConfig.accessories.find(a => 
+    a.id === accessoryId || a.name.toLowerCase() === accessoryId.toLowerCase()
+  );
+  
+  if (!accessory) {
+    return { dailyRate: 0, total: 0 };
+  }
+  
+  let dailyRate = accessory.prices?.['1'] || accessory.dailyRate || 0;
+  
+  if (accessory.prices) {
+    const sortedDays = Object.keys(accessory.prices)
+      .map(Number)
+      .filter(d => !isNaN(d))
+      .sort((a, b) => a - b);
     
-    return `
-      <div class="vehicle-card ${isSelected ? 'selected' : ''} ${!isAvailable ? 'unavailable' : ''}" 
-           onclick="${isAvailable ? `toggleVehicle(${v.id})` : ''}"
-           data-type="${v.type}">
-        <div class="vehicle-card-icon">${icon}</div>
-        <div class="vehicle-card-code">${v.code}</div>
-        <div class="vehicle-card-type">${v.brand || ''} ${v.model || ''}</div>
-        <div class="vehicle-card-price">${parseFloat(v.daily_rate).toFixed(2)} €/día</div>
-        ${!isAvailable ? '<div style="color: var(--danger); font-size: 12px; margin-top: 5px;">No disponible</div>' : ''}
-      </div>
-    `;
-  }).join('');
-}
-
-function toggleVehicle(id) {
-  const vehicle = vehiclesData.find(v => v.id === id);
-  if (!vehicle) return;
-  
-  const index = selectedVehicles.findIndex(v => v.id === id);
-  if (index > -1) {
-    selectedVehicles.splice(index, 1);
-  } else {
-    selectedVehicles.push(vehicle);
+    for (const d of sortedDays) {
+      if (days >= d) {
+        dailyRate = accessory.prices[String(d)];
+      }
+    }
   }
   
-  updateSelectedVehiclesDisplay();
-  renderVehicles(vehiclesData);
-  document.getElementById('btnNext1').disabled = selectedVehicles.length === 0;
-}
-
-function removeVehicle(id) {
-  selectedVehicles = selectedVehicles.filter(v => v.id !== id);
-  updateSelectedVehiclesDisplay();
-  renderVehicles(vehiclesData);
-  document.getElementById('btnNext1').disabled = selectedVehicles.length === 0;
-}
-
-function updateSelectedVehiclesDisplay() {
-  const container = document.getElementById('selectedVehiclesContainer');
-  const tags = document.getElementById('selectedVehiclesTags');
-  const count = document.getElementById('selectedCount');
-  
-  if (selectedVehicles.length === 0) {
-    container.style.display = 'none';
-    return;
-  }
-  
-  container.style.display = 'block';
-  count.textContent = selectedVehicles.length;
-  
-  tags.innerHTML = selectedVehicles.map(v => {
-    const icon = v.type === 'bike' ? '🚲' : v.type === 'ebike' ? '⚡' : '🛵';
-    return `
-      <span class="selected-vehicle-tag">
-        ${icon} ${v.code}
-        <span class="remove" onclick="removeVehicle(${v.id})">×</span>
-      </span>
-    `;
-  }).join('');
-}
-
-function filterVehicles(type) {
-  let filtered = vehiclesData;
-  if (type !== 'all') {
-    filtered = vehiclesData.filter(v => v.type === type);
-  }
-  
-  document.querySelectorAll('#step1 .btn-sm').forEach(btn => {
-    btn.classList.remove('btn-primary');
-    btn.classList.add('btn-secondary');
-  });
-  if (event && event.target) {
-    event.target.classList.remove('btn-secondary');
-    event.target.classList.add('btn-primary');
-  }
-  
-  renderVehicles(filtered);
+  return {
+    dailyRate: dailyRate,
+    total: dailyRate * days,
+    image: accessory.image || null,
+    name: accessory.name,
+    icon: accessory.icon || '🎒',
+    deposit: accessory.deposit || 0
+  };
 }
 
 // =====================================================
-// Pricing
+// Étape 1: Dates
 // =====================================================
 
 function calculateDays() {
@@ -284,36 +245,479 @@ function calculateDays() {
   return Math.max(1, days);
 }
 
-function updatePricing() {
-  const days = calculateDays();
+function updateDaysDisplay() {
+  rentalDays = calculateDays();
+  const daysDisplay = document.getElementById('daysDisplay');
+  if (daysDisplay) {
+    daysDisplay.innerHTML = `<strong>${rentalDays}</strong> día(s)`;
+  }
+}
+
+// =====================================================
+// Étape 2: Véhicules disponibles
+// =====================================================
+
+async function loadAvailableVehicles() {
+  const user = JSON.parse(localStorage.getItem('voltride_user') || '{}');
+  const startDate = document.getElementById('startDate').value;
+  const endDate = document.getElementById('endDate').value;
   
-  let html = `<div class="price-line"><span>Período</span><span><strong>${days} día(s)</strong></span></div>`;
-  
-  let subtotalTTC = 0;
-  selectedVehicles.forEach(v => {
-    const priceTTC = days * parseFloat(v.daily_rate);
-    subtotalTTC += priceTTC;
-    const icon = v.type === 'bike' ? '🚲' : v.type === 'ebike' ? '⚡' : '🛵';
-    html += `<div class="price-line"><span>${icon} ${v.code}</span><span>${priceTTC.toFixed(2)} €</span></div>`;
-  });
-  
-  let accessoriesTotalTTC = 0;
-  Object.values(accessoriesData).forEach(vehicleAccessories => {
-    vehicleAccessories.forEach(acc => {
-      if (acc.price > 0) {
-        accessoriesTotalTTC += acc.price * days;
-      }
+  try {
+    // Charger tous les véhicules de l'agence
+    const response = await fetch(`/api/vehicles?agency_id=${user.agency_id}`, {
+      headers: { 'Authorization': 'Bearer ' + getToken() }
     });
-  });
+    const allVehicles = await response.json();
+    
+    // Filtrer uniquement les véhicules disponibles
+    vehiclesData = allVehicles.filter(v => v.status === 'available');
+    
+    renderVehicles();
+  } catch (e) {
+    console.error('Error loading vehicles:', e);
+    document.getElementById('vehicleGrid').innerHTML = `
+      <div style="text-align: center; padding: 40px; color: var(--danger);">
+        Error al cargar vehículos: ${e.message}
+      </div>
+    `;
+  }
+}
+
+function renderVehicles() {
+  const grid = document.getElementById('vehicleGrid');
+  const days = rentalDays;
   
-  if (accessoriesTotalTTC > 0) {
-    html += `<div class="price-line"><span>🎒 Accesorios</span><span>${accessoriesTotalTTC.toFixed(2)} €</span></div>`;
+  if (vehiclesData.length === 0) {
+    grid.innerHTML = `
+      <div style="text-align: center; padding: 40px; color: var(--text-secondary); grid-column: 1 / -1;">
+        No hay vehículos disponibles para estas fechas
+      </div>
+    `;
+    return;
   }
   
-  const totalTTC = subtotalTTC + accessoriesTotalTTC;
-  html += `<div class="price-line total"><span>TOTAL</span><span>${totalTTC.toFixed(2)} €</span></div>`;
+  grid.innerHTML = vehiclesData.map(v => {
+    const isSelected = selectedVehicle?.id === v.id;
+    const pricing = getVehicleTypePrice(v.type, days);
+    const isMotorized = isMotorizedVehicle(v.type);
+    
+    // Image du type depuis config ou icône par défaut
+    let imageHtml;
+    if (pricing.image) {
+      imageHtml = `<img src="${pricing.image}" alt="${v.type}" style="width: 80px; height: 80px; object-fit: contain; border-radius: 8px;">`;
+    } else {
+      const icon = v.type === 'bike' ? '🚲' : v.type === 'ebike' ? '⚡' : '🛵';
+      imageHtml = `<div style="font-size: 48px;">${icon}</div>`;
+    }
+    
+    return `
+      <div class="vehicle-card ${isSelected ? 'selected' : ''}" 
+           onclick="selectVehicle(${v.id})"
+           data-type="${v.type}">
+        <div class="vehicle-card-image">${imageHtml}</div>
+        <div class="vehicle-card-code">${v.code}</div>
+        <div class="vehicle-card-type">${v.brand || ''} ${v.model || ''}</div>
+        <div class="vehicle-card-type-name">${pricing.name || v.type}</div>
+        
+        <div class="vehicle-card-pricing">
+          <div class="vehicle-price-total">${pricing.total.toFixed(2)} €</div>
+          <div class="vehicle-price-detail">${days} día(s) x ${pricing.dailyRate.toFixed(2)} €/día</div>
+        </div>
+        
+        <div class="vehicle-card-deposit">
+          Caución: ${pricing.deposit.toFixed(2)} €
+        </div>
+        
+        ${isMotorized ? `
+          <div class="vehicle-motorized-badge">
+            🏍️ KM actual: ${v.current_km || 0}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function selectVehicle(id) {
+  const vehicle = vehiclesData.find(v => v.id === id);
+  if (!vehicle) return;
   
-  document.getElementById('pricingSummary').innerHTML = html;
+  selectedVehicle = vehicle;
+  selectedAccessories = []; // Reset accessoires
+  
+  renderVehicles();
+  document.getElementById('btnNext2').disabled = false;
+  
+  // Afficher le résumé du véhicule sélectionné
+  updateSelectedVehicleDisplay();
+}
+
+function updateSelectedVehicleDisplay() {
+  const container = document.getElementById('selectedVehicleBox');
+  if (!selectedVehicle || !container) return;
+  
+  const pricing = getVehicleTypePrice(selectedVehicle.type, rentalDays);
+  const icon = selectedVehicle.type === 'bike' ? '🚲' : selectedVehicle.type === 'ebike' ? '⚡' : '🛵';
+  
+  container.style.display = 'block';
+  container.innerHTML = `
+    <div style="display: flex; align-items: center; gap: 15px;">
+      <div style="font-size: 32px;">${icon}</div>
+      <div>
+        <strong>${selectedVehicle.code}</strong> - ${selectedVehicle.brand || ''} ${selectedVehicle.model || ''}
+        <div style="color: var(--accent); font-weight: bold;">${pricing.total.toFixed(2)} € (${rentalDays} días)</div>
+      </div>
+    </div>
+  `;
+}
+
+function filterVehicles(type) {
+  document.querySelectorAll('#step2 .filter-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  if (event && event.target) {
+    event.target.classList.add('active');
+  }
+  
+  const grid = document.getElementById('vehicleGrid');
+  const days = rentalDays;
+  
+  let filtered = vehiclesData;
+  if (type !== 'all') {
+    filtered = vehiclesData.filter(v => v.type === type);
+  }
+  
+  if (filtered.length === 0) {
+    grid.innerHTML = `
+      <div style="text-align: center; padding: 40px; color: var(--text-secondary); grid-column: 1 / -1;">
+        No hay vehículos de este tipo disponibles
+      </div>
+    `;
+    return;
+  }
+  
+  grid.innerHTML = filtered.map(v => {
+    const isSelected = selectedVehicle?.id === v.id;
+    const pricing = getVehicleTypePrice(v.type, days);
+    const isMotorized = isMotorizedVehicle(v.type);
+    
+    let imageHtml;
+    if (pricing.image) {
+      imageHtml = `<img src="${pricing.image}" alt="${v.type}" style="width: 80px; height: 80px; object-fit: contain; border-radius: 8px;">`;
+    } else {
+      const icon = v.type === 'bike' ? '🚲' : v.type === 'ebike' ? '⚡' : '🛵';
+      imageHtml = `<div style="font-size: 48px;">${icon}</div>`;
+    }
+    
+    return `
+      <div class="vehicle-card ${isSelected ? 'selected' : ''}" 
+           onclick="selectVehicle(${v.id})"
+           data-type="${v.type}">
+        <div class="vehicle-card-image">${imageHtml}</div>
+        <div class="vehicle-card-code">${v.code}</div>
+        <div class="vehicle-card-type">${v.brand || ''} ${v.model || ''}</div>
+        <div class="vehicle-card-type-name">${pricing.name || v.type}</div>
+        
+        <div class="vehicle-card-pricing">
+          <div class="vehicle-price-total">${pricing.total.toFixed(2)} €</div>
+          <div class="vehicle-price-detail">${days} día(s) x ${pricing.dailyRate.toFixed(2)} €/día</div>
+        </div>
+        
+        <div class="vehicle-card-deposit">
+          Caución: ${pricing.deposit.toFixed(2)} €
+        </div>
+        
+        ${isMotorized ? `
+          <div class="vehicle-motorized-badge">
+            🏍️ KM actual: ${v.current_km || 0}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+// =====================================================
+// Étape 3: Accessoires
+// =====================================================
+
+function renderAccessories() {
+  const section = document.getElementById('accessoriesSection');
+  
+  if (!selectedVehicle) {
+    section.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Seleccione un vehículo primero</p>';
+    return;
+  }
+  
+  const days = rentalDays;
+  const vehicleType = selectedVehicle.type;
+  
+  // Filtrer les accessoires compatibles avec ce type de véhicule
+  let compatibleAccessories = pricingConfig.accessories;
+  
+  // Si l'accessoire a une liste de types compatibles, filtrer
+  compatibleAccessories = compatibleAccessories.filter(acc => {
+    if (!acc.compatibleTypes || acc.compatibleTypes.length === 0) return true;
+    return acc.compatibleTypes.some(t => 
+      t.toLowerCase() === vehicleType.toLowerCase() ||
+      vehicleType.toLowerCase().includes(t.toLowerCase())
+    );
+  });
+  
+  if (compatibleAccessories.length === 0) {
+    section.innerHTML = `
+      <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+        No hay accesorios disponibles para este tipo de vehículo
+      </div>
+    `;
+    return;
+  }
+  
+  section.innerHTML = `
+    <div class="accessory-grid">
+      ${compatibleAccessories.map(acc => {
+        const pricing = getAccessoryPrice(acc.id, days);
+        const isSelected = selectedAccessories.some(a => a.id === acc.id);
+        const isRequired = acc.insuranceRequired === 'required';
+        
+        let imageHtml;
+        if (acc.image) {
+          imageHtml = `<img src="${acc.image}" alt="${acc.name}" style="width: 60px; height: 60px; object-fit: contain; border-radius: 8px;">`;
+        } else {
+          imageHtml = `<div style="font-size: 36px;">${acc.icon || '🎒'}</div>`;
+        }
+        
+        return `
+          <div class="accessory-card ${isSelected ? 'selected' : ''} ${isRequired ? 'required' : ''}"
+               onclick="toggleAccessory('${acc.id}')">
+            <div class="accessory-image">${imageHtml}</div>
+            <div class="accessory-name">${acc.name}</div>
+            <div class="accessory-pricing">
+              ${pricing.total > 0 ? `
+                <div class="accessory-price">${pricing.total.toFixed(2)} €</div>
+                <div class="accessory-detail">${days} día(s) x ${pricing.dailyRate.toFixed(2)} €</div>
+              ` : `
+                <div class="accessory-price free">Gratis</div>
+              `}
+            </div>
+            ${pricing.deposit > 0 ? `<div class="accessory-deposit">Caución: ${pricing.deposit.toFixed(2)} €</div>` : ''}
+            ${isRequired ? '<div class="accessory-required-badge">Obligatorio</div>' : ''}
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+  
+  // Pré-sélectionner les accessoires obligatoires
+  compatibleAccessories.forEach(acc => {
+    if (acc.insuranceRequired === 'required' && !selectedAccessories.some(a => a.id === acc.id)) {
+      selectedAccessories.push(acc);
+    }
+  });
+}
+
+function toggleAccessory(accessoryId) {
+  const acc = pricingConfig.accessories.find(a => a.id === accessoryId);
+  if (!acc) return;
+  
+  // Ne pas permettre de désélectionner les obligatoires
+  if (acc.insuranceRequired === 'required') {
+    return;
+  }
+  
+  const index = selectedAccessories.findIndex(a => a.id === accessoryId);
+  if (index > -1) {
+    selectedAccessories.splice(index, 1);
+  } else {
+    selectedAccessories.push(acc);
+  }
+  
+  renderAccessories();
+  updatePricing();
+}
+
+// =====================================================
+// Pricing Summary
+// =====================================================
+
+function updatePricing() {
+  const days = rentalDays;
+  const pricingDiv = document.getElementById('pricingSummary');
+  if (!pricingDiv) return;
+  
+  if (!selectedVehicle) {
+    pricingDiv.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Seleccione un vehículo</p>';
+    return;
+  }
+  
+  const vehiclePricing = getVehicleTypePrice(selectedVehicle.type, days);
+  const icon = selectedVehicle.type === 'bike' ? '🚲' : selectedVehicle.type === 'ebike' ? '⚡' : '🛵';
+  
+  let html = `
+    <div class="price-line">
+      <span>Período</span>
+      <span><strong>${days} día(s)</strong></span>
+    </div>
+    <div class="price-line">
+      <span>${icon} ${selectedVehicle.code}</span>
+      <span>${vehiclePricing.total.toFixed(2)} €</span>
+    </div>
+  `;
+  
+  let accessoriesTotal = 0;
+  selectedAccessories.forEach(acc => {
+    const accPricing = getAccessoryPrice(acc.id, days);
+    if (accPricing.total > 0) {
+      accessoriesTotal += accPricing.total;
+      html += `
+        <div class="price-line">
+          <span>${acc.icon || '🎒'} ${acc.name}</span>
+          <span>${accPricing.total.toFixed(2)} €</span>
+        </div>
+      `;
+    }
+  });
+  
+  const totalRental = vehiclePricing.total + accessoriesTotal;
+  
+  // Caution
+  let totalDeposit = vehiclePricing.deposit;
+  selectedAccessories.forEach(acc => {
+    const accPricing = getAccessoryPrice(acc.id, days);
+    totalDeposit += accPricing.deposit || 0;
+  });
+  
+  html += `
+    <div class="price-line subtotal">
+      <span>Subtotal alquiler</span>
+      <span>${totalRental.toFixed(2)} €</span>
+    </div>
+    <div class="price-line">
+      <span>Caución (reembolsable)</span>
+      <span>${totalDeposit.toFixed(2)} €</span>
+    </div>
+    <div class="price-line total">
+      <span>TOTAL</span>
+      <span>${(totalRental + totalDeposit).toFixed(2)} €</span>
+    </div>
+  `;
+  
+  pricingDiv.innerHTML = html;
+  
+  // Update payment data
+  paymentData.rental.amount = totalRental;
+  paymentData.deposit.amount = totalDeposit;
+}
+
+// =====================================================
+// Summary
+// =====================================================
+
+function renderSummary() {
+  const days = rentalDays;
+  const startDate = document.getElementById('startDate').value;
+  const startHour = document.getElementById('startHour').value;
+  const startMinute = document.getElementById('startMinute').value;
+  const endDate = document.getElementById('endDate').value;
+  const endHour = document.getElementById('endHour').value;
+  const endMinute = document.getElementById('endMinute').value;
+  
+  const start = new Date(`${startDate}T${startHour}:${startMinute}`);
+  const end = new Date(`${endDate}T${endHour}:${endMinute}`);
+  
+  if (!selectedVehicle) return;
+  
+  const vehiclePricing = getVehicleTypePrice(selectedVehicle.type, days);
+  const icon = selectedVehicle.type === 'bike' ? '🚲' : selectedVehicle.type === 'ebike' ? '⚡' : '🛵';
+  const isMotorized = isMotorizedVehicle(selectedVehicle.type);
+  
+  // Véhicule
+  let vehicleHtml = `
+    <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 15px;">
+          ${vehiclePricing.image ? 
+            `<img src="${vehiclePricing.image}" style="width: 60px; height: 60px; object-fit: contain; border-radius: 8px;">` : 
+            `<div style="font-size: 40px;">${icon}</div>`
+          }
+          <div>
+            <strong>${selectedVehicle.code}</strong>
+            <div style="color: var(--text-secondary); font-size: 14px;">${selectedVehicle.brand || ''} ${selectedVehicle.model || ''}</div>
+            ${isMotorized ? `<div style="color: var(--info); font-size: 12px;">KM: ${selectedVehicle.current_km || 0}</div>` : ''}
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <strong>${vehiclePricing.total.toFixed(2)} €</strong>
+          <div style="color: var(--text-secondary); font-size: 12px;">${days} día(s) x ${vehiclePricing.dailyRate.toFixed(2)} €</div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Accessoires
+  let accessoriesHtml = '';
+  if (selectedAccessories.length > 0) {
+    accessoriesHtml = `
+      <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);">
+        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 5px;">Accesorios:</div>
+        ${selectedAccessories.map(a => {
+          const accPricing = getAccessoryPrice(a.id, days);
+          return `<span style="display: inline-block; background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px; margin: 2px; font-size: 12px;">${a.icon || '🎒'} ${a.name} ${accPricing.total > 0 ? `(${accPricing.total.toFixed(2)}€)` : ''}</span>`;
+        }).join('')}
+      </div>
+    `;
+  }
+  
+  document.getElementById('summaryDetails').innerHTML = `
+    <div class="summary-section">
+      <h3>🚲 Vehículo Seleccionado</h3>
+      ${vehicleHtml}
+      ${accessoriesHtml}
+    </div>
+    
+    <div class="summary-section">
+      <h3>📅 Período de Alquiler</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px;">
+          <div style="color: var(--success); font-weight: bold; margin-bottom: 5px;">🟢 INICIO</div>
+          <div>${start.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+          <div style="font-size: 24px; font-weight: bold;">${startHour}:${startMinute}</div>
+        </div>
+        <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px;">
+          <div style="color: var(--danger); font-weight: bold; margin-bottom: 5px;">🔴 FIN</div>
+          <div>${end.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+          <div style="font-size: 24px; font-weight: bold;">${endHour}:${endMinute}</div>
+        </div>
+      </div>
+      <div style="text-align: center; margin-top: 15px; padding: 10px; background: var(--accent); color: var(--bg-primary); border-radius: 8px;">
+        <strong>Duración: ${days} día(s)</strong>
+      </div>
+    </div>
+  `;
+  
+  // Pricing final
+  let accessoriesTotal = 0;
+  let accessoriesDeposit = 0;
+  selectedAccessories.forEach(acc => {
+    const accPricing = getAccessoryPrice(acc.id, days);
+    accessoriesTotal += accPricing.total;
+    accessoriesDeposit += accPricing.deposit || 0;
+  });
+  
+  const totalRental = vehiclePricing.total + accessoriesTotal;
+  const totalDeposit = vehiclePricing.deposit + accessoriesDeposit;
+  
+  paymentData.rental.amount = totalRental;
+  paymentData.deposit.amount = totalDeposit;
+  
+  document.getElementById('finalPricing').innerHTML = `
+    <h3>💰 Resumen de Precios</h3>
+    <div class="price-line"><span>Vehículo (${days} día(s))</span><span>${vehiclePricing.total.toFixed(2)} €</span></div>
+    ${accessoriesTotal > 0 ? `<div class="price-line"><span>Accesorios</span><span>${accessoriesTotal.toFixed(2)} €</span></div>` : ''}
+    <div class="price-line"><span><strong>Subtotal (IVA incl.)</strong></span><span><strong>${totalRental.toFixed(2)} €</strong></span></div>
+    <div class="price-line"><span>Caución (reembolsable)</span><span>${totalDeposit.toFixed(2)} €</span></div>
+    <div class="price-line total"><span>TOTAL A PAGAR</span><span>${(totalRental + totalDeposit).toFixed(2)} €</span></div>
+  `;
 }
 
 // =====================================================
@@ -329,7 +733,7 @@ async function searchClientByEmail() {
   
   try {
     const response = await fetch(`/api/customers?search=${encodeURIComponent(email)}`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('voltride_token')}` }
+      headers: { 'Authorization': 'Bearer ' + getToken() }
     });
     const customers = await response.json();
     
@@ -368,166 +772,6 @@ function useFoundClient() {
 }
 
 // =====================================================
-// Accessories
-// =====================================================
-
-function renderAccessories() {
-  const section = document.getElementById('accessoriesSection');
-  
-  section.innerHTML = selectedVehicles.map(vehicle => {
-    const icon = vehicle.type === 'bike' ? '🚲' : vehicle.type === 'ebike' ? '⚡' : '🛵';
-    const vehicleAccessories = availableAccessories.filter(a => a.vehicleTypes.includes(vehicle.type));
-    
-    if (!accessoriesData[vehicle.id]) {
-      accessoriesData[vehicle.id] = vehicleAccessories
-        .filter(a => a.mandatory || a.price === 0)
-        .map(a => ({ ...a }));
-    }
-    
-    return `
-      <div class="accessory-vehicle">
-        <h3>${icon} ${vehicle.code} - ${vehicle.brand || ''} ${vehicle.model || ''}</h3>
-        <div class="accessory-grid">
-          ${vehicleAccessories.map(acc => {
-            const isSelected = accessoriesData[vehicle.id]?.some(a => a.id === acc.id);
-            return `
-              <div class="accessory-card ${isSelected ? 'selected' : ''} ${acc.mandatory ? 'mandatory' : ''}"
-                   onclick="${acc.mandatory ? '' : `toggleAccessory(${vehicle.id}, '${acc.id}')`}"
-                   style="${acc.mandatory ? 'cursor: default;' : ''}">
-                <div class="accessory-icon">${acc.icon}</div>
-                <div class="accessory-name">${acc.name}</div>
-                <div class="accessory-price ${acc.price > 0 ? 'paid' : ''}">
-                  ${acc.price === 0 ? 'Gratis' : `${acc.price} €/día`}
-                </div>
-              </div>
-            `;
-          }).join('')}
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-function toggleAccessory(vehicleId, accessoryId) {
-  const acc = availableAccessories.find(a => a.id === accessoryId);
-  if (!acc || acc.mandatory) return;
-  
-  if (!accessoriesData[vehicleId]) {
-    accessoriesData[vehicleId] = [];
-  }
-  
-  const index = accessoriesData[vehicleId].findIndex(a => a.id === accessoryId);
-  if (index > -1) {
-    accessoriesData[vehicleId].splice(index, 1);
-  } else {
-    accessoriesData[vehicleId].push({ ...acc });
-  }
-  
-  renderAccessories();
-  updatePricing();
-}
-
-// =====================================================
-// Summary
-// =====================================================
-
-function renderSummary() {
-  const days = calculateDays();
-  const startDate = document.getElementById('startDate').value;
-  const startHour = document.getElementById('startHour').value;
-  const startMinute = document.getElementById('startMinute').value;
-  const endDate = document.getElementById('endDate').value;
-  const endHour = document.getElementById('endHour').value;
-  const endMinute = document.getElementById('endMinute').value;
-  
-  const start = new Date(`${startDate}T${startHour}:${startMinute}`);
-  const end = new Date(`${endDate}T${endHour}:${endMinute}`);
-  
-  let vehiclesHtml = selectedVehicles.map(v => {
-    const icon = v.type === 'bike' ? '🚲' : v.type === 'ebike' ? '⚡' : '🛵';
-    const accessories = accessoriesData[v.id] || [];
-    const priceTTC = days * parseFloat(v.daily_rate);
-    
-    return `
-      <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin-bottom: 10px;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <strong>${icon} ${v.code}</strong>
-            <div style="color: var(--text-secondary); font-size: 14px;">${v.brand || ''} ${v.model || ''}</div>
-          </div>
-          <div style="text-align: right;">
-            <strong>${priceTTC.toFixed(2)} €</strong>
-            <div style="color: var(--text-secondary); font-size: 12px;">${days} día(s) x ${parseFloat(v.daily_rate).toFixed(2)} €</div>
-          </div>
-        </div>
-        ${accessories.length > 0 ? `
-          <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);">
-            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 5px;">Accesorios:</div>
-            ${accessories.map(a => `<span style="display: inline-block; background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px; margin: 2px; font-size: 12px;">${a.icon} ${a.name} ${a.price > 0 ? `(${a.price}€/día)` : ''}</span>`).join('')}
-          </div>
-        ` : ''}
-      </div>
-    `;
-  }).join('');
-  
-  document.getElementById('summaryDetails').innerHTML = `
-    <div class="summary-section">
-      <h3>🚲 Vehículo(s) Seleccionado(s)</h3>
-      ${vehiclesHtml}
-    </div>
-    
-    <div class="summary-section">
-      <h3>📅 Período de Alquiler</h3>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-        <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px;">
-          <div style="color: var(--success); font-weight: bold; margin-bottom: 5px;">🟢 INICIO</div>
-          <div>${start.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
-          <div style="font-size: 24px; font-weight: bold;">${startHour}:${startMinute}</div>
-        </div>
-        <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px;">
-          <div style="color: var(--danger); font-weight: bold; margin-bottom: 5px;">🔴 FIN</div>
-          <div>${end.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
-          <div style="font-size: 24px; font-weight: bold;">${endHour}:${endMinute}</div>
-        </div>
-      </div>
-      <div style="text-align: center; margin-top: 15px; padding: 10px; background: var(--accent); color: var(--bg-primary); border-radius: 8px;">
-        <strong>⏱️ Duración: ${days} día(s)</strong>
-      </div>
-    </div>
-  `;
-  
-  let subtotalTTC = 0;
-  let accessoriesTotalTTC = 0;
-  
-  selectedVehicles.forEach(v => {
-    subtotalTTC += days * parseFloat(v.daily_rate);
-  });
-  
-  Object.values(accessoriesData).forEach(vehicleAccessories => {
-    vehicleAccessories.forEach(acc => {
-      if (acc.price > 0) {
-        accessoriesTotalTTC += acc.price * days;
-      }
-    });
-  });
-  
-  const totalDeposit = selectedVehicles.reduce((sum, v) => sum + (parseFloat(v.deposit) || 0), 0);
-  const totalTTC = subtotalTTC + accessoriesTotalTTC;
-  
-  paymentData.rental.amount = totalTTC;
-  paymentData.deposit.amount = totalDeposit;
-  
-  document.getElementById('finalPricing').innerHTML = `
-    <h3>💰 Resumen de Precios</h3>
-    <div class="price-line"><span>Vehículos (${days} día(s))</span><span>${subtotalTTC.toFixed(2)} €</span></div>
-    ${accessoriesTotalTTC > 0 ? `<div class="price-line"><span>Accesorios</span><span>${accessoriesTotalTTC.toFixed(2)} €</span></div>` : ''}
-    <div class="price-line"><span><strong>Subtotal (IVA incl.)</strong></span><span><strong>${totalTTC.toFixed(2)} €</strong></span></div>
-    <div class="price-line"><span>Depósito (reembolsable)</span><span>${totalDeposit.toFixed(2)} €</span></div>
-    <div class="price-line total"><span>TOTAL A PAGAR</span><span>${(totalTTC + totalDeposit).toFixed(2)} €</span></div>
-  `;
-}
-
-// =====================================================
 // Client Mode
 // =====================================================
 
@@ -536,6 +780,205 @@ function startClientMode() {
   document.getElementById('clientModeBanner').classList.add('active');
   document.getElementById('operatorModeBanner').classList.remove('active');
   nextStep();
+}
+
+// =====================================================
+// Photo ID avec OCR
+// =====================================================
+
+function captureIdPhoto() {
+  document.getElementById('idPhotoInput').click();
+}
+
+function uploadIdPhoto() {
+  document.getElementById('idPhotoInput').click();
+}
+
+async function handleIdPhoto(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      idPhotoData = e.target.result;
+      const preview = document.getElementById('idPhotoPreview');
+      preview.classList.remove('empty');
+      preview.innerHTML = `<img src="${e.target.result}" alt="ID Photo">`;
+      
+      await analyzeDocumentWithOCR(e.target.result);
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+async function analyzeDocumentWithOCR(imageData) {
+  const preview = document.getElementById('idPhotoPreview');
+  preview.style.position = 'relative';
+  preview.innerHTML += `
+    <div id="ocrLoading" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+         background: rgba(0,0,0,0.7); display: flex; flex-direction: column; 
+         align-items: center; justify-content: center; color: white; border-radius: 8px;">
+      <div style="font-size: 32px; margin-bottom: 10px;">🔍</div>
+      <div>Analizando documento con IA...</div>
+    </div>
+  `;
+  
+  try {
+    const response = await fetch('/api/ocr/document', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + getToken()
+      },
+      body: JSON.stringify({ image: imageData })
+    });
+    
+    const result = await response.json();
+    
+    const loadingEl = document.getElementById('ocrLoading');
+    if (loadingEl) loadingEl.remove();
+    
+    if (result.success) {
+      if (result.first_name) document.getElementById('clientFirstName').value = result.first_name;
+      if (result.last_name) document.getElementById('clientLastName').value = result.last_name;
+      if (result.document_number) document.getElementById('clientIdNumber').value = result.document_number;
+      if (result.document_type) {
+        const idTypeSelect = document.getElementById('clientIdType');
+        if (['passport', 'dni', 'nie', 'driving_license'].includes(result.document_type)) {
+          idTypeSelect.value = result.document_type;
+        }
+      }
+      if (result.nationality) {
+        const countryMap = {
+          'ESPAÑA': 'ES', 'SPAIN': 'ES', 'FRANCE': 'FR', 'FRANCIA': 'FR',
+          'UNITED KINGDOM': 'GB', 'UK': 'GB', 'GERMANY': 'DE', 'ALEMANIA': 'DE',
+          'ITALY': 'IT', 'ITALIA': 'IT', 'PORTUGAL': 'PT', 'NETHERLANDS': 'NL', 'BELGIUM': 'BE'
+        };
+        const countryCode = countryMap[result.nationality.toUpperCase()];
+        if (countryCode) document.getElementById('clientCountry').value = countryCode;
+      }
+      if (result.birth_date) {
+        const birthDate = convertDateToISO(result.birth_date);
+        if (birthDate) document.getElementById('clientBirthDate').value = birthDate;
+      }
+      if (result.expiry_date) {
+        const expiryDate = convertDateToISO(result.expiry_date);
+        if (expiryDate) document.getElementById('clientDocExpiry').value = expiryDate;
+      }
+      
+      showOCRSuccess();
+    } else {
+      showOCRError(result.error || 'No se pudo leer el documento');
+    }
+    
+  } catch (error) {
+    console.error('Erreur OCR:', error);
+    const loadingEl = document.getElementById('ocrLoading');
+    if (loadingEl) loadingEl.remove();
+    showOCRError('Error al analizar el documento');
+  }
+}
+
+function convertDateToISO(dateStr) {
+  if (!dateStr) return null;
+  const match1 = dateStr.match(/(\d{2})[\/\-\s](\d{2})[\/\-\s](\d{4})/);
+  if (match1) return `${match1[3]}-${match1[2]}-${match1[1]}`;
+  const match2 = dateStr.match(/(\d{4})[\/\-](\d{2})[\/\-](\d{2})/);
+  if (match2) return `${match2[1]}-${match2[2]}-${match2[3]}`;
+  return null;
+}
+
+function showOCRSuccess() {
+  const preview = document.getElementById('idPhotoPreview');
+  const badge = document.createElement('div');
+  badge.style.cssText = `position: absolute; bottom: 10px; left: 10px; right: 10px;
+    background: rgba(34, 197, 94, 0.95); color: white;
+    padding: 12px; border-radius: 8px; text-align: center; font-weight: bold;`;
+  badge.innerHTML = '✅ Datos extraídos - Verifique en el siguiente paso';
+  preview.appendChild(badge);
+  setTimeout(() => badge.remove(), 5000);
+}
+
+function showOCRError(message) {
+  const preview = document.getElementById('idPhotoPreview');
+  const badge = document.createElement('div');
+  badge.style.cssText = `position: absolute; bottom: 10px; left: 10px; right: 10px;
+    background: rgba(239, 68, 68, 0.95); color: white;
+    padding: 12px; border-radius: 8px; text-align: center;`;
+  badge.innerHTML = `⚠️ ${message}<br><small>Complete los datos manualmente</small>`;
+  preview.appendChild(badge);
+  setTimeout(() => badge.remove(), 6000);
+}
+
+// =====================================================
+// CGV
+// =====================================================
+
+function renderCGV() {
+  const lang = document.getElementById('clientLanguage')?.value || 'es';
+  document.getElementById('cgvContent').innerHTML = cgvTexts[lang] || cgvTexts.es;
+}
+
+function checkCgvAccepted() {
+  document.getElementById('btnNext7').disabled = !document.getElementById('acceptCgv').checked;
+}
+
+// =====================================================
+// Signature
+// =====================================================
+
+function initSignatureCanvas() {
+  signatureCanvas = document.getElementById('signatureCanvas');
+  if (!signatureCanvas) return;
+  
+  signatureCtx = signatureCanvas.getContext('2d');
+  signatureCtx.fillStyle = 'white';
+  signatureCtx.fillRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+  
+  signatureCanvas.addEventListener('mousedown', startDrawing);
+  signatureCanvas.addEventListener('mousemove', draw);
+  signatureCanvas.addEventListener('mouseup', stopDrawing);
+  signatureCanvas.addEventListener('mouseout', stopDrawing);
+  signatureCanvas.addEventListener('touchstart', handleTouchStart);
+  signatureCanvas.addEventListener('touchmove', handleTouchMove);
+  signatureCanvas.addEventListener('touchend', stopDrawing);
+}
+
+function startDrawing(e) { isDrawing = true; draw(e); }
+
+function draw(e) {
+  if (!isDrawing) return;
+  const rect = signatureCanvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  signatureCtx.lineWidth = 2;
+  signatureCtx.lineCap = 'round';
+  signatureCtx.strokeStyle = '#000';
+  signatureCtx.lineTo(x, y);
+  signatureCtx.stroke();
+  signatureCtx.beginPath();
+  signatureCtx.moveTo(x, y);
+  hasSignature = true;
+  document.getElementById('btnToPayment').disabled = false;
+}
+
+function stopDrawing() { isDrawing = false; signatureCtx.beginPath(); }
+
+function handleTouchStart(e) {
+  e.preventDefault();
+  const touch = e.touches[0];
+  signatureCanvas.dispatchEvent(new MouseEvent('mousedown', { clientX: touch.clientX, clientY: touch.clientY }));
+}
+
+function handleTouchMove(e) {
+  e.preventDefault();
+  const touch = e.touches[0];
+  signatureCanvas.dispatchEvent(new MouseEvent('mousemove', { clientX: touch.clientX, clientY: touch.clientY }));
+}
+
+function clearSignature() {
+  signatureCtx.fillStyle = 'white';
+  signatureCtx.fillRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+  hasSignature = false;
+  document.getElementById('btnToPayment').disabled = true;
 }
 
 // =====================================================
@@ -578,341 +1021,22 @@ function checkPaymentComplete() {
 }
 
 // =====================================================
-// CGV
-// =====================================================
-
-function renderCGV() {
-  const lang = document.getElementById('clientLanguage')?.value || 'es';
-  document.getElementById('cgvContent').innerHTML = cgvTexts[lang] || cgvTexts.es;
-}
-
-function checkCgvAccepted() {
-  document.getElementById('btnNext7').disabled = !document.getElementById('acceptCgv').checked;
-}
-
-// =====================================================
-// Photo ID avec OCR
-// =====================================================
-
-function captureIdPhoto() {
-  document.getElementById('idPhotoInput').click();
-}
-
-function uploadIdPhoto() {
-  document.getElementById('idPhotoInput').click();
-}
-
-async function handleIdPhoto(input) {
-  if (input.files && input.files[0]) {
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      idPhotoData = e.target.result;
-      const preview = document.getElementById('idPhotoPreview');
-      preview.classList.remove('empty');
-      preview.innerHTML = `<img src="${e.target.result}" alt="ID Photo">`;
-      
-      await analyzeDocumentWithOCR(e.target.result);
-    };
-    reader.readAsDataURL(input.files[0]);
-  }
-}
-
-// Fonction OCR pour analyser le document
-async function analyzeDocumentWithOCR(imageData) {
-  const preview = document.getElementById('idPhotoPreview');
-  preview.style.position = 'relative';
-  preview.innerHTML += `
-    <div id="ocrLoading" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
-         background: rgba(0,0,0,0.7); display: flex; flex-direction: column; 
-         align-items: center; justify-content: center; color: white; border-radius: 8px;">
-      <div style="font-size: 32px; margin-bottom: 10px;">🔍</div>
-      <div>Analizando documento con IA...</div>
-      <div style="font-size: 12px; margin-top: 5px; opacity: 0.7;">Esto puede tardar unos segundos</div>
-    </div>
-  `;
-  
-  try {
-    const response = await fetch('/api/ocr/document', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('voltride_token')}`
-      },
-      body: JSON.stringify({ image: imageData })
-    });
-    
-    const result = await response.json();
-    
-    const loadingEl = document.getElementById('ocrLoading');
-    if (loadingEl) loadingEl.remove();
-    
-    if (result.success) {
-      // Remplir automatiquement les champs du formulaire (Step 6)
-      if (result.first_name) {
-        document.getElementById('clientFirstName').value = result.first_name;
-        const badge = document.getElementById('ocrBadgeFirstName');
-        if (badge) badge.style.display = 'inline';
-      }
-      if (result.last_name) {
-        document.getElementById('clientLastName').value = result.last_name;
-        const badge = document.getElementById('ocrBadgeLastName');
-        if (badge) badge.style.display = 'inline';
-      }
-      if (result.document_number) {
-        document.getElementById('clientIdNumber').value = result.document_number;
-        const badge = document.getElementById('ocrBadgeIdNumber');
-        if (badge) badge.style.display = 'inline';
-      }
-      if (result.document_type) {
-        const idTypeSelect = document.getElementById('clientIdType');
-        if (result.document_type === 'passport') {
-          idTypeSelect.value = 'passport';
-        } else if (result.document_type === 'dni') {
-          idTypeSelect.value = 'dni';
-        } else if (result.document_type === 'nie') {
-          idTypeSelect.value = 'nie';
-        } else if (result.document_type === 'driving_license') {
-          idTypeSelect.value = 'driving_license';
-        }
-        const badge = document.getElementById('ocrBadgeIdType');
-        if (badge) badge.style.display = 'inline';
-      }
-      if (result.nationality) {
-        const countryMap = {
-          'ESPAÑA': 'ES', 'SPAIN': 'ES', 'ESPAGNE': 'ES', 'SPANISH': 'ES', 'ESP': 'ES',
-          'FRANCE': 'FR', 'FRANCIA': 'FR', 'FRENCH': 'FR', 'FRANÇAISE': 'FR', 'FRA': 'FR',
-          'UNITED KINGDOM': 'GB', 'UK': 'GB', 'REINO UNIDO': 'GB', 'ROYAUME-UNI': 'GB', 'BRITISH': 'GB', 'GBR': 'GB',
-          'GERMANY': 'DE', 'ALEMANIA': 'DE', 'ALLEMAGNE': 'DE', 'GERMAN': 'DE', 'DEU': 'DE',
-          'ITALY': 'IT', 'ITALIA': 'IT', 'ITALIE': 'IT', 'ITALIAN': 'IT', 'ITA': 'IT',
-          'PORTUGAL': 'PT', 'PORTUGUESE': 'PT', 'PRT': 'PT',
-          'NETHERLANDS': 'NL', 'PAÍSES BAJOS': 'NL', 'PAYS-BAS': 'NL', 'DUTCH': 'NL', 'NLD': 'NL',
-          'BELGIUM': 'BE', 'BÉLGICA': 'BE', 'BELGIQUE': 'BE', 'BELGIAN': 'BE', 'BEL': 'BE'
-        };
-        const countryCode = countryMap[result.nationality.toUpperCase()];
-        if (countryCode) {
-          document.getElementById('clientCountry').value = countryCode;
-          const badge = document.getElementById('ocrBadgeCountry');
-          if (badge) badge.style.display = 'inline';
-        }
-      }
-      if (result.birth_date) {
-        const birthDate = convertDateToISO(result.birth_date);
-        if (birthDate) {
-          document.getElementById('clientBirthDate').value = birthDate;
-          const badge = document.getElementById('ocrBadgeBirthDate');
-          if (badge) badge.style.display = 'inline';
-        }
-      }
-      if (result.expiry_date) {
-        const expiryDate = convertDateToISO(result.expiry_date);
-        if (expiryDate) {
-          document.getElementById('clientDocExpiry').value = expiryDate;
-          const badge = document.getElementById('ocrBadgeExpiryDate');
-          if (badge) badge.style.display = 'inline';
-        }
-      }
-      
-      showOCRResultsPreview(result);
-      showOCRSuccess();
-      
-      console.log('✅ OCR réussi:', result);
-    } else {
-      console.warn('⚠️ OCR n\'a pas pu lire le document:', result.error);
-      showOCRError(result.error || 'No se pudo leer el documento');
-    }
-    
-  } catch (error) {
-    console.error('❌ Erreur OCR:', error);
-    const loadingEl = document.getElementById('ocrLoading');
-    if (loadingEl) loadingEl.remove();
-    
-    showOCRError('Error al analizar el documento');
-  }
-}
-
-function convertDateToISO(dateStr) {
-  if (!dateStr) return null;
-  
-  const match1 = dateStr.match(/(\d{2})[\/\-\s](\d{2})[\/\-\s](\d{4})/);
-  if (match1) {
-    return `${match1[3]}-${match1[2]}-${match1[1]}`;
-  }
-  
-  const match2 = dateStr.match(/(\d{4})[\/\-](\d{2})[\/\-](\d{2})/);
-  if (match2) {
-    return `${match2[1]}-${match2[2]}-${match2[3]}`;
-  }
-  
-  return null;
-}
-
-function showOCRResultsPreview(result) {
-  const container = document.getElementById('ocrResultsPreview');
-  const content = document.getElementById('ocrResultsContent');
-  
-  let html = '';
-  
-  const docTypes = {
-    'passport': '🛂 Pasaporte',
-    'dni': '🪪 DNI',
-    'nie': '🪪 NIE',
-    'driving_license': '🚗 Permiso de Conducir'
-  };
-  
-  if (result.document_type) {
-    html += `<div class="ocr-result-row"><span class="ocr-result-label">Tipo:</span><span class="ocr-result-value">${docTypes[result.document_type] || result.document_type}</span></div>`;
-  }
-  if (result.first_name) {
-    html += `<div class="ocr-result-row"><span class="ocr-result-label">Nombre:</span><span class="ocr-result-value">${result.first_name}</span></div>`;
-  }
-  if (result.last_name) {
-    html += `<div class="ocr-result-row"><span class="ocr-result-label">Apellido:</span><span class="ocr-result-value">${result.last_name}</span></div>`;
-  }
-  if (result.document_number) {
-    html += `<div class="ocr-result-row"><span class="ocr-result-label">Nº Documento:</span><span class="ocr-result-value">${result.document_number}</span></div>`;
-  }
-  if (result.nationality) {
-    html += `<div class="ocr-result-row"><span class="ocr-result-label">Nacionalidad:</span><span class="ocr-result-value">${result.nationality}</span></div>`;
-  }
-  if (result.birth_date) {
-    html += `<div class="ocr-result-row"><span class="ocr-result-label">Nacimiento:</span><span class="ocr-result-value">${result.birth_date}</span></div>`;
-  }
-  if (result.expiry_date) {
-    html += `<div class="ocr-result-row"><span class="ocr-result-label">Validez:</span><span class="ocr-result-value">${result.expiry_date}</span></div>`;
-  }
-  if (result.gender) {
-    const genders = { 'M': 'Masculino', 'F': 'Femenino' };
-    html += `<div class="ocr-result-row"><span class="ocr-result-label">Sexo:</span><span class="ocr-result-value">${genders[result.gender] || result.gender}</span></div>`;
-  }
-  
-  content.innerHTML = html;
-  container.style.display = 'block';
-}
-
-function showOCRSuccess() {
-  const preview = document.getElementById('idPhotoPreview');
-  const successBadge = document.createElement('div');
-  successBadge.id = 'ocrSuccessBadge';
-  successBadge.style.cssText = `
-    position: absolute; bottom: 10px; left: 10px; right: 10px;
-    background: rgba(34, 197, 94, 0.95); color: white;
-    padding: 12px; border-radius: 8px; text-align: center;
-    font-weight: bold; font-size: 14px;
-  `;
-  successBadge.innerHTML = '✅ Datos extraídos - Verifique en el siguiente paso';
-  preview.style.position = 'relative';
-  preview.appendChild(successBadge);
-  
-  setTimeout(() => {
-    if (successBadge.parentNode) successBadge.remove();
-  }, 5000);
-}
-
-function showOCRError(message) {
-  const preview = document.getElementById('idPhotoPreview');
-  const errorBadge = document.createElement('div');
-  errorBadge.id = 'ocrErrorBadge';
-  errorBadge.style.cssText = `
-    position: absolute; bottom: 10px; left: 10px; right: 10px;
-    background: rgba(239, 68, 68, 0.95); color: white;
-    padding: 12px; border-radius: 8px; text-align: center;
-    font-size: 13px;
-  `;
-  errorBadge.innerHTML = `⚠️ ${message}<br><small>Complete los datos manualmente</small>`;
-  preview.style.position = 'relative';
-  preview.appendChild(errorBadge);
-  
-  setTimeout(() => {
-    if (errorBadge.parentNode) errorBadge.remove();
-  }, 6000);
-}
-
-// =====================================================
-// Signature
-// =====================================================
-
-function initSignatureCanvas() {
-  signatureCanvas = document.getElementById('signatureCanvas');
-  if (!signatureCanvas) return;
-  
-  signatureCtx = signatureCanvas.getContext('2d');
-  
-  signatureCtx.fillStyle = 'white';
-  signatureCtx.fillRect(0, 0, signatureCanvas.width, signatureCanvas.height);
-  
-  signatureCanvas.addEventListener('mousedown', startDrawing);
-  signatureCanvas.addEventListener('mousemove', draw);
-  signatureCanvas.addEventListener('mouseup', stopDrawing);
-  signatureCanvas.addEventListener('mouseout', stopDrawing);
-  
-  signatureCanvas.addEventListener('touchstart', handleTouchStart);
-  signatureCanvas.addEventListener('touchmove', handleTouchMove);
-  signatureCanvas.addEventListener('touchend', stopDrawing);
-}
-
-function startDrawing(e) {
-  isDrawing = true;
-  draw(e);
-}
-
-function draw(e) {
-  if (!isDrawing) return;
-  
-  const rect = signatureCanvas.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-  
-  signatureCtx.lineWidth = 2;
-  signatureCtx.lineCap = 'round';
-  signatureCtx.strokeStyle = '#000';
-  
-  signatureCtx.lineTo(x, y);
-  signatureCtx.stroke();
-  signatureCtx.beginPath();
-  signatureCtx.moveTo(x, y);
-  
-  hasSignature = true;
-  document.getElementById('btnToPayment').disabled = false;
-}
-
-function stopDrawing() {
-  isDrawing = false;
-  signatureCtx.beginPath();
-}
-
-function handleTouchStart(e) {
-  e.preventDefault();
-  const touch = e.touches[0];
-  const mouseEvent = new MouseEvent('mousedown', {
-    clientX: touch.clientX,
-    clientY: touch.clientY
-  });
-  signatureCanvas.dispatchEvent(mouseEvent);
-}
-
-function handleTouchMove(e) {
-  e.preventDefault();
-  const touch = e.touches[0];
-  const mouseEvent = new MouseEvent('mousemove', {
-    clientX: touch.clientX,
-    clientY: touch.clientY
-  });
-  signatureCanvas.dispatchEvent(mouseEvent);
-}
-
-function clearSignature() {
-  signatureCtx.fillStyle = 'white';
-  signatureCtx.fillRect(0, 0, signatureCanvas.width, signatureCanvas.height);
-  hasSignature = false;
-  document.getElementById('btnToPayment').disabled = true;
-}
-
-// =====================================================
 // Navigation
 // =====================================================
 
 function nextStep() {
+  // Actions spécifiques par étape
+  if (currentStep === 1) {
+    // Passer des dates aux véhicules
+    updateDaysDisplay();
+    loadAvailableVehicles();
+  }
   if (currentStep === 2) {
+    // Vérifier qu'un véhicule est sélectionné
+    if (!selectedVehicle) {
+      alert('Por favor, seleccione un vehículo');
+      return;
+    }
     renderAccessories();
   }
   if (currentStep === 3) {
@@ -964,6 +1088,11 @@ async function finishCheckin() {
     return;
   }
   
+  if (!selectedVehicle) {
+    alert('Error: No hay vehículo seleccionado');
+    return;
+  }
+  
   const user = JSON.parse(localStorage.getItem('voltride_user') || '{}');
   const signatureData = signatureCanvas.toDataURL('image/png');
   
@@ -973,6 +1102,18 @@ async function finishCheckin() {
   const endDate = document.getElementById('endDate').value;
   const endHour = document.getElementById('endHour').value;
   const endMinute = document.getElementById('endMinute').value;
+  
+  const days = rentalDays;
+  const vehiclePricing = getVehicleTypePrice(selectedVehicle.type, days);
+  
+  // Calculer totaux
+  let accessoriesTotal = 0;
+  let accessoriesDeposit = 0;
+  selectedAccessories.forEach(acc => {
+    const accPricing = getAccessoryPrice(acc.id, days);
+    accessoriesTotal += accPricing.total;
+    accessoriesDeposit += accPricing.deposit || 0;
+  });
   
   const checkinData = {
     customer: {
@@ -988,13 +1129,15 @@ async function finishCheckin() {
       birth_date: document.getElementById('clientBirthDate')?.value || null,
       doc_expiry: document.getElementById('clientDocExpiry')?.value || null
     },
-    vehicles: selectedVehicles.map(v => ({
-      id: v.id,
-      code: v.code,
-      daily_rate: v.daily_rate,
-      deposit: v.deposit,
-      accessories: accessoriesData[v.id] || []
-    })),
+    vehicles: [{
+      id: selectedVehicle.id,
+      code: selectedVehicle.code,
+      type: selectedVehicle.type,
+      daily_rate: vehiclePricing.dailyRate,
+      deposit: vehiclePricing.deposit + accessoriesDeposit,
+      accessories: selectedAccessories.map(a => ({ id: a.id, name: a.name, icon: a.icon })),
+      start_km: selectedVehicle.current_km || null
+    }],
     start_date: `${startDate}T${startHour}:${startMinute}`,
     planned_end_date: `${endDate}T${endHour}:${endMinute}`,
     agency_id: user.agency_id,
@@ -1017,7 +1160,7 @@ async function finishCheckin() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('voltride_token')}`
+        'Authorization': 'Bearer ' + getToken()
       },
       body: JSON.stringify(checkinData)
     });
@@ -1047,4 +1190,4 @@ function exitCheckin() {
   if (confirm('¿Seguro que desea salir? Se perderán los datos no guardados.')) {
     window.location.href = '/app.html';
   }
-                }
+}
