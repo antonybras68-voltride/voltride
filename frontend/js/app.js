@@ -1065,18 +1065,52 @@ async function loadPricingData() {
 
 function getDefaultVehicleTypes() {
   return [
-    { id: 'bike', name: 'Vélo classique', icon: '🚲', deposit: 100, prices: {1:10,2:18,3:25,4:32,5:38,6:44,7:49,8:55,9:60,10:65,11:70,12:75,13:80,14:84}, extraDay: 5 },
-    { id: 'ebike', name: 'Vélo électrique', icon: '⚡', deposit: 300, prices: {1:25,2:45,3:63,4:80,5:95,6:108,7:119,8:130,9:140,10:150,11:159,12:168,13:176,14:182}, extraDay: 12 },
-    { id: 'scooter', name: 'Scooter électrique', icon: '🛵', deposit: 500, prices: {1:35,2:65,3:90,4:112,5:130,6:145,7:158,8:170,9:181,10:191,11:200,12:208,13:215,14:221}, extraDay: 15 }
+    { 
+      id: 'bike', 
+      name: 'Vélo classique', 
+      icon: '🚲', 
+      deposit: 100, 
+      replacementValue: 350,
+      prices: {1:10,2:18,3:25,4:32,5:38,6:44,7:49,8:55,9:60,10:65,11:70,12:75,13:80,14:84}, 
+      extraDay: 5,
+      compatibleAccessories: ['helmet', 'lock', 'basket', 'child_seat', 'phone_holder'],
+      insuranceRequired: false,
+      availableInsurance: ['none', 'basic', 'premium']
+    },
+    { 
+      id: 'ebike', 
+      name: 'Vélo électrique', 
+      icon: '⚡', 
+      deposit: 300, 
+      replacementValue: 1500,
+      prices: {1:25,2:45,3:63,4:80,5:95,6:108,7:119,8:130,9:140,10:150,11:159,12:168,13:176,14:182}, 
+      extraDay: 12,
+      compatibleAccessories: ['helmet', 'lock', 'basket', 'child_seat', 'phone_holder'],
+      insuranceRequired: false,
+      availableInsurance: ['none', 'basic', 'premium']
+    },
+    { 
+      id: 'scooter', 
+      name: 'Scooter électrique', 
+      icon: '🛵', 
+      deposit: 500, 
+      replacementValue: 2500,
+      prices: {1:35,2:65,3:90,4:112,5:130,6:145,7:158,8:170,9:181,10:191,11:200,12:208,13:215,14:221}, 
+      extraDay: 15,
+      compatibleAccessories: ['helmet', 'lock', 'phone_holder'],
+      insuranceRequired: true,
+      availableInsurance: ['basic', 'premium']
+    }
   ];
 }
 
 function getDefaultAccessories() {
   return [
-    { id: 'helmet', name: 'Casque', icon: '⛑️', prices: {1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0,13:0,14:0}, extraDay: 0 },
-    { id: 'lock', name: 'Antivol', icon: '🔒', prices: {1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0,13:0,14:0}, extraDay: 0 },
-    { id: 'basket', name: 'Panier', icon: '🧺', prices: {1:2,2:4,3:5,4:6,5:7,6:8,7:9,8:10,9:11,10:12,11:13,12:14,13:15,14:15}, extraDay: 1 },
-    { id: 'child_seat', name: 'Siège enfant', icon: '👶', prices: {1:5,2:9,3:12,4:15,5:17,6:19,7:21,8:23,9:25,10:27,11:29,12:31,13:33,14:35}, extraDay: 2 }
+    { id: 'helmet', name: 'Casque', icon: '⛑️', replacementValue: 35, prices: {1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0,13:0,14:0}, extraDay: 0 },
+    { id: 'lock', name: 'Antivol', icon: '🔒', replacementValue: 25, prices: {1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0,13:0,14:0}, extraDay: 0 },
+    { id: 'basket', name: 'Panier', icon: '🧺', replacementValue: 20, prices: {1:2,2:4,3:5,4:6,5:7,6:8,7:9,8:10,9:11,10:12,11:13,12:14,13:15,14:15}, extraDay: 1 },
+    { id: 'child_seat', name: 'Siège enfant', icon: '👶', replacementValue: 60, prices: {1:5,2:9,3:12,4:15,5:17,6:19,7:21,8:23,9:25,10:27,11:29,12:31,13:33,14:35}, extraDay: 2 },
+    { id: 'phone_holder', name: 'Support téléphone', icon: '📱', replacementValue: 15, prices: {1:1,2:2,3:3,4:4,5:5,6:5,7:5,8:5,9:5,10:5,11:5,12:5,13:5,14:5}, extraDay: 0 }
   ];
 }
 
@@ -1118,22 +1152,32 @@ function switchPricingSubTab(tab) {
 }
 
 function renderVehiclesPricing(container) {
-  container.innerHTML = vehicleTypes.map((v, i) => `
+  container.innerHTML = `
+    <div style="background:rgba(59,130,246,0.1);border:1px solid var(--info);border-radius:10px;padding:15px;margin-bottom:20px;">
+      <p style="color:var(--text-secondary);font-size:0.9rem;">💡 <strong>Valeur de remplacement</strong> = montant déduit de la caution si véhicule non retourné/volé</p>
+    </div>
+  ` + vehicleTypes.map((v, i) => `
     <div class="pricing-card">
       <div class="pricing-card-header">
         <h3>${v.icon} ${v.name}</h3>
         <button class="btn btn-sm btn-danger" onclick="deleteVehicleType(${i})">🗑️</button>
       </div>
+      
       <div style="display:flex;gap:15px;flex-wrap:wrap;margin-bottom:15px;">
         <div>
           <label style="font-size:0.8rem;color:var(--text-secondary);">Caution (€)</label>
           <input type="number" value="${v.deposit}" onchange="vehicleTypes[${i}].deposit=parseFloat(this.value)" style="width:100px;padding:8px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);text-align:center;">
         </div>
         <div>
+          <label style="font-size:0.8rem;color:var(--text-secondary);">Valeur rempl. (€)</label>
+          <input type="number" value="${v.replacementValue || 0}" onchange="vehicleTypes[${i}].replacementValue=parseFloat(this.value)" style="width:100px;padding:8px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);text-align:center;">
+        </div>
+        <div>
           <label style="font-size:0.8rem;color:var(--text-secondary);">Jour sup. (€)</label>
           <input type="number" value="${v.extraDay}" onchange="vehicleTypes[${i}].extraDay=parseFloat(this.value)" style="width:80px;padding:8px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);text-align:center;">
         </div>
       </div>
+      
       <label style="font-size:0.85rem;color:var(--text-secondary);">Prix par durée (1-14 jours)</label>
       <div class="pricing-grid">
         ${[1,2,3,4,5,6,7,8,9,10,11,12,13,14].map(d => `
@@ -1143,20 +1187,86 @@ function renderVehiclesPricing(container) {
           </div>
         `).join('')}
       </div>
+      
+      <div style="margin-top:20px;padding-top:15px;border-top:1px solid var(--border);">
+        <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:10px;">🎒 Accessoires compatibles</label>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;">
+          ${accessories.map(acc => `
+            <label style="display:flex;align-items:center;gap:5px;padding:8px 12px;background:var(--bg-input);border-radius:6px;cursor:pointer;font-size:0.85rem;">
+              <input type="checkbox" ${(v.compatibleAccessories || []).includes(acc.id) ? 'checked' : ''} onchange="toggleVehicleAccessory(${i}, '${acc.id}', this.checked)">
+              ${acc.icon} ${acc.name}
+            </label>
+          `).join('')}
+        </div>
+      </div>
+      
+      <div style="margin-top:15px;padding-top:15px;border-top:1px solid var(--border);">
+        <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:10px;">🛡️ Options d'assurance</label>
+        <div style="display:flex;flex-wrap:wrap;gap:15px;align-items:center;">
+          <label style="display:flex;align-items:center;gap:5px;font-size:0.85rem;color:var(--warning);">
+            <input type="checkbox" ${v.insuranceRequired ? 'checked' : ''} onchange="vehicleTypes[${i}].insuranceRequired=this.checked">
+            ⚠️ Assurance obligatoire
+          </label>
+          <span style="color:var(--text-secondary);font-size:0.85rem;">|</span>
+          <span style="font-size:0.85rem;color:var(--text-secondary);">Disponibles:</span>
+          ${insuranceOptions.map(ins => `
+            <label style="display:flex;align-items:center;gap:5px;padding:6px 10px;background:var(--bg-input);border-radius:6px;cursor:pointer;font-size:0.85rem;">
+              <input type="checkbox" ${(v.availableInsurance || []).includes(ins.id) ? 'checked' : ''} onchange="toggleVehicleInsurance(${i}, '${ins.id}', this.checked)">
+              ${ins.name}
+            </label>
+          `).join('')}
+        </div>
+      </div>
     </div>
   `).join('') + `<button class="add-item-btn" onclick="addVehicleType()">+ Ajouter un type de véhicule</button>`;
 }
 
+function toggleVehicleAccessory(vehicleIndex, accessoryId, checked) {
+  if (!vehicleTypes[vehicleIndex].compatibleAccessories) {
+    vehicleTypes[vehicleIndex].compatibleAccessories = [];
+  }
+  if (checked) {
+    if (!vehicleTypes[vehicleIndex].compatibleAccessories.includes(accessoryId)) {
+      vehicleTypes[vehicleIndex].compatibleAccessories.push(accessoryId);
+    }
+  } else {
+    vehicleTypes[vehicleIndex].compatibleAccessories = vehicleTypes[vehicleIndex].compatibleAccessories.filter(id => id !== accessoryId);
+  }
+}
+
+function toggleVehicleInsurance(vehicleIndex, insuranceId, checked) {
+  if (!vehicleTypes[vehicleIndex].availableInsurance) {
+    vehicleTypes[vehicleIndex].availableInsurance = [];
+  }
+  if (checked) {
+    if (!vehicleTypes[vehicleIndex].availableInsurance.includes(insuranceId)) {
+      vehicleTypes[vehicleIndex].availableInsurance.push(insuranceId);
+    }
+  } else {
+    vehicleTypes[vehicleIndex].availableInsurance = vehicleTypes[vehicleIndex].availableInsurance.filter(id => id !== insuranceId);
+  }
+}
+
 function renderAccessoriesPricing(container) {
-  container.innerHTML = accessories.map((a, i) => `
+  container.innerHTML = `
+    <div style="background:rgba(59,130,246,0.1);border:1px solid var(--info);border-radius:10px;padding:15px;margin-bottom:20px;">
+      <p style="color:var(--text-secondary);font-size:0.9rem;">💡 <strong>Valeur de remplacement</strong> = montant déduit de la caution si accessoire non retourné/perdu</p>
+    </div>
+  ` + accessories.map((a, i) => `
     <div class="pricing-card">
       <div class="pricing-card-header">
         <h3>${a.icon} ${a.name}</h3>
         <button class="btn btn-sm btn-danger" onclick="deleteAccessory(${i})">🗑️</button>
       </div>
-      <div style="margin-bottom:15px;">
-        <label style="font-size:0.8rem;color:var(--text-secondary);">Jour sup. (€)</label>
-        <input type="number" value="${a.extraDay}" onchange="accessories[${i}].extraDay=parseFloat(this.value)" style="width:80px;padding:8px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);text-align:center;">
+      <div style="display:flex;gap:15px;flex-wrap:wrap;margin-bottom:15px;">
+        <div>
+          <label style="font-size:0.8rem;color:var(--text-secondary);">Valeur rempl. (€)</label>
+          <input type="number" value="${a.replacementValue || 0}" onchange="accessories[${i}].replacementValue=parseFloat(this.value)" style="width:100px;padding:8px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);text-align:center;">
+        </div>
+        <div>
+          <label style="font-size:0.8rem;color:var(--text-secondary);">Jour sup. (€)</label>
+          <input type="number" value="${a.extraDay}" onchange="accessories[${i}].extraDay=parseFloat(this.value)" style="width:80px;padding:8px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);text-align:center;">
+        </div>
       </div>
       <label style="font-size:0.85rem;color:var(--text-secondary);">Prix par durée (1-14 jours)</label>
       <div class="pricing-grid">
@@ -1217,7 +1327,13 @@ function addVehicleType() {
   openModal('Ajouter un type de véhicule', `
     <div class="form-group"><label>Nom</label><input type="text" id="newVTypeName" class="form-control" placeholder="Ex: Vélo cargo"></div>
     <div class="form-group"><label>Icône (emoji)</label><input type="text" id="newVTypeIcon" class="form-control" value="🚲" maxlength="2"></div>
-    <div class="form-group"><label>Caution (€)</label><input type="number" id="newVTypeDeposit" class="form-control" value="100"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Caution (€)</label><input type="number" id="newVTypeDeposit" class="form-control" value="100"></div>
+      <div class="form-group"><label>Valeur de remplacement (€)</label><input type="number" id="newVTypeReplacement" class="form-control" value="500"></div>
+    </div>
+    <div class="form-group">
+      <label><input type="checkbox" id="newVTypeInsReq"> Assurance obligatoire</label>
+    </div>
   `, `<button class="btn btn-secondary" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="confirmAddVehicleType()">Ajouter</button>`);
 }
 
@@ -1225,12 +1341,16 @@ function confirmAddVehicleType() {
   const name = document.getElementById('newVTypeName').value;
   if (!name) { alert('Nom requis'); return; }
   vehicleTypes.push({
-    id: name.toLowerCase().replace(/\s+/g, '_'),
+    id: name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
     name: name,
     icon: document.getElementById('newVTypeIcon').value || '🚲',
     deposit: parseFloat(document.getElementById('newVTypeDeposit').value) || 100,
+    replacementValue: parseFloat(document.getElementById('newVTypeReplacement').value) || 500,
     prices: {1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0,13:0,14:0},
-    extraDay: 0
+    extraDay: 0,
+    compatibleAccessories: accessories.map(a => a.id),
+    insuranceRequired: document.getElementById('newVTypeInsReq').checked,
+    availableInsurance: ['none', 'basic', 'premium']
   });
   closeModal();
   switchPricingSubTab('vehicles');
@@ -1242,18 +1362,26 @@ function addAccessory() {
   openModal('Ajouter un accessoire', `
     <div class="form-group"><label>Nom</label><input type="text" id="newAccName" class="form-control" placeholder="Ex: Sacoche"></div>
     <div class="form-group"><label>Icône (emoji)</label><input type="text" id="newAccIcon" class="form-control" value="📦" maxlength="2"></div>
+    <div class="form-group"><label>Valeur de remplacement (€)</label><input type="number" id="newAccReplacement" class="form-control" value="30"></div>
   `, `<button class="btn btn-secondary" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="confirmAddAccessory()">Ajouter</button>`);
 }
 
 function confirmAddAccessory() {
   const name = document.getElementById('newAccName').value;
   if (!name) { alert('Nom requis'); return; }
-  accessories.push({
-    id: name.toLowerCase().replace(/\s+/g, '_'),
+  const newAcc = {
+    id: name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
     name: name,
     icon: document.getElementById('newAccIcon').value || '📦',
+    replacementValue: parseFloat(document.getElementById('newAccReplacement').value) || 30,
     prices: {1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0,13:0,14:0},
     extraDay: 0
+  };
+  accessories.push(newAcc);
+  // Ajouter automatiquement à tous les véhicules compatibles
+  vehicleTypes.forEach(v => {
+    if (!v.compatibleAccessories) v.compatibleAccessories = [];
+    v.compatibleAccessories.push(newAcc.id);
   });
   closeModal();
   switchPricingSubTab('accessories');
