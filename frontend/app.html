@@ -6,48 +6,7 @@
   <title>Voltride - Gestión de Alquileres</title>
   <link rel="stylesheet" href="/css/styles.css">
   <style>
-    .mobile-header {
-      display: none;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 15px;
-      background: var(--card-bg, #16213e);
-      border-bottom: 1px solid var(--border, #333);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    .mobile-menu-btn {
-      width: 50px;
-      height: 50px;
-      background: #0f3460;
-      border: 2px solid #f59e0b;
-      border-radius: 10px;
-      color: white;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      -webkit-user-select: none;
-      -moz-user-select: none;
-      -ms-user-select: none;
-      user-select: none;
-    }
-    .mobile-menu-btn:active {
-      background: #f59e0b;
-      transform: scale(0.95);
-    }
-    .mobile-menu-btn svg {
-      width: 28px;
-      height: 28px;
-      pointer-events: none;
-    }
-    .mobile-logo { height: 35px; }
-    .mobile-lang { display: flex; gap: 5px; }
-    .mobile-lang .lang-btn { padding: 8px 12px; font-size: 12px; }
-    
+    /* MOBILE MENU STYLES - PRIORITÉ HAUTE */
     .sidebar-overlay {
       display: none;
       position: fixed;
@@ -55,10 +14,65 @@
       background: rgba(0,0,0,0.7);
       z-index: 998;
     }
-    .sidebar-overlay.active { display: block; }
+    .sidebar-overlay.active {
+      display: block !important;
+    }
+    
+    .mobile-header {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 15px;
+      background: #16213e;
+      border-bottom: 1px solid #333;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    
+    .mobile-menu-btn {
+      width: 50px;
+      height: 50px;
+      background: #0f3460;
+      border: 2px solid #f59e0b;
+      border-radius: 10px;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    .mobile-menu-btn:active {
+      background: #f59e0b;
+    }
+    
+    .mobile-logo { height: 35px; }
+    .mobile-lang { display: flex; gap: 5px; }
+    .mobile-lang .lang-btn { padding: 8px 12px; font-size: 12px; }
+    
+    .mobile-close-btn {
+      display: none;
+      padding: 15px;
+    }
+    .mobile-close-btn button {
+      width: 100%;
+      padding: 12px;
+      background: #ef4444;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
     
     @media (max-width: 768px) {
       .mobile-header { display: flex !important; }
+      .mobile-close-btn { display: block !important; }
+      
       .sidebar {
         position: fixed !important;
         left: -280px !important;
@@ -68,7 +82,10 @@
         transition: left 0.3s ease !important;
         width: 280px !important;
       }
-      .sidebar.open { left: 0 !important; }
+      .sidebar.open {
+        left: 0 !important;
+      }
+      
       .main-content { margin-left: 0 !important; width: 100% !important; }
       #pageContainer { padding: 15px; }
       .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
@@ -120,9 +137,8 @@
         <button class="nav-item" data-page="users" id="navUsers" style="display: none;"><span>👤</span> <span>Usuarios</span></button>
       </nav>
       
-      <!-- Bouton Fermer dans le sidebar pour mobile -->
-      <div style="padding: 15px; display: none;" class="mobile-close-btn">
-        <button class="btn btn-secondary" style="width: 100%;" id="closeSidebarBtn">✕ Cerrar menú</button>
+      <div class="mobile-close-btn">
+        <button id="closeSidebarBtn">✕ Cerrar menú</button>
       </div>
       
       <div class="sidebar-footer">
@@ -139,18 +155,12 @@
     
     <main class="main-content">
       <div class="mobile-header" id="mobileHeader">
-        <button class="mobile-menu-btn" id="menuBtn" type="button" aria-label="Menu">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="3" y1="6" x2="21" y2="6"></line>
-            <line x1="3" y1="12" x2="21" y2="12"></line>
-            <line x1="3" y1="18" x2="21" y2="18"></line>
-          </svg>
-        </button>
+        <button class="mobile-menu-btn" id="menuBtn">☰</button>
         <img src="/assets/logo.png" alt="Voltride" class="mobile-logo">
         <div class="mobile-lang">
-          <button class="lang-btn active" data-lang="es" type="button">ES</button>
-          <button class="lang-btn" data-lang="fr" type="button">FR</button>
-          <button class="lang-btn" data-lang="en" type="button">EN</button>
+          <button class="lang-btn active" data-lang="es">ES</button>
+          <button class="lang-btn" data-lang="fr">FR</button>
+          <button class="lang-btn" data-lang="en">EN</button>
         </div>
       </div>
       
@@ -168,45 +178,34 @@
   <script src="/js/api.js"></script>
   <script src="/js/app.js"></script>
   
-  <!-- MOBILE MENU SCRIPT -->
   <script>
     (function() {
-      'use strict';
-      
       var menuBtn = document.getElementById('menuBtn');
       var sidebar = document.getElementById('sidebar');
       var overlay = document.getElementById('sidebarOverlay');
-      var closeSidebarBtn = document.getElementById('closeSidebarBtn');
+      var closeBtn = document.getElementById('closeSidebarBtn');
       
-      function toggleMenu(e) {
-        if (e) {
-          e.preventDefault();
-          e.stopPropagation();
-        }
-        if (sidebar && overlay) {
-          sidebar.classList.toggle('open');
-          overlay.classList.toggle('active');
-        }
+      function openMenu() {
+        sidebar.classList.add('open');
+        overlay.classList.add('active');
       }
       
       function closeMenu() {
-        if (sidebar && overlay) {
-          sidebar.classList.remove('open');
-          overlay.classList.remove('active');
-        }
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
       }
       
-      if (menuBtn) {
-        menuBtn.addEventListener('click', toggleMenu, false);
-      }
+      menuBtn.addEventListener('click', function() {
+        openMenu();
+      });
       
-      if (overlay) {
-        overlay.addEventListener('click', closeMenu, false);
-      }
+      overlay.addEventListener('click', function() {
+        closeMenu();
+      });
       
-      if (closeSidebarBtn) {
-        closeSidebarBtn.addEventListener('click', closeMenu, false);
-      }
+      closeBtn.addEventListener('click', function() {
+        closeMenu();
+      });
       
       document.querySelectorAll('.nav-item').forEach(function(item) {
         item.addEventListener('click', function() {
@@ -217,8 +216,7 @@
       });
       
       document.querySelectorAll('.mobile-lang .lang-btn').forEach(function(btn) {
-        btn.addEventListener('click', function(e) {
-          e.preventDefault();
+        btn.addEventListener('click', function() {
           var lang = this.getAttribute('data-lang');
           localStorage.setItem('voltride_lang', lang);
           document.querySelectorAll('.lang-btn').forEach(function(b) {
@@ -229,10 +227,6 @@
           }
         });
       });
-      
-      var style = document.createElement('style');
-      style.textContent = '@media (max-width: 768px) { .mobile-close-btn { display: block !important; } }';
-      document.head.appendChild(style);
     })();
   </script>
 </body>
