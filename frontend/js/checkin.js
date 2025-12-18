@@ -1,359 +1,1193 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Voltride - Configuración Tarifaria</title>
-  <link rel="stylesheet" href="/css/styles.css">
-  <style>
-    .pricing-container { max-width: 1200px; margin: 0 auto; padding: 20px; padding-bottom: 100px; }
-    .pricing-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 15px; }
-    .pricing-header h1 { font-size: 1.8rem; color: var(--text-primary); }
-    .tabs { display: flex; gap: 5px; margin-bottom: 25px; flex-wrap: wrap; background: var(--bg-card); padding: 8px; border-radius: 12px; }
-    .tab-btn { padding: 12px 24px; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; border-radius: 8px; font-size: 0.95rem; font-weight: 500; transition: all 0.2s; }
-    .tab-btn:hover { background: var(--bg-input); color: var(--text-primary); }
-    .tab-btn.active { background: var(--primary); color: var(--bg-dark); }
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-    .pricing-card { background: var(--bg-card); border-radius: 12px; padding: 25px; margin-bottom: 20px; }
-    .pricing-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
-    .pricing-card-header h2 { font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
-    .pricing-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px; margin-bottom: 20px; }
-    .pricing-day { text-align: center; }
-    .pricing-day label { display: block; font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 5px; }
-    .pricing-day input { width: 100%; padding: 8px 4px; text-align: center; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 0.85rem; }
-    .pricing-day input:focus { outline: none; border-color: var(--primary); }
-    .pricing-day.half-day { background: rgba(245, 158, 11, 0.1); border-radius: 8px; padding: 5px; }
-    .pricing-day.half-day label { color: var(--primary); font-weight: bold; }
-    .extra-fields { display: flex; gap: 20px; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border); flex-wrap: wrap; align-items: center; }
-    .extra-field { display: flex; align-items: center; gap: 10px; }
-    .extra-field label { color: var(--text-secondary); font-size: 0.85rem; white-space: nowrap; }
-    .extra-field input { width: 80px; padding: 8px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); text-align: center; }
-    .deposit-field { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
-    .deposit-field label { color: var(--text-secondary); font-size: 0.9rem; }
-    .deposit-field input { width: 120px; padding: 10px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); text-align: center; }
-    .insurance-option { display: flex; align-items: center; justify-content: space-between; padding: 20px; background: var(--bg-input); border-radius: 10px; margin-bottom: 15px; flex-wrap: wrap; gap: 15px; }
-    .insurance-info { flex: 1; min-width: 200px; }
-    .insurance-info h3 { font-size: 1rem; margin-bottom: 5px; }
-    .insurance-info p { font-size: 0.85rem; color: var(--text-secondary); }
-    .insurance-values { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
-    .insurance-field { text-align: center; }
-    .insurance-field label { display: block; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 5px; }
-    .insurance-field input { width: 90px; padding: 10px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); text-align: center; }
-    .damage-item { display: grid; grid-template-columns: 1fr 100px auto; gap: 15px; align-items: center; padding: 15px; background: var(--bg-input); border-radius: 10px; margin-bottom: 10px; }
-    .damage-item input[type="text"] { padding: 10px 15px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); }
-    .damage-item input[type="number"] { padding: 10px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); text-align: center; }
-    .add-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 15px; background: transparent; border: 2px dashed var(--border); border-radius: 10px; color: var(--text-secondary); cursor: pointer; transition: all 0.2s; font-size: 0.95rem; }
-    .add-btn:hover { border-color: var(--primary); color: var(--primary); background: rgba(245, 158, 11, 0.1); }
-    .save-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-card); padding: 15px 30px; display: flex; justify-content: flex-end; gap: 15px; border-top: 1px solid var(--border); z-index: 100; }
-    .deposit-info { background: rgba(59, 130, 246, 0.1); border: 1px solid var(--info); border-radius: 10px; padding: 15px 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; }
-    .deposit-info-icon { font-size: 1.5rem; }
-    .deposit-info p { color: var(--text-secondary); font-size: 0.9rem; }
-    .deposit-info strong { color: var(--info); }
-    .image-upload { margin-bottom: 15px; }
-    .image-preview { width: 80px; height: 80px; background: var(--bg-input); border: 2px dashed var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; }
-    .image-preview img { width: 100%; height: 100%; object-fit: contain; }
-    .image-preview:hover { border-color: var(--primary); }
-    .compatible-types { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
-    .compatible-types label { display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px; }
-    .compatible-types-grid { display: flex; flex-wrap: wrap; gap: 8px; }
-    .compatible-type-tag { padding: 5px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 20px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
-    .compatible-type-tag.active { background: var(--primary); color: var(--bg-dark); border-color: var(--primary); }
-    @media (max-width: 768px) {
-      .pricing-container { padding: 15px; padding-bottom: 120px; }
-      .tabs { overflow-x: auto; flex-wrap: nowrap; }
-      .tab-btn { padding: 10px 16px; font-size: 0.85rem; white-space: nowrap; }
-      .pricing-grid { grid-template-columns: repeat(5, 1fr); }
-      .insurance-option { flex-direction: column; align-items: flex-start; }
-      .damage-item { grid-template-columns: 1fr; gap: 10px; }
-      .save-bar { flex-direction: column; }
-      .save-bar .btn { width: 100%; }
-      .extra-fields { flex-direction: column; align-items: flex-start; }
+// =====================================================
+// VOLTRIDE - Check-in Walk-in (Version 3.0)
+// Dates d'abord, tarifs depuis config, photos, KM motos
+// =====================================================
+
+let currentStep = 1;
+let selectedVehicle = null;
+let vehiclesData = [];
+let selectedAccessories = [];
+let clientMode = false;
+let signatureCanvas, signatureCtx;
+let isDrawing = false;
+let hasSignature = false;
+let idPhotoData = null;
+let foundClient = null;
+let rentalDays = 1;
+
+// Données de configuration (chargées depuis Tarifas)
+let pricingConfig = {
+  vehicleTypes: [],
+  accessories: []
+};
+
+// Payment data
+let paymentData = {
+  rental: { method: null, amount: 0 },
+  deposit: { method: null, amount: 0 }
+};
+
+// Types motorisés (nécessitent KM)
+const MOTORIZED_TYPES = ['scooter', 'e-motocross', 'emotocross', 'e_motocross', 'moto', 'motocross'];
+
+// CGV multilingues
+const cgvTexts = {
+  es: `<h3>CONDICIONES GENERALES DE ALQUILER - VOLTRIDE</h3>
+    <p><strong>1. Objeto del contrato</strong><br>El presente contrato tiene por objeto la cesión temporal del uso de un vehículo de movilidad personal por parte de VOLTRIDE al Cliente.</p>
+    <p><strong>2. Estado del vehículo</strong><br>El cliente reconoce haber recibido el vehículo en perfecto estado de funcionamiento.</p>
+    <p><strong>3. Responsabilidad del cliente</strong><br>El cliente es responsable de cualquier daño o pérdida del vehículo durante el período de alquiler.</p>
+    <p><strong>4. Depósito</strong><br>El depósito será devuelto íntegramente si el vehículo se devuelve sin daños.</p>
+    <p><strong>5. Retraso en la devolución</strong><br>En caso de retraso, se aplicará un cargo adicional equivalente a la tarifa diaria.</p>
+    <p><strong>6. Normas de circulación</strong><br>El cliente se compromete a respetar el código de circulación vigente.</p>
+    <p><strong>7. Prohibiciones</strong><br>- Uso bajo efectos del alcohol o drogas prohibido.<br>- No subalquilar ni prestar a terceros.<br>- Guardar en lugar seguro entre 21h y 7h.</p>
+    <p><strong>8. Averías</strong><br>Contactar inmediatamente con la agencia en caso de avería.</p>
+    <p><strong>9. Limpieza</strong><br>Cargo de 5 EUR si el vehículo se devuelve sucio.</p>
+    <p><strong>10. Protección de datos</strong><br>Datos tratados conforme al RGPD.</p>`,
+  fr: `<h3>CONDITIONS GÉNÉRALES DE LOCATION - VOLTRIDE</h3>
+    <p><strong>1. Objet du contrat</strong><br>Mise à disposition temporaire d'un véhicule de mobilité personnelle par VOLTRIDE au Client.</p>
+    <p><strong>2. État du véhicule</strong><br>Le client reconnaît avoir reçu le véhicule en parfait état.</p>
+    <p><strong>3. Responsabilité du client</strong><br>Le client est responsable de tout dommage ou perte pendant la location.</p>
+    <p><strong>4. Caution</strong><br>Restituée intégralement si le véhicule est rendu sans dommages.</p>
+    <p><strong>5. Retard de restitution</strong><br>Supplément journalier appliqué en cas de retard.</p>
+    <p><strong>6. Code de la route</strong><br>Le client s'engage à respecter le code de la route.</p>
+    <p><strong>7. Interdictions</strong><br>- Usage sous alcool/drogues interdit.<br>- Ne pas sous-louer ni prêter.<br>- Stationner en lieu sûr entre 21h et 7h.</p>
+    <p><strong>8. Pannes</strong><br>Contacter immédiatement l'agence.</p>
+    <p><strong>9. Propreté</strong><br>Frais de 5 EUR si véhicule rendu sale.</p>
+    <p><strong>10. Protection des données</strong><br>Données traitées conformément au RGPD.</p>`,
+  en: `<h3>GENERAL RENTAL CONDITIONS - VOLTRIDE</h3>
+    <p><strong>1. Purpose</strong><br>Temporary rental of a personal mobility vehicle from VOLTRIDE to Customer.</p>
+    <p><strong>2. Vehicle condition</strong><br>Customer acknowledges receiving the vehicle in perfect condition.</p>
+    <p><strong>3. Customer responsibility</strong><br>Customer is responsible for any damage or loss during the rental.</p>
+    <p><strong>4. Deposit</strong><br>Fully refunded if vehicle is returned without damage.</p>
+    <p><strong>5. Late return</strong><br>Additional daily charge applied for late returns.</p>
+    <p><strong>6. Traffic rules</strong><br>Customer agrees to comply with traffic regulations.</p>
+    <p><strong>7. Prohibitions</strong><br>- No use under alcohol/drugs.<br>- No subletting or lending.<br>- Store securely between 9pm-7am.</p>
+    <p><strong>8. Breakdowns</strong><br>Contact agency immediately.</p>
+    <p><strong>9. Cleanliness</strong><br>5 EUR fee if returned dirty.</p>
+    <p><strong>10. Data protection</strong><br>Data processed per GDPR.</p>`
+};
+
+// =====================================================
+// Utilitaires
+// =====================================================
+
+function isMotorizedVehicle(type) {
+  if (!type) return false;
+  const normalizedType = type.toLowerCase().replace(/[-_\s]/g, '');
+  return MOTORIZED_TYPES.some(t => normalizedType.includes(t.replace(/[-_\s]/g, '')));
+}
+
+function formatDateInput(date) {
+  return date.toISOString().split('T')[0];
+}
+
+function getToken() {
+  return localStorage.getItem('voltride_token');
+}
+
+// =====================================================
+// Initialisation
+// =====================================================
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const token = getToken();
+  if (!token) {
+    window.location.href = '/';
+    return;
+  }
+  
+  const user = JSON.parse(localStorage.getItem('voltride_user') || '{}');
+  document.getElementById('agencyName').textContent = user.agency_name || 'Voltride';
+  
+  initHourSelects();
+  initSignatureCanvas();
+  
+  // Charger la configuration des tarifs
+  await loadPricingConfig();
+  
+  // Set default dates
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  
+  document.getElementById('startDate').value = formatDateInput(today);
+  document.getElementById('endDate').value = formatDateInput(tomorrow);
+  
+  // Set current time rounded to 15 min
+  const currentHour = Math.min(21, Math.max(8, today.getHours()));
+  const currentMinute = Math.ceil(today.getMinutes() / 15) * 15;
+  document.getElementById('startHour').value = String(currentHour).padStart(2, '0');
+  document.getElementById('startMinute').value = String(currentMinute % 60).padStart(2, '0');
+  document.getElementById('endHour').value = String(currentHour).padStart(2, '0');
+  document.getElementById('endMinute').value = String(currentMinute % 60).padStart(2, '0');
+  
+  updateDaysDisplay();
+});
+
+function initHourSelects() {
+  const hours = [];
+  for (let h = 8; h <= 21; h++) {
+    hours.push(`<option value="${String(h).padStart(2, '0')}">${String(h).padStart(2, '0')}h</option>`);
+  }
+  document.getElementById('startHour').innerHTML = hours.join('');
+  document.getElementById('endHour').innerHTML = hours.join('');
+}
+
+// =====================================================
+// Chargement des tarifs depuis config
+// =====================================================
+
+async function loadPricingConfig() {
+  try {
+    const response = await fetch('/api/pricing', {
+      headers: { 'Authorization': 'Bearer ' + getToken() }
+    });
+    if (response.ok) {
+      const data = await response.json();
+      pricingConfig.vehicleTypes = data.vehicleTypes || [];
+      pricingConfig.accessories = data.accessories || [];
+      console.log('✅ Config tarifs chargée:', pricingConfig);
     }
-  </style>
-</head>
-<body>
-  <div class="pricing-container">
-    <div class="pricing-header">
-      <div>
-        <h1>⚙️ Configuración Tarifaria</h1>
-        <p style="color: var(--text-secondary);">Configure los precios de vehículos, accesorios y daños</p>
+  } catch (e) {
+    console.error('Erreur chargement tarifs:', e);
+  }
+}
+
+// Récupérer le tarif d'un type de véhicule pour X jours
+function getVehicleTypePrice(type, days) {
+  const vehicleType = pricingConfig.vehicleTypes.find(vt => 
+    vt.id.toLowerCase() === type.toLowerCase() || 
+    vt.name.toLowerCase() === type.toLowerCase()
+  );
+  
+  if (!vehicleType || !vehicleType.prices) {
+    return { dailyRate: 0, total: 0, deposit: 0 };
+  }
+  
+  // Trouver le meilleur tarif selon le nombre de jours (tarif dégressif)
+  let dailyRate = vehicleType.prices['1'] || 0;
+  
+  const sortedDays = Object.keys(vehicleType.prices)
+    .map(Number)
+    .filter(d => !isNaN(d))
+    .sort((a, b) => a - b);
+  
+  for (const d of sortedDays) {
+    if (days >= d) {
+      dailyRate = vehicleType.prices[String(d)];
+    }
+  }
+  
+  return {
+    dailyRate: dailyRate,
+    total: dailyRate * days,
+    deposit: vehicleType.deposit || 0,
+    image: vehicleType.image || null,
+    name: vehicleType.name
+  };
+}
+
+// Récupérer le tarif d'un accessoire pour X jours
+function getAccessoryPrice(accessoryId, days) {
+  const accessory = pricingConfig.accessories.find(a => 
+    a.id === accessoryId || a.name.toLowerCase() === accessoryId.toLowerCase()
+  );
+  
+  if (!accessory) {
+    return { dailyRate: 0, total: 0 };
+  }
+  
+  let dailyRate = accessory.prices?.['1'] || accessory.dailyRate || 0;
+  
+  if (accessory.prices) {
+    const sortedDays = Object.keys(accessory.prices)
+      .map(Number)
+      .filter(d => !isNaN(d))
+      .sort((a, b) => a - b);
+    
+    for (const d of sortedDays) {
+      if (days >= d) {
+        dailyRate = accessory.prices[String(d)];
+      }
+    }
+  }
+  
+  return {
+    dailyRate: dailyRate,
+    total: dailyRate * days,
+    image: accessory.image || null,
+    name: accessory.name,
+    icon: accessory.icon || '🎒',
+    deposit: accessory.deposit || 0
+  };
+}
+
+// =====================================================
+// Étape 1: Dates
+// =====================================================
+
+function calculateDays() {
+  const startDate = document.getElementById('startDate').value;
+  const startHour = document.getElementById('startHour').value;
+  const startMinute = document.getElementById('startMinute').value;
+  const endDate = document.getElementById('endDate').value;
+  const endHour = document.getElementById('endHour').value;
+  const endMinute = document.getElementById('endMinute').value;
+  
+  if (!startDate || !endDate) return 1;
+  
+  const start = new Date(`${startDate}T${startHour}:${startMinute}`);
+  const end = new Date(`${endDate}T${endHour}:${endMinute}`);
+  
+  const diffHours = (end - start) / (1000 * 60 * 60);
+  let days = Math.floor(diffHours / 24);
+  if (diffHours % 24 > 1) days++;
+  return Math.max(1, days);
+}
+
+function updateDaysDisplay() {
+  rentalDays = calculateDays();
+  const daysDisplay = document.getElementById('daysDisplay');
+  if (daysDisplay) {
+    daysDisplay.innerHTML = `<strong>${rentalDays}</strong> día(s)`;
+  }
+}
+
+// =====================================================
+// Étape 2: Véhicules disponibles
+// =====================================================
+
+async function loadAvailableVehicles() {
+  const user = JSON.parse(localStorage.getItem('voltride_user') || '{}');
+  const startDate = document.getElementById('startDate').value;
+  const endDate = document.getElementById('endDate').value;
+  
+  try {
+    // Charger tous les véhicules de l'agence
+    const response = await fetch(`/api/vehicles?agency_id=${user.agency_id}`, {
+      headers: { 'Authorization': 'Bearer ' + getToken() }
+    });
+    const allVehicles = await response.json();
+    
+    // Filtrer uniquement les véhicules disponibles
+    vehiclesData = allVehicles.filter(v => v.status === 'available');
+    
+    renderVehicles();
+  } catch (e) {
+    console.error('Error loading vehicles:', e);
+    document.getElementById('vehicleGrid').innerHTML = `
+      <div style="text-align: center; padding: 40px; color: var(--danger);">
+        Error al cargar vehículos: ${e.message}
       </div>
-      <a href="/app.html" class="btn btn-secondary">← Volver</a>
-    </div>
-    
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="vehicles">🚲 Vehículos</button>
-      <button class="tab-btn" data-tab="accessories">🎒 Accesorios</button>
-      <button class="tab-btn" data-tab="insurance">🛡️ Seguros</button>
-      <button class="tab-btn" data-tab="damages">⚠️ Daños</button>
-    </div>
-    
-    <div class="tab-content active" id="tab-vehicles">
-      <div class="deposit-info">
-        <span class="deposit-info-icon">💡</span>
-        <p>Los precios incluyen <strong>media jornada (4h)</strong> y de 1 a 14 días. <strong>24h = 1 día</strong>. +1h gratis, >1h = día extra.</p>
+    `;
+  }
+}
+
+function renderVehicles() {
+  const grid = document.getElementById('vehicleGrid');
+  const days = rentalDays;
+  
+  if (vehiclesData.length === 0) {
+    grid.innerHTML = `
+      <div style="text-align: center; padding: 40px; color: var(--text-secondary); grid-column: 1 / -1;">
+        No hay vehículos disponibles para estas fechas
       </div>
-      <div id="vehiclesPricingList"></div>
-      <button class="add-btn" onclick="showAddVehicleTypeModal()"><span>+</span> Añadir tipo de vehículo</button>
-    </div>
+    `;
+    return;
+  }
+  
+  grid.innerHTML = vehiclesData.map(v => {
+    const isSelected = selectedVehicle?.id === v.id;
+    const pricing = getVehicleTypePrice(v.type, days);
+    const isMotorized = isMotorizedVehicle(v.type);
     
-    <div class="tab-content" id="tab-accessories">
-      <div class="deposit-info">
-        <span class="deposit-info-icon">💡</span>
-        <p>Configure precios y <strong>tipos de vehículo compatibles</strong> para cada accesorio.</p>
-      </div>
-      <div id="accessoriesPricingList"></div>
-      <button class="add-btn" onclick="showAddAccessoryModal()"><span>+</span> Añadir accesorio</button>
-    </div>
+    // Image du type depuis config ou icône par défaut
+    let imageHtml;
+    if (pricing.image) {
+      imageHtml = `<img src="${pricing.image}" alt="${v.type}" style="width: 80px; height: 80px; object-fit: contain; border-radius: 8px;">`;
+    } else {
+      const icon = v.type === 'bike' ? '🚲' : v.type === 'ebike' ? '⚡' : '🛵';
+      imageHtml = `<div style="font-size: 48px;">${icon}</div>`;
+    }
     
-    <div class="tab-content" id="tab-insurance">
-      <div class="pricing-card">
-        <div class="pricing-card-header"><h2>🛡️ Opciones de seguro</h2></div>
-        <div class="deposit-info">
-          <span class="deposit-info-icon">ℹ️</span>
-          <p>El seguro reduce la caución según el porcentaje configurado.</p>
+    return `
+      <div class="vehicle-card ${isSelected ? 'selected' : ''}" 
+           onclick="selectVehicle(${v.id})"
+           data-type="${v.type}">
+        <div class="vehicle-card-image">${imageHtml}</div>
+        <div class="vehicle-card-code">${v.code}</div>
+        <div class="vehicle-card-type">${v.brand || ''} ${v.model || ''}</div>
+        <div class="vehicle-card-type-name">${pricing.name || v.type}</div>
+        
+        <div class="vehicle-card-pricing">
+          <div class="vehicle-price-total">${pricing.total.toFixed(2)} €</div>
+          <div class="vehicle-price-detail">${days} día(s) x ${pricing.dailyRate.toFixed(2)} €/día</div>
         </div>
-        <div id="insuranceOptionsList"></div>
-        <button class="add-btn" onclick="showAddInsuranceModal()"><span>+</span> Añadir seguro</button>
+        
+        <div class="vehicle-card-deposit">
+          Caución: ${pricing.deposit.toFixed(2)} €
+        </div>
+        
+        ${isMotorized ? `
+          <div class="vehicle-motorized-badge">
+            🏍️ KM actual: ${v.current_km || 0}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function selectVehicle(id) {
+  const vehicle = vehiclesData.find(v => v.id === id);
+  if (!vehicle) return;
+  
+  selectedVehicle = vehicle;
+  selectedAccessories = []; // Reset accessoires
+  
+  renderVehicles();
+  document.getElementById('btnNext2').disabled = false;
+  
+  // Afficher le résumé du véhicule sélectionné
+  updateSelectedVehicleDisplay();
+}
+
+function updateSelectedVehicleDisplay() {
+  const container = document.getElementById('selectedVehicleBox');
+  if (!selectedVehicle || !container) return;
+  
+  const pricing = getVehicleTypePrice(selectedVehicle.type, rentalDays);
+  const icon = selectedVehicle.type === 'bike' ? '🚲' : selectedVehicle.type === 'ebike' ? '⚡' : '🛵';
+  
+  container.style.display = 'block';
+  container.innerHTML = `
+    <div style="display: flex; align-items: center; gap: 15px;">
+      <div style="font-size: 32px;">${icon}</div>
+      <div>
+        <strong>${selectedVehicle.code}</strong> - ${selectedVehicle.brand || ''} ${selectedVehicle.model || ''}
+        <div style="color: var(--accent); font-weight: bold;">${pricing.total.toFixed(2)} € (${rentalDays} días)</div>
       </div>
     </div>
+  `;
+}
+
+function filterVehicles(type) {
+  document.querySelectorAll('#step2 .filter-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  if (event && event.target) {
+    event.target.classList.add('active');
+  }
+  
+  const grid = document.getElementById('vehicleGrid');
+  const days = rentalDays;
+  
+  let filtered = vehiclesData;
+  if (type !== 'all') {
+    filtered = vehiclesData.filter(v => v.type === type);
+  }
+  
+  if (filtered.length === 0) {
+    grid.innerHTML = `
+      <div style="text-align: center; padding: 40px; color: var(--text-secondary); grid-column: 1 / -1;">
+        No hay vehículos de este tipo disponibles
+      </div>
+    `;
+    return;
+  }
+  
+  grid.innerHTML = filtered.map(v => {
+    const isSelected = selectedVehicle?.id === v.id;
+    const pricing = getVehicleTypePrice(v.type, days);
+    const isMotorized = isMotorizedVehicle(v.type);
     
-    <div class="tab-content" id="tab-damages">
-      <div class="pricing-card">
-        <div class="pricing-card-header"><h2>⚠️ Tarifas de daños</h2></div>
-        <p style="color: var(--text-secondary); margin-bottom: 20px;">Importes a cobrar por tipo de daño en check-out.</p>
-        <div id="damagesPricingList"></div>
-        <button class="add-btn" onclick="addDamageRow()"><span>+</span> Añadir daño</button>
+    let imageHtml;
+    if (pricing.image) {
+      imageHtml = `<img src="${pricing.image}" alt="${v.type}" style="width: 80px; height: 80px; object-fit: contain; border-radius: 8px;">`;
+    } else {
+      const icon = v.type === 'bike' ? '🚲' : v.type === 'ebike' ? '⚡' : '🛵';
+      imageHtml = `<div style="font-size: 48px;">${icon}</div>`;
+    }
+    
+    return `
+      <div class="vehicle-card ${isSelected ? 'selected' : ''}" 
+           onclick="selectVehicle(${v.id})"
+           data-type="${v.type}">
+        <div class="vehicle-card-image">${imageHtml}</div>
+        <div class="vehicle-card-code">${v.code}</div>
+        <div class="vehicle-card-type">${v.brand || ''} ${v.model || ''}</div>
+        <div class="vehicle-card-type-name">${pricing.name || v.type}</div>
+        
+        <div class="vehicle-card-pricing">
+          <div class="vehicle-price-total">${pricing.total.toFixed(2)} €</div>
+          <div class="vehicle-price-detail">${days} día(s) x ${pricing.dailyRate.toFixed(2)} €/día</div>
+        </div>
+        
+        <div class="vehicle-card-deposit">
+          Caución: ${pricing.deposit.toFixed(2)} €
+        </div>
+        
+        ${isMotorized ? `
+          <div class="vehicle-motorized-badge">
+            🏍️ KM actual: ${v.current_km || 0}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+// =====================================================
+// Étape 3: Accessoires
+// =====================================================
+
+function renderAccessories() {
+  const section = document.getElementById('accessoriesSection');
+  
+  if (!selectedVehicle) {
+    section.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Seleccione un vehículo primero</p>';
+    return;
+  }
+  
+  const days = rentalDays;
+  const vehicleType = selectedVehicle.type;
+  
+  // Filtrer les accessoires compatibles avec ce type de véhicule
+  let compatibleAccessories = pricingConfig.accessories;
+  
+  // Si l'accessoire a une liste de types compatibles, filtrer
+  compatibleAccessories = compatibleAccessories.filter(acc => {
+    if (!acc.compatibleTypes || acc.compatibleTypes.length === 0) return true;
+    return acc.compatibleTypes.some(t => 
+      t.toLowerCase() === vehicleType.toLowerCase() ||
+      vehicleType.toLowerCase().includes(t.toLowerCase())
+    );
+  });
+  
+  if (compatibleAccessories.length === 0) {
+    section.innerHTML = `
+      <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+        No hay accesorios disponibles para este tipo de vehículo
+      </div>
+    `;
+    return;
+  }
+  
+  section.innerHTML = `
+    <div class="accessory-grid">
+      ${compatibleAccessories.map(acc => {
+        const pricing = getAccessoryPrice(acc.id, days);
+        const isSelected = selectedAccessories.some(a => a.id === acc.id);
+        const isRequired = acc.insuranceRequired === 'required';
+        
+        let imageHtml;
+        if (acc.image) {
+          imageHtml = `<img src="${acc.image}" alt="${acc.name}" style="width: 60px; height: 60px; object-fit: contain; border-radius: 8px;">`;
+        } else {
+          imageHtml = `<div style="font-size: 36px;">${acc.icon || '🎒'}</div>`;
+        }
+        
+        return `
+          <div class="accessory-card ${isSelected ? 'selected' : ''} ${isRequired ? 'required' : ''}"
+               onclick="toggleAccessory('${acc.id}')">
+            <div class="accessory-image">${imageHtml}</div>
+            <div class="accessory-name">${acc.name}</div>
+            <div class="accessory-pricing">
+              ${pricing.total > 0 ? `
+                <div class="accessory-price">${pricing.total.toFixed(2)} €</div>
+                <div class="accessory-detail">${days} día(s) x ${pricing.dailyRate.toFixed(2)} €</div>
+              ` : `
+                <div class="accessory-price free">Gratis</div>
+              `}
+            </div>
+            ${pricing.deposit > 0 ? `<div class="accessory-deposit">Caución: ${pricing.deposit.toFixed(2)} €</div>` : ''}
+            ${isRequired ? '<div class="accessory-required-badge">Obligatorio</div>' : ''}
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+  
+  // Pré-sélectionner les accessoires obligatoires
+  compatibleAccessories.forEach(acc => {
+    if (acc.insuranceRequired === 'required' && !selectedAccessories.some(a => a.id === acc.id)) {
+      selectedAccessories.push(acc);
+    }
+  });
+}
+
+function toggleAccessory(accessoryId) {
+  const acc = pricingConfig.accessories.find(a => a.id === accessoryId);
+  if (!acc) return;
+  
+  // Ne pas permettre de désélectionner les obligatoires
+  if (acc.insuranceRequired === 'required') {
+    return;
+  }
+  
+  const index = selectedAccessories.findIndex(a => a.id === accessoryId);
+  if (index > -1) {
+    selectedAccessories.splice(index, 1);
+  } else {
+    selectedAccessories.push(acc);
+  }
+  
+  renderAccessories();
+  updatePricing();
+}
+
+// =====================================================
+// Pricing Summary
+// =====================================================
+
+function updatePricing() {
+  const days = rentalDays;
+  const pricingDiv = document.getElementById('pricingSummary');
+  if (!pricingDiv) return;
+  
+  if (!selectedVehicle) {
+    pricingDiv.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Seleccione un vehículo</p>';
+    return;
+  }
+  
+  const vehiclePricing = getVehicleTypePrice(selectedVehicle.type, days);
+  const icon = selectedVehicle.type === 'bike' ? '🚲' : selectedVehicle.type === 'ebike' ? '⚡' : '🛵';
+  
+  let html = `
+    <div class="price-line">
+      <span>Período</span>
+      <span><strong>${days} día(s)</strong></span>
+    </div>
+    <div class="price-line">
+      <span>${icon} ${selectedVehicle.code}</span>
+      <span>${vehiclePricing.total.toFixed(2)} €</span>
+    </div>
+  `;
+  
+  let accessoriesTotal = 0;
+  selectedAccessories.forEach(acc => {
+    const accPricing = getAccessoryPrice(acc.id, days);
+    if (accPricing.total > 0) {
+      accessoriesTotal += accPricing.total;
+      html += `
+        <div class="price-line">
+          <span>${acc.icon || '🎒'} ${acc.name}</span>
+          <span>${accPricing.total.toFixed(2)} €</span>
+        </div>
+      `;
+    }
+  });
+  
+  const totalRental = vehiclePricing.total + accessoriesTotal;
+  
+  // Caution
+  let totalDeposit = vehiclePricing.deposit;
+  selectedAccessories.forEach(acc => {
+    const accPricing = getAccessoryPrice(acc.id, days);
+    totalDeposit += accPricing.deposit || 0;
+  });
+  
+  html += `
+    <div class="price-line subtotal">
+      <span>Subtotal alquiler</span>
+      <span>${totalRental.toFixed(2)} €</span>
+    </div>
+    <div class="price-line">
+      <span>Caución (reembolsable)</span>
+      <span>${totalDeposit.toFixed(2)} €</span>
+    </div>
+    <div class="price-line total">
+      <span>TOTAL</span>
+      <span>${(totalRental + totalDeposit).toFixed(2)} €</span>
+    </div>
+  `;
+  
+  pricingDiv.innerHTML = html;
+  
+  // Update payment data
+  paymentData.rental.amount = totalRental;
+  paymentData.deposit.amount = totalDeposit;
+}
+
+// =====================================================
+// Summary
+// =====================================================
+
+function renderSummary() {
+  const days = rentalDays;
+  const startDate = document.getElementById('startDate').value;
+  const startHour = document.getElementById('startHour').value;
+  const startMinute = document.getElementById('startMinute').value;
+  const endDate = document.getElementById('endDate').value;
+  const endHour = document.getElementById('endHour').value;
+  const endMinute = document.getElementById('endMinute').value;
+  
+  const start = new Date(`${startDate}T${startHour}:${startMinute}`);
+  const end = new Date(`${endDate}T${endHour}:${endMinute}`);
+  
+  if (!selectedVehicle) return;
+  
+  const vehiclePricing = getVehicleTypePrice(selectedVehicle.type, days);
+  const icon = selectedVehicle.type === 'bike' ? '🚲' : selectedVehicle.type === 'ebike' ? '⚡' : '🛵';
+  const isMotorized = isMotorizedVehicle(selectedVehicle.type);
+  
+  // Véhicule
+  let vehicleHtml = `
+    <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 15px;">
+          ${vehiclePricing.image ? 
+            `<img src="${vehiclePricing.image}" style="width: 60px; height: 60px; object-fit: contain; border-radius: 8px;">` : 
+            `<div style="font-size: 40px;">${icon}</div>`
+          }
+          <div>
+            <strong>${selectedVehicle.code}</strong>
+            <div style="color: var(--text-secondary); font-size: 14px;">${selectedVehicle.brand || ''} ${selectedVehicle.model || ''}</div>
+            ${isMotorized ? `<div style="color: var(--info); font-size: 12px;">KM: ${selectedVehicle.current_km || 0}</div>` : ''}
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <strong>${vehiclePricing.total.toFixed(2)} €</strong>
+          <div style="color: var(--text-secondary); font-size: 12px;">${days} día(s) x ${vehiclePricing.dailyRate.toFixed(2)} €</div>
+        </div>
       </div>
     </div>
-    
-    <div class="save-bar">
-      <button class="btn btn-secondary" onclick="window.location.href='/app.html'">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveAllPricing()">💾 Guardar todo</button>
+  `;
+  
+  // Accessoires
+  let accessoriesHtml = '';
+  if (selectedAccessories.length > 0) {
+    accessoriesHtml = `
+      <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);">
+        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 5px;">Accesorios:</div>
+        ${selectedAccessories.map(a => {
+          const accPricing = getAccessoryPrice(a.id, days);
+          return `<span style="display: inline-block; background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px; margin: 2px; font-size: 12px;">${a.icon || '🎒'} ${a.name} ${accPricing.total > 0 ? `(${accPricing.total.toFixed(2)}€)` : ''}</span>`;
+        }).join('')}
+      </div>
+    `;
+  }
+  
+  document.getElementById('summaryDetails').innerHTML = `
+    <div class="summary-section">
+      <h3>🚲 Vehículo Seleccionado</h3>
+      ${vehicleHtml}
+      ${accessoriesHtml}
     </div>
-  </div>
-  
-  <div class="modal-overlay" id="modalOverlay"><div class="modal" id="modalContent"></div></div>
-  
-  <script src="/js/api.js"></script>
-  <script>
-    let vehicleTypes = [], accessories = [], insuranceOptions = [], damages = [];
     
-    document.addEventListener('DOMContentLoaded', () => {
-      if (!localStorage.getItem('voltride_token')) { window.location.href = '/'; return; }
-      document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-          document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-          btn.classList.add('active');
-          document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-        });
-      });
-      loadAllPricing();
+    <div class="summary-section">
+      <h3>📅 Período de Alquiler</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px;">
+          <div style="color: var(--success); font-weight: bold; margin-bottom: 5px;">🟢 INICIO</div>
+          <div>${start.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+          <div style="font-size: 24px; font-weight: bold;">${startHour}:${startMinute}</div>
+        </div>
+        <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px;">
+          <div style="color: var(--danger); font-weight: bold; margin-bottom: 5px;">🔴 FIN</div>
+          <div>${end.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+          <div style="font-size: 24px; font-weight: bold;">${endHour}:${endMinute}</div>
+        </div>
+      </div>
+      <div style="text-align: center; margin-top: 15px; padding: 10px; background: var(--accent); color: var(--bg-primary); border-radius: 8px;">
+        <strong>Duración: ${days} día(s)</strong>
+      </div>
+    </div>
+  `;
+  
+  // Pricing final
+  let accessoriesTotal = 0;
+  let accessoriesDeposit = 0;
+  selectedAccessories.forEach(acc => {
+    const accPricing = getAccessoryPrice(acc.id, days);
+    accessoriesTotal += accPricing.total;
+    accessoriesDeposit += accPricing.deposit || 0;
+  });
+  
+  const totalRental = vehiclePricing.total + accessoriesTotal;
+  const totalDeposit = vehiclePricing.deposit + accessoriesDeposit;
+  
+  paymentData.rental.amount = totalRental;
+  paymentData.deposit.amount = totalDeposit;
+  
+  document.getElementById('finalPricing').innerHTML = `
+    <h3>💰 Resumen de Precios</h3>
+    <div class="price-line"><span>Vehículo (${days} día(s))</span><span>${vehiclePricing.total.toFixed(2)} €</span></div>
+    ${accessoriesTotal > 0 ? `<div class="price-line"><span>Accesorios</span><span>${accessoriesTotal.toFixed(2)} €</span></div>` : ''}
+    <div class="price-line"><span><strong>Subtotal (IVA incl.)</strong></span><span><strong>${totalRental.toFixed(2)} €</strong></span></div>
+    <div class="price-line"><span>Caución (reembolsable)</span><span>${totalDeposit.toFixed(2)} €</span></div>
+    <div class="price-line total"><span>TOTAL A PAGAR</span><span>${(totalRental + totalDeposit).toFixed(2)} €</span></div>
+  `;
+}
+
+// =====================================================
+// Client Search
+// =====================================================
+
+async function searchClientByEmail() {
+  const email = document.getElementById('clientSearchEmail').value.trim();
+  if (!email) {
+    alert('Por favor, introduce un email');
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/customers?search=${encodeURIComponent(email)}`, {
+      headers: { 'Authorization': 'Bearer ' + getToken() }
+    });
+    const customers = await response.json();
+    
+    const customer = customers.find(c => c.email && c.email.toLowerCase() === email.toLowerCase());
+    
+    if (customer) {
+      foundClient = customer;
+      document.getElementById('clientFoundName').textContent = `${customer.first_name} ${customer.last_name} (${customer.email})`;
+      document.getElementById('clientFoundBox').classList.add('active');
+    } else {
+      foundClient = null;
+      document.getElementById('clientFoundBox').classList.remove('active');
+      alert('Cliente no encontrado. Puede registrarse como nuevo cliente.');
+    }
+  } catch (e) {
+    console.error('Error searching client:', e);
+    alert('Error al buscar cliente');
+  }
+}
+
+function useFoundClient() {
+  if (!foundClient) return;
+  
+  document.getElementById('clientFirstName').value = foundClient.first_name || '';
+  document.getElementById('clientLastName').value = foundClient.last_name || '';
+  document.getElementById('clientEmail').value = foundClient.email || '';
+  document.getElementById('clientPhone').value = foundClient.phone || '';
+  document.getElementById('clientCountry').value = foundClient.country || '';
+  document.getElementById('clientLanguage').value = foundClient.preferred_language || 'es';
+  document.getElementById('clientIdType').value = foundClient.id_type || 'passport';
+  document.getElementById('clientIdNumber').value = foundClient.id_number || '';
+  document.getElementById('clientAddress').value = foundClient.address || '';
+  
+  document.getElementById('clientFoundBox').classList.remove('active');
+  document.getElementById('clientSearchEmail').value = '';
+}
+
+// =====================================================
+// Client Mode
+// =====================================================
+
+function startClientMode() {
+  clientMode = true;
+  document.getElementById('clientModeBanner').classList.add('active');
+  document.getElementById('operatorModeBanner').classList.remove('active');
+  nextStep();
+}
+
+// =====================================================
+// Photo ID avec OCR
+// =====================================================
+
+function captureIdPhoto() {
+  document.getElementById('idPhotoInput').click();
+}
+
+function uploadIdPhoto() {
+  document.getElementById('idPhotoInput').click();
+}
+
+async function handleIdPhoto(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      idPhotoData = e.target.result;
+      const preview = document.getElementById('idPhotoPreview');
+      preview.classList.remove('empty');
+      preview.innerHTML = `<img src="${e.target.result}" alt="ID Photo">`;
+      
+      await analyzeDocumentWithOCR(e.target.result);
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+async function analyzeDocumentWithOCR(imageData) {
+  const preview = document.getElementById('idPhotoPreview');
+  preview.style.position = 'relative';
+  preview.innerHTML += `
+    <div id="ocrLoading" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+         background: rgba(0,0,0,0.7); display: flex; flex-direction: column; 
+         align-items: center; justify-content: center; color: white; border-radius: 8px;">
+      <div style="font-size: 32px; margin-bottom: 10px;">🔍</div>
+      <div>Analizando documento con IA...</div>
+    </div>
+  `;
+  
+  try {
+    const response = await fetch('/api/ocr/document', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + getToken()
+      },
+      body: JSON.stringify({ image: imageData })
     });
     
-    async function loadAllPricing() {
-      try {
-        const res = await fetch('/api/pricing', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('voltride_token') } });
-        if (res.ok) {
-          const data = await res.json();
-          vehicleTypes = data.vehicleTypes || getDefaultVehicleTypes();
-          accessories = data.accessories || getDefaultAccessories();
-          insuranceOptions = data.insuranceOptions || getDefaultInsuranceOptions();
-          damages = data.damages || getDefaultDamages();
-        } else throw new Error();
-      } catch (e) {
-        vehicleTypes = getDefaultVehicleTypes();
-        accessories = getDefaultAccessories();
-        insuranceOptions = getDefaultInsuranceOptions();
-        damages = getDefaultDamages();
+    const result = await response.json();
+    
+    const loadingEl = document.getElementById('ocrLoading');
+    if (loadingEl) loadingEl.remove();
+    
+    if (result.success) {
+      if (result.first_name) document.getElementById('clientFirstName').value = result.first_name;
+      if (result.last_name) document.getElementById('clientLastName').value = result.last_name;
+      if (result.document_number) document.getElementById('clientIdNumber').value = result.document_number;
+      if (result.document_type) {
+        const idTypeSelect = document.getElementById('clientIdType');
+        if (['passport', 'dni', 'nie', 'driving_license'].includes(result.document_type)) {
+          idTypeSelect.value = result.document_type;
+        }
       }
-      renderVehicleTypes(); renderAccessories(); renderInsuranceOptions(); renderDamages();
+      if (result.nationality) {
+        const countryMap = {
+          'ESPAÑA': 'ES', 'SPAIN': 'ES', 'FRANCE': 'FR', 'FRANCIA': 'FR',
+          'UNITED KINGDOM': 'GB', 'UK': 'GB', 'GERMANY': 'DE', 'ALEMANIA': 'DE',
+          'ITALY': 'IT', 'ITALIA': 'IT', 'PORTUGAL': 'PT', 'NETHERLANDS': 'NL', 'BELGIUM': 'BE'
+        };
+        const countryCode = countryMap[result.nationality.toUpperCase()];
+        if (countryCode) document.getElementById('clientCountry').value = countryCode;
+      }
+      if (result.birth_date) {
+        const birthDate = convertDateToISO(result.birth_date);
+        if (birthDate) document.getElementById('clientBirthDate').value = birthDate;
+      }
+      if (result.expiry_date) {
+        const expiryDate = convertDateToISO(result.expiry_date);
+        if (expiryDate) document.getElementById('clientDocExpiry').value = expiryDate;
+      }
+      
+      showOCRSuccess();
+    } else {
+      showOCRError(result.error || 'No se pudo leer el documento');
     }
     
-    function getDefaultVehicleTypes() {
-      return [
-        { id: 'bike', name: 'City Bike', icon: '🚲', deposit: 100, halfDay: 8, prices: { 1: 12, 2: 22, 3: 30, 4: 38, 5: 45, 6: 52, 7: 58, 8: 64, 9: 70, 10: 75, 11: 80, 12: 85, 13: 90, 14: 95 }, extraDay: 6, image: null },
-        { id: 'ebike', name: 'E-Bike', icon: '⚡', deposit: 300, halfDay: 20, prices: { 1: 30, 2: 55, 3: 78, 4: 100, 5: 120, 6: 138, 7: 154, 8: 168, 9: 182, 10: 195, 11: 207, 12: 218, 13: 228, 14: 238 }, extraDay: 15, image: null },
-        { id: 'scooter', name: 'E-Scooter', icon: '🛵', deposit: 500, halfDay: 30, prices: { 1: 45, 2: 85, 3: 120, 4: 150, 5: 175, 6: 198, 7: 220, 8: 240, 9: 258, 10: 275, 11: 290, 12: 304, 13: 317, 14: 329 }, extraDay: 20, image: null }
-      ];
+  } catch (error) {
+    console.error('Erreur OCR:', error);
+    const loadingEl = document.getElementById('ocrLoading');
+    if (loadingEl) loadingEl.remove();
+    showOCRError('Error al analizar el documento');
+  }
+}
+
+function convertDateToISO(dateStr) {
+  if (!dateStr) return null;
+  const match1 = dateStr.match(/(\d{2})[\/\-\s](\d{2})[\/\-\s](\d{4})/);
+  if (match1) return `${match1[3]}-${match1[2]}-${match1[1]}`;
+  const match2 = dateStr.match(/(\d{4})[\/\-](\d{2})[\/\-](\d{2})/);
+  if (match2) return `${match2[1]}-${match2[2]}-${match2[3]}`;
+  return null;
+}
+
+function showOCRSuccess() {
+  const preview = document.getElementById('idPhotoPreview');
+  const badge = document.createElement('div');
+  badge.style.cssText = `position: absolute; bottom: 10px; left: 10px; right: 10px;
+    background: rgba(34, 197, 94, 0.95); color: white;
+    padding: 12px; border-radius: 8px; text-align: center; font-weight: bold;`;
+  badge.innerHTML = '✅ Datos extraídos - Verifique en el siguiente paso';
+  preview.appendChild(badge);
+  setTimeout(() => badge.remove(), 5000);
+}
+
+function showOCRError(message) {
+  const preview = document.getElementById('idPhotoPreview');
+  const badge = document.createElement('div');
+  badge.style.cssText = `position: absolute; bottom: 10px; left: 10px; right: 10px;
+    background: rgba(239, 68, 68, 0.95); color: white;
+    padding: 12px; border-radius: 8px; text-align: center;`;
+  badge.innerHTML = `⚠️ ${message}<br><small>Complete los datos manualmente</small>`;
+  preview.appendChild(badge);
+  setTimeout(() => badge.remove(), 6000);
+}
+
+// =====================================================
+// CGV
+// =====================================================
+
+function renderCGV() {
+  const lang = document.getElementById('clientLanguage')?.value || 'es';
+  document.getElementById('cgvContent').innerHTML = cgvTexts[lang] || cgvTexts.es;
+}
+
+function checkCgvAccepted() {
+  document.getElementById('btnNext7').disabled = !document.getElementById('acceptCgv').checked;
+}
+
+// =====================================================
+// Signature
+// =====================================================
+
+function initSignatureCanvas() {
+  signatureCanvas = document.getElementById('signatureCanvas');
+  if (!signatureCanvas) return;
+  
+  signatureCtx = signatureCanvas.getContext('2d');
+  signatureCtx.fillStyle = 'white';
+  signatureCtx.fillRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+  
+  signatureCanvas.addEventListener('mousedown', startDrawing);
+  signatureCanvas.addEventListener('mousemove', draw);
+  signatureCanvas.addEventListener('mouseup', stopDrawing);
+  signatureCanvas.addEventListener('mouseout', stopDrawing);
+  signatureCanvas.addEventListener('touchstart', handleTouchStart);
+  signatureCanvas.addEventListener('touchmove', handleTouchMove);
+  signatureCanvas.addEventListener('touchend', stopDrawing);
+}
+
+function startDrawing(e) { isDrawing = true; draw(e); }
+
+function draw(e) {
+  if (!isDrawing) return;
+  const rect = signatureCanvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  signatureCtx.lineWidth = 2;
+  signatureCtx.lineCap = 'round';
+  signatureCtx.strokeStyle = '#000';
+  signatureCtx.lineTo(x, y);
+  signatureCtx.stroke();
+  signatureCtx.beginPath();
+  signatureCtx.moveTo(x, y);
+  hasSignature = true;
+  document.getElementById('btnToPayment').disabled = false;
+}
+
+function stopDrawing() { isDrawing = false; signatureCtx.beginPath(); }
+
+function handleTouchStart(e) {
+  e.preventDefault();
+  const touch = e.touches[0];
+  signatureCanvas.dispatchEvent(new MouseEvent('mousedown', { clientX: touch.clientX, clientY: touch.clientY }));
+}
+
+function handleTouchMove(e) {
+  e.preventDefault();
+  const touch = e.touches[0];
+  signatureCanvas.dispatchEvent(new MouseEvent('mousemove', { clientX: touch.clientX, clientY: touch.clientY }));
+}
+
+function clearSignature() {
+  signatureCtx.fillStyle = 'white';
+  signatureCtx.fillRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+  hasSignature = false;
+  document.getElementById('btnToPayment').disabled = true;
+}
+
+// =====================================================
+// Payment
+// =====================================================
+
+function goToPayment() {
+  if (!hasSignature) {
+    alert('Por favor, firme el contrato');
+    return;
+  }
+  
+  clientMode = false;
+  document.getElementById('clientModeBanner').classList.remove('active');
+  document.getElementById('operatorModeBanner').classList.add('active');
+  
+  const totalToPay = paymentData.rental.amount + paymentData.deposit.amount;
+  document.getElementById('paymentTotalAmount').textContent = totalToPay.toFixed(2) + ' €';
+  document.getElementById('rentalAmountDisplay').textContent = paymentData.rental.amount.toFixed(2) + ' €';
+  document.getElementById('depositAmountDisplay').textContent = paymentData.deposit.amount.toFixed(2) + ' €';
+  
+  nextStep();
+}
+
+function selectPaymentMethod(type, method) {
+  paymentData[type].method = method;
+  
+  const containerId = type === 'rental' ? 'rentalPaymentMethods' : 'depositPaymentMethods';
+  document.querySelectorAll(`#${containerId} .payment-method`).forEach(el => {
+    el.classList.remove('selected');
+  });
+  event.currentTarget.classList.add('selected');
+  
+  checkPaymentComplete();
+}
+
+function checkPaymentComplete() {
+  const isComplete = paymentData.rental.method && paymentData.deposit.method;
+  document.getElementById('btnFinish').disabled = !isComplete;
+}
+
+// =====================================================
+// Navigation
+// =====================================================
+
+function nextStep() {
+  // Actions spécifiques par étape
+  if (currentStep === 1) {
+    // Passer des dates aux véhicules
+    updateDaysDisplay();
+    loadAvailableVehicles();
+  }
+  if (currentStep === 2) {
+    // Vérifier qu'un véhicule est sélectionné
+    if (!selectedVehicle) {
+      alert('Por favor, seleccione un vehículo');
+      return;
     }
+    renderAccessories();
+  }
+  if (currentStep === 3) {
+    renderSummary();
+  }
+  if (currentStep === 6) {
+    renderCGV();
+  }
+  
+  document.getElementById(`step${currentStep}`).classList.remove('active');
+  document.querySelector(`.wizard-step[data-step="${currentStep}"]`).classList.remove('active');
+  document.querySelector(`.wizard-step[data-step="${currentStep}"]`).classList.add('completed');
+  
+  currentStep++;
+  
+  document.getElementById(`step${currentStep}`).classList.add('active');
+  document.querySelector(`.wizard-step[data-step="${currentStep}"]`).classList.add('active');
+  
+  updatePricing();
+  window.scrollTo(0, 0);
+}
+
+function prevStep() {
+  document.getElementById(`step${currentStep}`).classList.remove('active');
+  document.querySelector(`.wizard-step[data-step="${currentStep}"]`).classList.remove('active');
+  
+  currentStep--;
+  
+  document.getElementById(`step${currentStep}`).classList.add('active');
+  document.querySelector(`.wizard-step[data-step="${currentStep}"]`).classList.remove('completed');
+  document.querySelector(`.wizard-step[data-step="${currentStep}"]`).classList.add('active');
+  
+  if (currentStep <= 4) {
+    clientMode = false;
+    document.getElementById('clientModeBanner').classList.remove('active');
+    document.getElementById('operatorModeBanner').classList.remove('active');
+  }
+  
+  window.scrollTo(0, 0);
+}
+
+// =====================================================
+// Finish Check-in
+// =====================================================
+
+async function finishCheckin() {
+  if (!paymentData.rental.method || !paymentData.deposit.method) {
+    alert('Por favor, seleccione los métodos de pago');
+    return;
+  }
+  
+  if (!selectedVehicle) {
+    alert('Error: No hay vehículo seleccionado');
+    return;
+  }
+  
+  const user = JSON.parse(localStorage.getItem('voltride_user') || '{}');
+  const signatureData = signatureCanvas.toDataURL('image/png');
+  
+  const startDate = document.getElementById('startDate').value;
+  const startHour = document.getElementById('startHour').value;
+  const startMinute = document.getElementById('startMinute').value;
+  const endDate = document.getElementById('endDate').value;
+  const endHour = document.getElementById('endHour').value;
+  const endMinute = document.getElementById('endMinute').value;
+  
+  const days = rentalDays;
+  const vehiclePricing = getVehicleTypePrice(selectedVehicle.type, days);
+  
+  // Calculer totaux
+  let accessoriesTotal = 0;
+  let accessoriesDeposit = 0;
+  selectedAccessories.forEach(acc => {
+    const accPricing = getAccessoryPrice(acc.id, days);
+    accessoriesTotal += accPricing.total;
+    accessoriesDeposit += accPricing.deposit || 0;
+  });
+  
+  const checkinData = {
+    customer: {
+      first_name: document.getElementById('clientFirstName').value,
+      last_name: document.getElementById('clientLastName').value,
+      email: document.getElementById('clientEmail').value,
+      phone: document.getElementById('clientPhone').value,
+      country: document.getElementById('clientCountry').value,
+      preferred_language: document.getElementById('clientLanguage').value,
+      id_type: document.getElementById('clientIdType').value,
+      id_number: document.getElementById('clientIdNumber').value,
+      address: document.getElementById('clientAddress').value,
+      birth_date: document.getElementById('clientBirthDate')?.value || null,
+      doc_expiry: document.getElementById('clientDocExpiry')?.value || null
+    },
+    vehicles: [{
+      id: selectedVehicle.id,
+      code: selectedVehicle.code,
+      type: selectedVehicle.type,
+      daily_rate: vehiclePricing.dailyRate,
+      deposit: vehiclePricing.deposit + accessoriesDeposit,
+      accessories: selectedAccessories.map(a => ({ id: a.id, name: a.name, icon: a.icon })),
+      start_km: selectedVehicle.current_km || null
+    }],
+    start_date: `${startDate}T${startHour}:${startMinute}`,
+    planned_end_date: `${endDate}T${endHour}:${endMinute}`,
+    agency_id: user.agency_id,
+    user_id: user.id,
+    signature: signatureData,
+    id_photo: idPhotoData,
+    payment: {
+      rental_method: paymentData.rental.method,
+      rental_amount: paymentData.rental.amount,
+      deposit_method: paymentData.deposit.method,
+      deposit_amount: paymentData.deposit.amount
+    }
+  };
+  
+  try {
+    document.getElementById('btnFinish').disabled = true;
+    document.getElementById('btnFinish').textContent = '⏳ Procesando...';
     
-    function getDefaultAccessories() {
-      return [
-        { id: 'helmet', name: 'Casco', icon: '⛑️', halfDay: 0, prices: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0 }, extraDay: 0, deposit: 25, image: null, compatibleTypes: [] },
-        { id: 'lock', name: 'Candado', icon: '🔒', halfDay: 0, prices: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0 }, extraDay: 0, deposit: 15, image: null, compatibleTypes: [] },
-        { id: 'basket', name: 'Cesta', icon: '🧺', halfDay: 2, prices: { 1: 3, 2: 5, 3: 7, 4: 9, 5: 11, 6: 13, 7: 15, 8: 17, 9: 19, 10: 20, 11: 21, 12: 22, 13: 23, 14: 24 }, extraDay: 1, deposit: 20, image: null, compatibleTypes: ['bike', 'ebike'] },
-        { id: 'child_seat', name: 'Silla Niño', icon: '👶', halfDay: 4, prices: { 1: 6, 2: 11, 3: 15, 4: 19, 5: 23, 6: 27, 7: 30, 8: 33, 9: 36, 10: 39, 11: 42, 12: 44, 13: 46, 14: 48 }, extraDay: 3, deposit: 40, image: null, compatibleTypes: ['bike', 'ebike'] },
-        { id: 'phone_holder', name: 'Soporte Móvil', icon: '📱', halfDay: 1, prices: { 1: 2, 2: 3, 3: 4, 4: 5, 5: 5, 6: 5, 7: 5, 8: 5, 9: 5, 10: 5, 11: 5, 12: 5, 13: 5, 14: 5 }, extraDay: 0, deposit: 15, image: null, compatibleTypes: [] }
-      ];
-    }
+    const response = await fetch('/api/checkin', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + getToken()
+      },
+      body: JSON.stringify(checkinData)
+    });
     
-    function getDefaultInsuranceOptions() {
-      return [
-        { id: 'none', name: 'Sin seguro', description: 'Caución completa', pricePerDay: 0, depositReduction: 0 },
-        { id: 'basic', name: 'Seguro Básico', description: 'Daños accidentales', pricePerDay: 4, depositReduction: 50 },
-        { id: 'premium', name: 'Seguro Premium', description: 'Cobertura total + robo', pricePerDay: 8, depositReduction: 75 }
-      ];
-    }
+    const result = await response.json();
     
-    function getDefaultDamages() {
-      return [
-        { id: 1, name: 'Pinchazo', price: 15 }, { id: 2, name: 'Cámara de aire', price: 10 }, { id: 3, name: 'Freno dañado', price: 25 },
-        { id: 4, name: 'Cadena rota', price: 20 }, { id: 5, name: 'Desviador torcido', price: 35 }, { id: 6, name: 'Manillar torcido', price: 30 },
-        { id: 7, name: 'Sillín dañado', price: 25 }, { id: 8, name: 'Luz rota', price: 15 }, { id: 9, name: 'Timbre perdido', price: 5 },
-        { id: 10, name: 'Rayadura', price: 20 }, { id: 11, name: 'Pedal roto', price: 20 }, { id: 12, name: 'Rueda doblada', price: 40 },
-        { id: 13, name: 'Batería dañada', price: 200 }, { id: 14, name: 'Pantalla rota', price: 80 }, { id: 15, name: 'Cargador perdido', price: 45 }
-      ];
+    if (response.ok) {
+      alert(`✅ Check-in completado!\n\nContrato(s): ${result.contracts.join(', ')}`);
+      
+      result.rental_ids.forEach(id => {
+        window.open(`/api/contracts/${id}/pdf`, '_blank');
+      });
+      
+      window.location.href = '/app.html';
+    } else {
+      throw new Error(result.error || 'Error al procesar el check-in');
     }
-    
-    // VÉHICULES
-    function renderVehicleTypes() {
-      document.getElementById('vehiclesPricingList').innerHTML = vehicleTypes.map((v, i) => `
-        <div class="pricing-card">
-          <div class="pricing-card-header">
-            <h2>${v.icon} ${v.name}</h2>
-            <div style="display: flex; gap: 10px; align-items: center;">
-              <div class="image-preview" onclick="document.getElementById('vImg${i}').click()" title="Subir imagen">
-                ${v.image ? `<img src="${v.image}">` : '📷'}
-              </div>
-              <input type="file" id="vImg${i}" accept="image/*" style="display:none;" onchange="handleVImg(${i}, this)">
-              <button class="btn btn-sm btn-danger" onclick="delVehicle(${i})">🗑️</button>
-            </div>
-          </div>
-          <div class="deposit-field"><label>Caución (€):</label><input type="number" value="${v.deposit}" onchange="vehicleTypes[${i}].deposit=parseFloat(this.value)||0"></div>
-          <label style="display:block;font-size:0.9rem;color:var(--text-secondary);margin-bottom:10px;">Precios por duración</label>
-          <div class="pricing-grid">
-            <div class="pricing-day half-day"><label>½ día</label><input type="number" value="${v.halfDay||0}" onchange="vehicleTypes[${i}].halfDay=parseFloat(this.value)||0"></div>
-            ${[1,2,3,4,5,6,7,8,9,10,11,12,13,14].map(d=>`<div class="pricing-day"><label>${d}d</label><input type="number" value="${v.prices[d]||0}" onchange="vehicleTypes[${i}].prices[${d}]=parseFloat(this.value)||0"></div>`).join('')}
-          </div>
-          <div class="extra-fields"><div class="extra-field"><label>Día extra (>14d):</label><input type="number" value="${v.extraDay||0}" onchange="vehicleTypes[${i}].extraDay=parseFloat(this.value)||0"> €</div></div>
-        </div>
-      `).join('');
-    }
-    function handleVImg(i, input) { if(input.files[0]){ const r=new FileReader(); r.onload=e=>{vehicleTypes[i].image=e.target.result;renderVehicleTypes();}; r.readAsDataURL(input.files[0]); } }
-    function delVehicle(i) { if(confirm('¿Eliminar?')){ vehicleTypes.splice(i,1); renderVehicleTypes(); } }
-    function showAddVehicleTypeModal() {
-      openModal('Añadir vehículo', `
-        <div class="form-group"><label>Nombre</label><input type="text" id="nvName" class="form-control"></div>
-        <div class="form-group"><label>Icono</label><input type="text" id="nvIcon" class="form-control" value="🚲" maxlength="2"></div>
-        <div class="form-group"><label>Caución (€)</label><input type="number" id="nvDep" class="form-control" value="100"></div>
-        <div class="form-group"><label>Precio ½ día (€)</label><input type="number" id="nvHalf" class="form-control" value="0"></div>
-      `, `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="addVehicle()">Añadir</button>`);
-    }
-    function addVehicle() {
-      const name=document.getElementById('nvName').value; if(!name){alert('Nombre requerido');return;}
-      vehicleTypes.push({ id:name.toLowerCase().replace(/\s+/g,'_'), name, icon:document.getElementById('nvIcon').value||'🚲', deposit:parseFloat(document.getElementById('nvDep').value)||100, halfDay:parseFloat(document.getElementById('nvHalf').value)||0, prices:{1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0,13:0,14:0}, extraDay:0, image:null });
-      closeModal(); renderVehicleTypes();
-    }
-    
-    // ACCESSOIRES
-    function renderAccessories() {
-      document.getElementById('accessoriesPricingList').innerHTML = accessories.map((a, i) => `
-        <div class="pricing-card">
-          <div class="pricing-card-header">
-            <h2>${a.icon} ${a.name}</h2>
-            <div style="display: flex; gap: 10px; align-items: center;">
-              <div class="image-preview" onclick="document.getElementById('aImg${i}').click()">
-                ${a.image ? `<img src="${a.image}">` : '📷'}
-              </div>
-              <input type="file" id="aImg${i}" accept="image/*" style="display:none;" onchange="handleAImg(${i}, this)">
-              <button class="btn btn-sm btn-danger" onclick="delAccessory(${i})">🗑️</button>
-            </div>
-          </div>
-          <div class="deposit-field"><label>Caución si no devuelto (€):</label><input type="number" value="${a.deposit||0}" onchange="accessories[${i}].deposit=parseFloat(this.value)||0"></div>
-          <label style="display:block;font-size:0.9rem;color:var(--text-secondary);margin-bottom:10px;">Precios por duración</label>
-          <div class="pricing-grid">
-            <div class="pricing-day half-day"><label>½ día</label><input type="number" value="${a.halfDay||0}" onchange="accessories[${i}].halfDay=parseFloat(this.value)||0"></div>
-            ${[1,2,3,4,5,6,7,8,9,10,11,12,13,14].map(d=>`<div class="pricing-day"><label>${d}d</label><input type="number" value="${a.prices[d]||0}" onchange="accessories[${i}].prices[${d}]=parseFloat(this.value)||0"></div>`).join('')}
-          </div>
-          <div class="extra-fields"><div class="extra-field"><label>Día extra:</label><input type="number" value="${a.extraDay||0}" onchange="accessories[${i}].extraDay=parseFloat(this.value)||0"> €</div></div>
-          <div class="compatible-types">
-            <label>Tipos compatibles (vacío = todos):</label>
-            <div class="compatible-types-grid">
-              ${vehicleTypes.map(vt=>`<span class="compatible-type-tag ${(a.compatibleTypes||[]).includes(vt.id)?'active':''}" onclick="toggleCompat(${i},'${vt.id}')">${vt.icon} ${vt.name}</span>`).join('')}
-            </div>
-          </div>
-        </div>
-      `).join('');
-    }
-    function handleAImg(i, input) { if(input.files[0]){ const r=new FileReader(); r.onload=e=>{accessories[i].image=e.target.result;renderAccessories();}; r.readAsDataURL(input.files[0]); } }
-    function toggleCompat(i, vt) { if(!accessories[i].compatibleTypes)accessories[i].compatibleTypes=[]; const idx=accessories[i].compatibleTypes.indexOf(vt); if(idx>-1)accessories[i].compatibleTypes.splice(idx,1); else accessories[i].compatibleTypes.push(vt); renderAccessories(); }
-    function delAccessory(i) { if(confirm('¿Eliminar?')){ accessories.splice(i,1); renderAccessories(); } }
-    function showAddAccessoryModal() {
-      openModal('Añadir accesorio', `
-        <div class="form-group"><label>Nombre</label><input type="text" id="naName" class="form-control"></div>
-        <div class="form-group"><label>Icono</label><input type="text" id="naIcon" class="form-control" value="🎒" maxlength="2"></div>
-        <div class="form-group"><label>Caución (€)</label><input type="number" id="naDep" class="form-control" value="0"></div>
-      `, `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="addAccessory()">Añadir</button>`);
-    }
-    function addAccessory() {
-      const name=document.getElementById('naName').value; if(!name){alert('Nombre requerido');return;}
-      accessories.push({ id:name.toLowerCase().replace(/\s+/g,'_'), name, icon:document.getElementById('naIcon').value||'🎒', deposit:parseFloat(document.getElementById('naDep').value)||0, halfDay:0, prices:{1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0,13:0,14:0}, extraDay:0, image:null, compatibleTypes:[] });
-      closeModal(); renderAccessories();
-    }
-    
-    // ASSURANCES
-    function renderInsuranceOptions() {
-      document.getElementById('insuranceOptionsList').innerHTML = insuranceOptions.map((ins, i) => `
-        <div class="insurance-option">
-          <div class="insurance-info"><h3>${ins.name}</h3><p>${ins.description}</p></div>
-          <div class="insurance-values">
-            <div class="insurance-field"><label>Precio/día (€)</label><input type="number" value="${ins.pricePerDay}" onchange="insuranceOptions[${i}].pricePerDay=parseFloat(this.value)||0"></div>
-            <div class="insurance-field"><label>Reducción (%)</label><input type="number" value="${ins.depositReduction}" min="0" max="100" onchange="insuranceOptions[${i}].depositReduction=Math.min(100,parseFloat(this.value)||0)"></div>
-            ${i>0?`<button class="btn btn-sm btn-danger" onclick="delInsurance(${i})">🗑️</button>`:''}
-          </div>
-        </div>
-      `).join('');
-    }
-    function delInsurance(i) { if(confirm('¿Eliminar?')){ insuranceOptions.splice(i,1); renderInsuranceOptions(); } }
-    function showAddInsuranceModal() {
-      openModal('Añadir seguro', `
-        <div class="form-group"><label>Nombre</label><input type="text" id="niName" class="form-control"></div>
-        <div class="form-group"><label>Descripción</label><input type="text" id="niDesc" class="form-control"></div>
-        <div class="form-row"><div class="form-group"><label>Precio/día (€)</label><input type="number" id="niPrice" class="form-control" value="5"></div>
-        <div class="form-group"><label>Reducción (%)</label><input type="number" id="niRed" class="form-control" value="50"></div></div>
-      `, `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="addInsurance()">Añadir</button>`);
-    }
-    function addInsurance() {
-      const name=document.getElementById('niName').value; if(!name){alert('Nombre requerido');return;}
-      insuranceOptions.push({ id:name.toLowerCase().replace(/\s+/g,'_'), name, description:document.getElementById('niDesc').value, pricePerDay:parseFloat(document.getElementById('niPrice').value)||0, depositReduction:Math.min(100,parseFloat(document.getElementById('niRed').value)||0) });
-      closeModal(); renderInsuranceOptions();
-    }
-    
-    // DOMMAGES
-    function renderDamages() {
-      document.getElementById('damagesPricingList').innerHTML = damages.map((d, i) => `
-        <div class="damage-item">
-          <input type="text" value="${d.name}" onchange="damages[${i}].name=this.value">
-          <input type="number" value="${d.price}" onchange="damages[${i}].price=parseFloat(this.value)||0">
-          <button class="btn btn-sm btn-danger" onclick="damages.splice(${i},1);renderDamages()">🗑️</button>
-        </div>
-      `).join('');
-    }
-    function addDamageRow() { damages.push({id:Date.now(),name:'',price:0}); renderDamages(); }
-    
-    // MODAL
-    function openModal(title, body, footer='') {
-      document.getElementById('modalContent').innerHTML = `<div class="modal-header"><h2>${title}</h2><button class="modal-close" onclick="closeModal()">×</button></div><div class="modal-body">${body}</div>${footer?`<div class="modal-footer">${footer}</div>`:''}`;
-      document.getElementById('modalOverlay').classList.add('active');
-    }
-    function closeModal() { document.getElementById('modalOverlay').classList.remove('active'); }
-    
-    // SAVE
-    async function saveAllPricing() {
-      const data = { vehicleTypes, accessories, insuranceOptions, damages:damages.filter(d=>d.name?.trim()) };
-      try {
-        const res = await fetch('/api/pricing', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('voltride_token')}, body:JSON.stringify(data) });
-        if(res.ok) showToast('¡Guardado!','success'); else throw new Error();
-      } catch(e) { localStorage.setItem('voltride_pricing',JSON.stringify(data)); showToast('Guardado localmente','warning'); }
-    }
-    function showToast(msg, type='info') {
-      const t=document.createElement('div');
-      t.style.cssText=`position:fixed;top:20px;right:20px;padding:15px 25px;border-radius:10px;color:white;font-weight:500;z-index:2000;background:${type==='success'?'#22c55e':type==='warning'?'#f59e0b':'#ef4444'}`;
-      t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3000);
-    }
-  </script>
-</body>
-</html>
+  } catch (e) {
+    console.error('Error:', e);
+    alert('❌ Error: ' + e.message);
+    document.getElementById('btnFinish').disabled = false;
+    document.getElementById('btnFinish').textContent = '✅ Finalizar Check-in y Generar Contrato';
+  }
+}
+
+function exitCheckin() {
+  if (confirm('¿Seguro que desea salir? Se perderán los datos no guardados.')) {
+    window.location.href = '/app.html';
+  }
+}
