@@ -102,6 +102,7 @@ function loadPage(page) {
     case 'users': renderSettings(container); break; // Redirige vers settings
     case 'documents': renderDocuments(container); break;
     case 'settings': renderSettings(container); break;
+    case 'maintenance': renderMaintenance(container); break;
   }
 }
 
@@ -1751,4 +1752,522 @@ async function deleteUser(id) {
     showToast(t('deleteSuccess'), 'success');
     renderUsersTab(document.getElementById('settingsContent'));
   } catch (e) { showToast(e.message, 'error'); }
+}
+
+// =====================================================
+// MAINTENANCE
+// =====================================================
+
+let maintenanceRecords = [];
+let maintenanceStats = {};
+let currentMaintenanceTab = 'pending';
+
+// API Maintenance
+const maintenanceAPI = {
+  async getAll(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const res = await fetch(`/api/maintenance?${query}`, {
+      headers: { 'Authorization': 'Bearer ' + getToken() }
+    });
+    if (!res.ok) throw new Error('Error al cargar mantenimientos');
+    return res.json();
+  },
+  async getStats(agencyId) {
+    const query = agencyId ? `?agency_id=${agencyId}` : '';
+    const res = await fetch(`/api/maintenance/stats${query}`, {
+      headers: { 'Authorization': 'Bearer ' + getToken() }
+    });
+    if (!res.ok) throw new Error('Error al cargar estadísticas');
+    return res.json();
+  },
+  async getVehicleHistory(vehicleId) {
+    const res = await fetch(`/api/maintenance/vehicle/${vehicleId}/history`, {
+      headers: { 'Authorization': 'Bearer ' + getToken() }
+    });
+    if (!res.ok) throw new Error('Error al cargar historial');
+    return res.json();
+  },
+  async create(data) {
+    const res = await fetch('/api/maintenance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Error al crear mantenimiento');
+    return res.json();
+  },
+  async update(id, data) {
+    const res = await fetch(`/api/maintenance/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Error al actualizar');
+    return res.json();
+  },
+  async complete(id, data = {}) {
+    const res = await fetch(`/api/maintenance/${id}/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Error al completar');
+    return res.json();
+  },
+  async delete(id) {
+    const res = await fetch(`/api/maintenance/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + getToken() }
+    });
+    if (!res.ok) throw new Error('Error al eliminar');
+    return res.json();
+  }
+};
+
+async function renderMaintenance(container) {
+  container.innerHTML = `
+    <div class="page-header">
+      <h1>🔧 Mantenimiento</h1>
+      <button class="btn btn-primary" onclick="showNewMaintenanceModal()">+ Nuevo Ticket</button>
+    </div>
+    
+    <div id="maintenanceStats" class="stats-grid" style="margin-bottom: 20px;">
+      <div class="loading"><div class="spinner"></div></div>
+    </div>
+    
+    <div class="card">
+      <div class="card-header" style="flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+          <button class="btn btn-sm ${currentMaintenanceTab === 'pending' ? 'btn-primary' : 'btn-secondary'}" onclick="switchMaintenanceTab('pending')">Pendientes</button>
+          <button class="btn btn-sm ${currentMaintenanceTab === 'in_progress' ? 'btn-primary' : 'btn-secondary'}" onclick="switchMaintenanceTab('in_progress')">En Curso</button>
+          <button class="btn btn-sm ${currentMaintenanceTab === 'completed' ? 'btn-primary' : 'btn-secondary'}" onclick="switchMaintenanceTab('completed')">Completados</button>
+          <button class="btn btn-sm ${currentMaintenanceTab === 'all' ? 'btn-primary' : 'btn-secondary'}" onclick="switchMaintenanceTab('all')">Todos</button>
+        </div>
+        <select class="filter-select" id="maintenanceTypeFilter" onchange="filterMaintenance()" style="min-width: 150px;">
+          <option value="">Todos los tipos</option>
+          <option value="repair">Reparación</option>
+          <option value="scheduled_km">Programado (KM)</option>
+          <option value="scheduled_days">Programado (Días)</option>
+        </select>
+      </div>
+      <div id="maintenanceList"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+  `;
+  
+  await loadMaintenanceData();
+}
+
+async function loadMaintenanceData() {
+  try {
+    const agencyId = currentUser.role === 'admin' ? null : currentUser.agency_id;
+    
+    // Charger stats
+    maintenanceStats = await maintenanceAPI.getStats(agencyId);
+    renderMaintenanceStats();
+    
+    // Charger liste
+    const params = {};
+    if (agencyId) params.agency_id = agencyId;
+    if (currentMaintenanceTab !== 'all') params.status = currentMaintenanceTab;
+    
+    maintenanceRecords = await maintenanceAPI.getAll(params);
+    renderMaintenanceList();
+  } catch (e) {
+    console.error(e);
+    showToast('Error al cargar datos de mantenimiento', 'error');
+  }
+}
+
+function renderMaintenanceStats() {
+  const stats = maintenanceStats;
+  document.getElementById('maintenanceStats').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-icon danger">🔴</div>
+      <div class="stat-info">
+        <h3>${stats.pending || 0}</h3>
+        <p>Pendientes</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon warning">🟡</div>
+      <div class="stat-info">
+        <h3>${stats.in_progress || 0}</h3>
+        <p>En Curso</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon success">🟢</div>
+      <div class="stat-info">
+        <h3>${stats.completed || 0}</h3>
+        <p>Completados</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon info">⚠️</div>
+      <div class="stat-info">
+        <h3>${stats.high_priority || 0}</h3>
+        <p>Alta Prioridad</p>
+      </div>
+    </div>
+  `;
+}
+
+function renderMaintenanceList() {
+  const typeFilter = document.getElementById('maintenanceTypeFilter')?.value || '';
+  let filtered = maintenanceRecords;
+  
+  if (typeFilter) {
+    filtered = filtered.filter(m => m.type === typeFilter);
+  }
+  
+  if (filtered.length === 0) {
+    document.getElementById('maintenanceList').innerHTML = `
+      <div class="empty-state" style="padding: 40px; text-align: center;">
+        <h3>No hay tickets de mantenimiento</h3>
+        <p style="color: var(--text-secondary);">Los tickets aparecerán aquí cuando se detecten problemas en los check-outs</p>
+      </div>
+    `;
+    return;
+  }
+  
+  document.getElementById('maintenanceList').innerHTML = `
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Vehículo</th>
+            <th>Tipo</th>
+            <th>Descripción</th>
+            <th>Prioridad</th>
+            <th>Reportado</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filtered.map(m => `
+            <tr>
+              <td>
+                <strong>${m.vehicle_code || '-'}</strong>
+                <br><small style="color: var(--text-secondary);">${m.brand || ''} ${m.model || ''}</small>
+              </td>
+              <td>${getMaintenanceTypeBadge(m.type)}</td>
+              <td style="max-width: 250px;">
+                <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${m.description || ''}">
+                  ${m.description || '-'}
+                </div>
+                ${m.contract_number ? `<small style="color: var(--text-secondary);">Contrato: ${m.contract_number}</small>` : ''}
+              </td>
+              <td>${getPriorityBadge(m.priority)}</td>
+              <td>
+                ${formatDateShort(m.reported_at)}
+                <br><small style="color: var(--text-secondary);">${m.reported_by_name || ''}</small>
+              </td>
+              <td>${getMaintenanceStatusBadge(m.status)}</td>
+              <td>
+                <div class="btn-group">
+                  ${m.status === 'pending' ? `
+                    <button class="btn btn-sm btn-warning" onclick="startMaintenance(${m.id})" title="Iniciar">Iniciar</button>
+                  ` : ''}
+                  ${m.status === 'in_progress' ? `
+                    <button class="btn btn-sm btn-success" onclick="completeMaintenance(${m.id})" title="Completar">Completar</button>
+                  ` : ''}
+                  <button class="btn btn-sm btn-secondary" onclick="showMaintenanceDetails(${m.id})" title="Ver">Ver</button>
+                  ${m.status !== 'completed' ? `
+                    <button class="btn btn-sm btn-danger" onclick="deleteMaintenance(${m.id})" title="Eliminar">X</button>
+                  ` : ''}
+                </div>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function getMaintenanceTypeBadge(type) {
+  const types = {
+    'repair': '<span class="badge badge-danger">Reparación</span>',
+    'scheduled_km': '<span class="badge badge-info">Progr. KM</span>',
+    'scheduled_days': '<span class="badge badge-info">Progr. Días</span>'
+  };
+  return types[type] || `<span class="badge badge-secondary">${type}</span>`;
+}
+
+function getPriorityBadge(priority) {
+  const priorities = {
+    'high': '<span class="badge badge-danger">Alta</span>',
+    'normal': '<span class="badge badge-warning">Normal</span>',
+    'low': '<span class="badge badge-secondary">Baja</span>'
+  };
+  return priorities[priority] || priorities['normal'];
+}
+
+function getMaintenanceStatusBadge(status) {
+  const statuses = {
+    'pending': '<span class="badge badge-danger">Pendiente</span>',
+    'in_progress': '<span class="badge badge-warning">En Curso</span>',
+    'completed': '<span class="badge badge-success">Completado</span>'
+  };
+  return statuses[status] || `<span class="badge badge-secondary">${status}</span>`;
+}
+
+function switchMaintenanceTab(tab) {
+  currentMaintenanceTab = tab;
+  document.querySelectorAll('.card-header .btn-sm').forEach(btn => {
+    btn.className = `btn btn-sm ${btn.textContent.toLowerCase().includes(tab.substring(0, 4)) || (tab === 'all' && btn.textContent === 'Todos') ? 'btn-primary' : 'btn-secondary'}`;
+  });
+  loadMaintenanceData();
+}
+
+function filterMaintenance() {
+  renderMaintenanceList();
+}
+
+async function startMaintenance(id) {
+  if (!confirm('¿Iniciar este trabajo de mantenimiento?')) return;
+  try {
+    await maintenanceAPI.update(id, { status: 'in_progress' });
+    showToast('Mantenimiento iniciado', 'success');
+    loadMaintenanceData();
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
+}
+
+async function completeMaintenance(id) {
+  openModal('Completar Mantenimiento', `
+    <form id="completeMaintenanceForm">
+      <div class="form-group">
+        <label>Notas de la reparación</label>
+        <textarea id="maintenanceNotes" class="form-control" rows="3" placeholder="Descripción del trabajo realizado..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Coste (€)</label>
+        <input type="number" id="maintenanceCost" class="form-control" min="0" step="0.01" value="0">
+      </div>
+      <div class="form-group">
+        <label>Piezas utilizadas</label>
+        <input type="text" id="maintenanceParts" class="form-control" placeholder="Ej: Cámara, pastillas de freno...">
+      </div>
+    </form>
+  `, `
+    <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+    <button class="btn btn-success" onclick="confirmCompleteMaintenance(${id})">Completar</button>
+  `);
+}
+
+async function confirmCompleteMaintenance(id) {
+  const notes = document.getElementById('maintenanceNotes').value;
+  const cost = parseFloat(document.getElementById('maintenanceCost').value) || 0;
+  const parts = document.getElementById('maintenanceParts').value;
+  
+  try {
+    await maintenanceAPI.update(id, { 
+      status: 'completed',
+      notes: notes,
+      cost: cost,
+      parts_used: parts
+    });
+    closeModal();
+    showToast('Mantenimiento completado - Vehículo disponible', 'success');
+    loadMaintenanceData();
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
+}
+
+async function deleteMaintenance(id) {
+  if (!confirm('¿Eliminar este ticket de mantenimiento?')) return;
+  try {
+    await maintenanceAPI.delete(id);
+    showToast('Ticket eliminado', 'success');
+    loadMaintenanceData();
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
+}
+
+async function showMaintenanceDetails(id) {
+  const m = maintenanceRecords.find(r => r.id === id);
+  if (!m) return;
+  
+  openModal('Detalle Mantenimiento', `
+    <div style="display: grid; gap: 15px;">
+      <div style="background: var(--bg-secondary); padding: 15px; border-radius: 8px;">
+        <h4 style="margin: 0 0 10px 0;">${m.vehicle_code} - ${m.brand || ''} ${m.model || ''}</h4>
+        ${m.license_plate ? `<p style="margin: 0; color: var(--text-secondary);">Matrícula: ${m.license_plate}</p>` : ''}
+        ${m.current_km ? `<p style="margin: 5px 0 0 0; color: var(--text-secondary);">KM: ${m.current_km.toLocaleString()}</p>` : ''}
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>Tipo</label>
+          <div>${getMaintenanceTypeBadge(m.type)}</div>
+        </div>
+        <div class="form-group">
+          <label>Prioridad</label>
+          <div>${getPriorityBadge(m.priority)}</div>
+        </div>
+        <div class="form-group">
+          <label>Estado</label>
+          <div>${getMaintenanceStatusBadge(m.status)}</div>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label>Descripción</label>
+        <p style="background: var(--bg-input); padding: 10px; border-radius: 6px; margin: 0;">${m.description || '-'}</p>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>Reportado</label>
+          <p style="margin: 0;">${formatDate(m.reported_at)}<br><small>${m.reported_by_name || ''}</small></p>
+        </div>
+        ${m.completed_at ? `
+          <div class="form-group">
+            <label>Completado</label>
+            <p style="margin: 0;">${formatDate(m.completed_at)}<br><small>${m.completed_by_name || ''}</small></p>
+          </div>
+        ` : ''}
+      </div>
+      
+      ${m.notes ? `
+        <div class="form-group">
+          <label>Notas de reparación</label>
+          <p style="background: var(--bg-input); padding: 10px; border-radius: 6px; margin: 0;">${m.notes}</p>
+        </div>
+      ` : ''}
+      
+      ${m.cost > 0 ? `
+        <div class="form-group">
+          <label>Coste</label>
+          <p style="margin: 0; font-size: 1.2rem; color: var(--warning);">${m.cost.toFixed(2)} €</p>
+        </div>
+      ` : ''}
+      
+      ${m.contract_number ? `
+        <div class="form-group">
+          <label>Contrato relacionado</label>
+          <p style="margin: 0;">${m.contract_number}</p>
+        </div>
+      ` : ''}
+    </div>
+  `, `
+    <button class="btn btn-secondary" onclick="closeModal()">Cerrar</button>
+    <button class="btn btn-info" onclick="showVehicleHistory(${m.vehicle_id})">Ver Historial</button>
+  `);
+}
+
+async function showVehicleHistory(vehicleId) {
+  try {
+    const history = await maintenanceAPI.getVehicleHistory(vehicleId);
+    
+    const historyHtml = history.length === 0 
+      ? '<p style="text-align: center; color: var(--text-secondary);">No hay historial</p>'
+      : `<div class="table-container" style="max-height: 400px; overflow-y: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Tipo</th>
+                <th>Descripción</th>
+                <th>Estado</th>
+                <th>Coste</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${history.map(h => `
+                <tr>
+                  <td>${formatDateShort(h.reported_at)}</td>
+                  <td>${getMaintenanceTypeBadge(h.type)}</td>
+                  <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${h.description || '-'}</td>
+                  <td>${getMaintenanceStatusBadge(h.status)}</td>
+                  <td>${h.cost ? h.cost.toFixed(2) + '€' : '-'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    
+    openModal('Historial del Vehículo', historyHtml, `
+      <button class="btn btn-secondary" onclick="closeModal()">Cerrar</button>
+    `);
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
+}
+
+async function showNewMaintenanceModal() {
+  // Charger la liste des véhicules
+  try {
+    const vehicles = await vehiclesAPI.getAll({});
+    
+    openModal('Nuevo Ticket de Mantenimiento', `
+      <form id="newMaintenanceForm">
+        <div class="form-group">
+          <label>Vehículo *</label>
+          <select id="maintenanceVehicle" class="form-control" required>
+            <option value="">Seleccionar vehículo</option>
+            ${vehicles.map(v => `<option value="${v.id}">${v.code} - ${v.brand || ''} ${v.model || ''}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Tipo *</label>
+            <select id="maintenanceType" class="form-control" required>
+              <option value="repair">Reparación</option>
+              <option value="scheduled_km">Programado (KM)</option>
+              <option value="scheduled_days">Programado (Días)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Prioridad</label>
+            <select id="maintenancePriority" class="form-control">
+              <option value="normal">Normal</option>
+              <option value="high">Alta</option>
+              <option value="low">Baja</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Descripción *</label>
+          <textarea id="maintenanceDescription" class="form-control" rows="3" required placeholder="Describe el problema o trabajo a realizar..."></textarea>
+        </div>
+      </form>
+    `, `
+      <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="createMaintenance()">Crear Ticket</button>
+    `);
+  } catch (e) {
+    showToast('Error al cargar vehículos', 'error');
+  }
+}
+
+async function createMaintenance() {
+  const vehicleId = document.getElementById('maintenanceVehicle').value;
+  const type = document.getElementById('maintenanceType').value;
+  const priority = document.getElementById('maintenancePriority').value;
+  const description = document.getElementById('maintenanceDescription').value;
+  
+  if (!vehicleId || !description) {
+    alert('Por favor, complete todos los campos obligatorios');
+    return;
+  }
+  
+  try {
+    await maintenanceAPI.create({
+      vehicle_id: vehicleId,
+      type: type,
+      priority: priority,
+      description: description
+    });
+    closeModal();
+    showToast('Ticket de mantenimiento creado', 'success');
+    loadMaintenanceData();
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
 }
