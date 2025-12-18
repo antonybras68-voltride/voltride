@@ -3,12 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="mobile-web-app-capable" content="yes">
   <title>Voltride - Gestión de Alquileres</title>
   <link rel="stylesheet" href="/css/styles.css">
   <style>
-    /* Mobile Header Styles */
     .mobile-header {
       display: none;
       align-items: center;
@@ -20,222 +17,88 @@
       top: 0;
       z-index: 100;
     }
-    
     .mobile-menu-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
       width: 44px;
       height: 44px;
       background: var(--bg-color);
       border: 1px solid var(--border);
       border-radius: 10px;
-      font-size: 22px;
+      font-size: 24px;
       cursor: pointer;
       color: var(--text-color);
-    }
-    
-    .mobile-logo {
-      height: 35px;
-    }
-    
-    .mobile-lang {
       display: flex;
-      gap: 5px;
+      align-items: center;
+      justify-content: center;
     }
-    
-    .mobile-lang .lang-btn {
-      padding: 6px 10px;
-      font-size: 12px;
-    }
-    
-    /* Sidebar Overlay */
+    .mobile-logo { height: 35px; }
+    .mobile-lang { display: flex; gap: 5px; }
+    .mobile-lang .lang-btn { padding: 6px 10px; font-size: 12px; }
     .sidebar-overlay {
       display: none;
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.6);
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6);
       z-index: 999;
     }
+    .sidebar-overlay.active { display: block; }
     
-    .sidebar-overlay.active {
-      display: block;
-    }
-    
-    /* Mobile Responsive */
     @media (max-width: 768px) {
-      .mobile-header {
-        display: flex !important;
-      }
-      
+      .mobile-header { display: flex !important; }
       .sidebar {
-        position: fixed;
-        left: -280px;
-        top: 0;
-        height: 100vh;
-        z-index: 1000;
-        transition: left 0.3s ease;
-        width: 280px;
+        position: fixed !important;
+        left: -280px !important;
+        top: 0 !important;
+        height: 100vh !important;
+        z-index: 1000 !important;
+        transition: left 0.3s ease !important;
+        width: 280px !important;
       }
-      
-      .sidebar.open {
-        left: 0;
-      }
-      
-      .main-content {
-        margin-left: 0;
-        width: 100%;
-      }
-      
-      #pageContainer {
-        padding: 15px;
-      }
-      
-      .sidebar-logo img {
-        height: 40px !important;
-        max-width: 150px;
-      }
-      
-      .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-      }
-      
-      .stat-card {
-        padding: 15px;
-      }
-      
-      .stat-card h3 {
-        font-size: 1.2rem;
-      }
-      
-      .card-header {
-        flex-direction: column;
-        gap: 10px;
-        align-items: stretch;
-      }
-      
-      .card-header .btn {
-        width: 100%;
-        justify-content: center;
-      }
-      
-      .table-container {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-      }
-      
-      table {
-        min-width: 500px;
-        font-size: 0.85rem;
-      }
-      
-      .btn-group .btn {
-        padding: 6px 10px;
-        font-size: 0.8rem;
-      }
-      
-      .modal {
-        width: 95%;
-        max-height: 90vh;
-        margin: 20px auto;
-      }
-      
-      .modal-footer {
-        flex-direction: column;
-        gap: 10px;
-      }
-      
-      .modal-footer .btn {
-        width: 100%;
-      }
-      
-      .form-row {
-        grid-template-columns: 1fr;
-      }
-      
-      .filters-bar {
-        flex-direction: column;
-        gap: 10px;
-      }
-      
-      .search-box, .filter-select {
-        width: 100%;
-      }
+      .sidebar.open { left: 0 !important; }
+      .main-content { margin-left: 0 !important; width: 100% !important; }
+      #pageContainer { padding: 15px; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .card-header { flex-direction: column; gap: 10px; align-items: stretch; }
+      .card-header .btn { width: 100%; justify-content: center; }
+      .table-container { overflow-x: auto; }
+      table { min-width: 500px; font-size: 0.85rem; }
+      .form-row { grid-template-columns: 1fr; }
+      .modal { width: 95%; margin: 20px auto; }
+      .modal-footer { flex-direction: column; gap: 10px; }
+      .modal-footer .btn { width: 100%; }
     }
-    
     @media (max-width: 480px) {
-      .stats-grid {
-        grid-template-columns: 1fr;
-      }
-      
-      .mobile-lang .lang-btn {
-        padding: 5px 8px;
-        font-size: 11px;
-      }
+      .stats-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-  <!-- Overlay pour fermer le menu mobile -->
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
   
   <div class="app-container">
-    <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-logo">
         <img src="/assets/logo.png" alt="Voltride" style="height: 50px; margin-bottom: 5px;">
         <span id="currentAgency" style="font-size: 12px; color: var(--text-secondary);">Cargando...</span>
       </div>
       
-      <!-- Boutons Check-in / Check-out -->
       <div style="padding: 15px;">
         <a href="/checkin.html" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 15px; font-size: 16px; text-decoration: none; margin-bottom: 10px;">
-          <span>✅</span>
-          <span>Nuevo Check-in</span>
+          <span>✅</span> <span>Nuevo Check-in</span>
         </a>
         <a href="/checkout.html" class="btn" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 15px; font-size: 16px; text-decoration: none; background: #6366f1; color: white;">
-          <span>🏁</span>
-          <span>Check-out</span>
+          <span>🏁</span> <span>Check-out</span>
         </a>
       </div>
       
       <nav class="sidebar-nav">
-        <button class="nav-item active" data-page="dashboard">
-          <span>📊</span>
-          <span data-i18n="dashboard">Dashboard</span>
-        </button>
-        <button class="nav-item" data-page="vehicles">
-          <span>🚲</span>
-          <span data-i18n="vehicles">Vehículos</span>
-        </button>
-        <button class="nav-item" data-page="rentals">
-          <span>📋</span>
-          <span data-i18n="rentals">Alquileres</span>
-        </button>
-        <button class="nav-item" data-page="customers">
-          <span>👥</span>
-          <span data-i18n="customers">Clientes</span>
-        </button>
-        <button class="nav-item" data-page="cash">
-          <span>💰</span>
-          <span data-i18n="cash">Caja</span>
-        </button>
-        <button class="nav-item" data-page="documents">
-          <span>📄</span>
-          <span data-i18n="documents">Documentos</span>
-        </button>
-        <button class="nav-item" data-page="settings">
-          <span>⚙️</span>
-          <span data-i18n="settings">Parámetros</span>
-        </button>
-        <button class="nav-item" data-page="users" id="navUsers" style="display: none;">
-          <span>👤</span>
-          <span data-i18n="users">Usuarios</span>
-        </button>
+        <button class="nav-item active" data-page="dashboard"><span>📊</span> <span>Dashboard</span></button>
+        <button class="nav-item" data-page="vehicles"><span>🚲</span> <span>Vehículos</span></button>
+        <button class="nav-item" data-page="rentals"><span>📋</span> <span>Alquileres</span></button>
+        <button class="nav-item" data-page="customers"><span>👥</span> <span>Clientes</span></button>
+        <button class="nav-item" data-page="cash"><span>💰</span> <span>Caja</span></button>
+        <button class="nav-item" data-page="documents"><span>📄</span> <span>Documentos</span></button>
+        <button class="nav-item" data-page="settings"><span>⚙️</span> <span>Parámetros</span></button>
+        <button class="nav-item" data-page="users" id="navUsers" style="display: none;"><span>👤</span> <span>Usuarios</span></button>
       </nav>
       
       <div class="sidebar-footer">
@@ -246,18 +109,13 @@
             <div class="user-role" id="userRole">Administrador</div>
           </div>
         </div>
-        <button class="btn btn-secondary btn-sm" style="width: 100%; margin-top: 10px;" onclick="logout()">
-          <span>🚪</span>
-          <span data-i18n="logout">Cerrar Sesión</span>
-        </button>
+        <button class="btn btn-secondary btn-sm" style="width: 100%; margin-top: 10px;" onclick="logout()">🚪 Cerrar Sesión</button>
       </div>
     </aside>
     
-    <!-- Main Content -->
     <main class="main-content">
-      <!-- Mobile Header -->
-      <div class="mobile-header" id="mobileHeader">
-        <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+      <div class="mobile-header">
+        <button class="mobile-menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebarOverlay').classList.toggle('active');">☰</button>
         <img src="/assets/logo.png" alt="Voltride" class="mobile-logo">
         <div class="mobile-lang">
           <button class="lang-btn active" data-lang="es">ES</button>
@@ -266,58 +124,24 @@
         </div>
       </div>
       
-      <!-- Pages Container -->
-      <div id="pageContainer">
-        <!-- Le contenu sera injecté ici par JavaScript -->
-      </div>
+      <div id="pageContainer"></div>
     </main>
   </div>
   
-  <!-- Toast Container -->
   <div class="toast-container" id="toastContainer"></div>
   
-  <!-- Modal Container -->
   <div class="modal-overlay" id="modalOverlay">
-    <div class="modal" id="modalContent">
-      <!-- Le contenu du modal sera injecté ici -->
-    </div>
+    <div class="modal" id="modalContent"></div>
   </div>
   
   <script src="/js/translations.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/app.js"></script>
-  
   <script>
-    // Mobile menu toggle - inline pour être sûr que ça fonctionne
-    document.addEventListener('DOMContentLoaded', function() {
-      const menuBtn = document.getElementById('mobileMenuBtn');
-      const sidebar = document.getElementById('sidebar');
-      const overlay = document.getElementById('sidebarOverlay');
-      
-      if (menuBtn) {
-        menuBtn.addEventListener('click', function() {
-          sidebar.classList.toggle('open');
-          overlay.classList.toggle('active');
-        });
-      }
-      
-      if (overlay) {
-        overlay.addEventListener('click', function() {
-          sidebar.classList.remove('open');
-          overlay.classList.remove('active');
-        });
-      }
-      
-      // Fermer menu quand on clique sur un lien
-      document.querySelectorAll('.nav-item').forEach(function(item) {
-        item.addEventListener('click', function() {
-          if (window.innerWidth <= 768) {
-            sidebar.classList.remove('open');
-            overlay.classList.remove('active');
-          }
-        });
-      });
-    });
+    document.getElementById('sidebarOverlay').onclick = function() {
+      document.getElementById('sidebar').classList.remove('open');
+      this.classList.remove('active');
+    };
   </script>
 </body>
 </html>
