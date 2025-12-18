@@ -44,6 +44,8 @@ app.use('/api/checkin', checkinRoutes);
 app.use('/api/checkout', checkoutRoutes);
 app.use('/api/ocr', ocrRoutes);
 app.use('/api/invoices', invoicesRoutes);
+const pricingRoutes = require('./routes/pricing');
+app.use('/api/pricing', pricingRoutes);
 
 // Route par défaut - renvoie l'application
 app.get('*', (req, res) => {
