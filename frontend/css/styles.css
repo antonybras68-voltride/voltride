@@ -714,11 +714,10 @@ tr:hover td {
     transition: left 0.3s;
   }
   
-  .sidebar.open { left: 0; }
-  
-  .sidebar-logo h1, .sidebar-logo span, .nav-item span, .user-details {
-    display: block;
-  }
+  .sidebar.open {
+  left: 0 !important;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
   
   .main-content {
     margin-left: 0;
