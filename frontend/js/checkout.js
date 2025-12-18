@@ -1,5 +1,5 @@
 // =====================================================
-// VOLTRIDE - Check-out (Version 2.1 - KM dans étape 1)
+// VOLTRIDE - Check-out (Version 2.2 - Dommages depuis Tarifas)
 // =====================================================
 
 let currentStep = 1;
@@ -10,6 +10,10 @@ let inspectionData = {};
 let additionalDamages = [];
 let ticketPhotoData = null;
 let endKmValue = null;
+
+// Configuration des dommages (chargée depuis Tarifas)
+let damagesConfig = [];
+let selectedDamages = [];
 
 // Types de véhicules motorisés
 const MOTORIZED_TYPES = ['scooter', 'e-motocross', 'emotocross', 'e_motocross', 'moto', 'motocross'];
@@ -50,8 +54,31 @@ document.addEventListener('DOMContentLoaded', async () => {
   const user = JSON.parse(localStorage.getItem('voltride_user') || '{}');
   document.getElementById('agencyName').textContent = user.agency_name || 'Voltride';
   
+  // Charger les dommages depuis Tarifas
+  await loadDamagesConfig();
+  
   await loadActiveContracts();
 });
+
+// =====================================================
+// Charger la config des dommages
+// =====================================================
+
+async function loadDamagesConfig() {
+  try {
+    const response = await fetch('/api/pricing', {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('voltride_token')}` }
+    });
+    if (response.ok) {
+      const data = await response.json();
+      damagesConfig = data.damages || [];
+      console.log('✅ Dommages chargés:', damagesConfig);
+    }
+  } catch (e) {
+    console.error('Erreur chargement dommages:', e);
+    damagesConfig = [];
+  }
+}
 
 // =====================================================
 // Load Active Contracts
@@ -412,21 +439,20 @@ function renderInspection() {
         ${motorizedInspection}
         
         <div class="inspection-item">
-          <label>Batería</label>
-          <select onchange="updateInspection(${selectedContract.vehicle_id}, 'battery', this.value)">
-            <option value="excelente" ${inspection.battery === 'excelente' ? 'selected' : ''}>✅ Carga OK</option>
-            <option value="faible" ${inspection.battery === 'faible' ? 'selected' : ''}>⚠️ Carga baja</option>
-            <option value="defectuosa" ${inspection.battery === 'defectuosa' ? 'selected' : ''}>❌ Defectuosa</option>
-          </select>
-        </div>
-        
-        <div class="inspection-item">
           <label>Limpieza</label>
           <select onchange="updateInspection(${selectedContract.vehicle_id}, 'cleaning', this.value)">
             <option value="limpio" ${inspection.cleaning === 'limpio' ? 'selected' : ''}>✅ Limpio</option>
             <option value="medio" ${inspection.cleaning === 'medio' ? 'selected' : ''}>😐 Medio</option>
-            <option value="sale" ${inspection.cleaning === 'sale' ? 'selected' : ''}>❌ Sucio (-6€)</option>
+            <option value="sale" ${inspection.cleaning === 'sale' ? 'selected' : ''}>❌ Sucio (-5€)</option>
           </select>
+        </div>
+      </div>
+      
+      <!-- Section Dommages depuis Tarifas -->
+      <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border);">
+        <h4 style="margin-bottom: 15px;">🔧 Dommages constatés</h4>
+        <div id="damagesCheckboxes" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+          <!-- Rempli dynamiquement -->
         </div>
       </div>
     </div>
@@ -466,6 +492,53 @@ function renderInspection() {
     <input type="file" id="inspectionPhotoInput" accept="image/*" capture="environment" style="display: none;">
     <input type="file" id="damagePhotoInput" accept="image/*" capture="environment" style="display: none;">
   `;
+  
+  // Rendre les checkboxes des dommages
+  renderDamagesCheckboxes();
+}
+
+// Render damages checkboxes from Tarifas config
+function renderDamagesCheckboxes() {
+  const container = document.getElementById('damagesCheckboxes');
+  if (!container) return;
+  
+  // Filtrer les dommages par type de véhicule si applicable
+  const vehicleType = selectedContract?.vehicle_type?.toLowerCase() || '';
+  let filteredDamages = damagesConfig;
+  
+  // Si les dommages ont des types compatibles, filtrer
+  if (damagesConfig.some(d => d.compatibleTypes && d.compatibleTypes.length > 0)) {
+    filteredDamages = damagesConfig.filter(d => {
+      if (!d.compatibleTypes || d.compatibleTypes.length === 0) return true;
+      return d.compatibleTypes.some(t => vehicleType.includes(t.toLowerCase()));
+    });
+  }
+  
+  if (filteredDamages.length === 0) {
+    container.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.9rem;">Aucun dommage configuré dans Tarifas</p>';
+    return;
+  }
+  
+  container.innerHTML = filteredDamages.map(damage => `
+    <label style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--bg-input); border-radius: 8px; cursor: pointer;">
+      <input type="checkbox" 
+             onchange="toggleDamage(${damage.id}, '${damage.name}', ${damage.price})"
+             ${selectedDamages.some(d => d.id === damage.id) ? 'checked' : ''}>
+      <span>${damage.name}</span>
+      <span style="color: var(--danger); margin-left: auto; font-weight: bold;">-${damage.price}€</span>
+    </label>
+  `).join('');
+}
+
+// Toggle damage selection
+function toggleDamage(id, name, price) {
+  const existingIndex = selectedDamages.findIndex(d => d.id === id);
+  if (existingIndex >= 0) {
+    selectedDamages.splice(existingIndex, 1);
+  } else {
+    selectedDamages.push({ id, name, price });
+  }
+  console.log('Dommages sélectionnés:', selectedDamages);
 }
 
 function updateInspection(vehicleId, field, value) {
@@ -613,9 +686,13 @@ function calculateDeductions() {
     else if (inspection.chassis === 'tordu') deductions.push({ description: 'Chasis torcido', amount: 50 });
     if (inspection.wheels === 'voilé') deductions.push({ description: 'Rueda doblada', amount: 15 });
     if (inspection.lights === 'cassé') deductions.push({ description: 'Luz rota', amount: 20 });
-    if (inspection.cleaning === 'sale') deductions.push({ description: 'Limpieza', amount: 6 });
+    if (inspection.cleaning === 'sale') deductions.push({ description: 'Limpieza', amount: 5 });
   }
   
+  // Ajouter les dommages sélectionnés depuis Tarifas
+  selectedDamages.forEach(d => deductions.push({ description: d.name, amount: d.price }));
+  
+  // Ajouter les dommages additionnels manuels
   additionalDamages.forEach(d => deductions.push({ description: d.description, amount: d.amount }));
   
   return deductions;
