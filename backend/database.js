@@ -56,6 +56,16 @@ async function initDatabase() {
       )
     `);
 
+    // Nouvelles colonnes pour véhicules (maintenance tracking)
+    await client.query(`ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS license_plate VARCHAR(20)`);
+    await client.query(`ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS chassis_number VARCHAR(50)`);
+    await client.query(`ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS current_km INTEGER DEFAULT 0`);
+    await client.query(`ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS last_maintenance_km INTEGER DEFAULT 0`);
+    await client.query(`ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS total_rental_days INTEGER DEFAULT 0`);
+    await client.query(`ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS last_maintenance_date TIMESTAMP`);
+    await client.query(`ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS next_maintenance_km INTEGER`);
+    await client.query(`ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS next_maintenance_date DATE`);
+
     // Table des clients
     await client.query(`
       CREATE TABLE IF NOT EXISTS customers (
@@ -119,6 +129,10 @@ async function initDatabase() {
     await client.query(`ALTER TABLE rentals ADD COLUMN IF NOT EXISTS checkout_inspection TEXT`);
     await client.query(`ALTER TABLE rentals ADD COLUMN IF NOT EXISTS checkout_ticket_photo TEXT`);
     await client.query(`ALTER TABLE rentals ADD COLUMN IF NOT EXISTS checkout_notes TEXT`);
+    // Nouvelles colonnes pour km motos
+    await client.query(`ALTER TABLE rentals ADD COLUMN IF NOT EXISTS start_km INTEGER`);
+    await client.query(`ALTER TABLE rentals ADD COLUMN IF NOT EXISTS end_km INTEGER`);
+    await client.query(`ALTER TABLE rentals ADD COLUMN IF NOT EXISTS km_traveled INTEGER`);
 
     // Table des paiements (caisse)
     await client.query(`
@@ -154,6 +168,50 @@ async function initDatabase() {
       )
     `);
 
+    // =====================================================
+    // TABLE MAINTENANCE_RECORDS (Nouveau)
+    // =====================================================
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS maintenance_records (
+        id SERIAL PRIMARY KEY,
+        vehicle_id INTEGER REFERENCES vehicles(id) ON DELETE CASCADE,
+        rental_id INTEGER REFERENCES rentals(id),
+        type VARCHAR(50) NOT NULL,
+        priority VARCHAR(20) DEFAULT 'normal',
+        description TEXT,
+        reported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        reported_by INTEGER REFERENCES users(id),
+        status VARCHAR(20) DEFAULT 'pending',
+        assigned_to INTEGER REFERENCES users(id),
+        started_at TIMESTAMP,
+        completed_at TIMESTAMP,
+        completed_by INTEGER REFERENCES users(id),
+        photos_before JSONB,
+        photos_after JSONB,
+        parts_used TEXT,
+        cost DECIMAL(10,2) DEFAULT 0,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Index pour améliorer les performances
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_maintenance_vehicle ON maintenance_records(vehicle_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_maintenance_status ON maintenance_records(status)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_maintenance_type ON maintenance_records(type)`);
+
+    // =====================================================
+    // TABLE PRICING_SETTINGS (Pour les tarifs)
+    // =====================================================
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS pricing_settings (
+        id SERIAL PRIMARY KEY,
+        key VARCHAR(50) UNIQUE NOT NULL,
+        value JSONB NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Insérer les agences par défaut si elles n'existent pas
     await client.query(`
       INSERT INTO agencies (code, name, address, phone)
@@ -176,6 +234,7 @@ async function initDatabase() {
     }
 
     console.log('✅ Base de datos inicializada correctamente');
+    console.log('✅ Tabla maintenance_records creada/verificada');
     
   } catch (error) {
     console.error('❌ Error inicializando la base de datos:', error);
