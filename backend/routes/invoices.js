@@ -193,27 +193,28 @@ router.get('/:rentalId/pdf', async (req, res) => {
     doc.rect(labelX - 20, y - 5, 215, 28).fillColor('#10b981').fill();
     doc.fontSize(12).fillColor('#fff')
        .text('TOTAL:', labelX - 10, y + 3)
-       .text(`${rentalTotal.toFixed(2)} EUR`, valueX, y + 3);
+       .text(`${rentalTotal.toFixed(2)} EUR`, valueX - 10, y + 3, { width: 75, align: 'right' });
     y += 45;
     
     // Dépôt payé
     doc.fontSize(10).fillColor('#333');
     doc.text('Deposito pagado:', labelX, y);
-    doc.text(`${deposit.toFixed(2)} EUR`, valueX, y);
+    doc.text(`${deposit.toFixed(2)} EUR`, valueX - 10, y, { width: 75, align: 'right' });
     y += 20;
     
     // Déductions (si présentes)
     if (deductions > 0) {
       doc.fillColor('#e74c3c').text('Deducciones:', labelX, y);
-      doc.text(`-${deductions.toFixed(2)} EUR`, valueX, y);
+      doc.text(`-${deductions.toFixed(2)} EUR`, valueX - 10, y, { width: 75, align: 'right' });
       y += 20;
     }
     
-    // Dépôt remboursé (encadré)
-    doc.rect(labelX - 20, y - 5, 215, 28).fillColor('#ecfdf5').fill();
-    doc.rect(labelX - 20, y - 5, 215, 28).strokeColor('#10b981').stroke();
-    doc.fontSize(10).fillColor('#10b981').text('Deposito devuelto:', labelX - 10, y + 3);
-    doc.fontSize(12).text(`${depositRefund.toFixed(2)} EUR`, valueX, y + 3);
+    // Dépôt remboursé (encadré plus grand)
+    const depositBoxHeight = 32;
+    doc.rect(labelX - 20, y - 5, 215, depositBoxHeight).fillColor('#ecfdf5').fill();
+    doc.rect(labelX - 20, y - 5, 215, depositBoxHeight).strokeColor('#10b981').lineWidth(1).stroke();
+    doc.fontSize(10).fillColor('#10b981').text('Deposito devuelto:', labelX - 10, y + 5);
+    doc.fontSize(12).fillColor('#10b981').text(`${depositRefund.toFixed(2)} EUR`, valueX - 10, y + 5, { width: 75, align: 'right' });
     
     // === PIED DE PAGE ===
     doc.fontSize(12).fillColor('#10b981').text('Gracias por confiar en Voltride!', 50, 700, { align: 'center', width: 495 });
