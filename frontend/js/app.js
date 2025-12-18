@@ -1547,6 +1547,7 @@ function confirmAddVehicleType() {
     image: '',
     deposit: parseFloat(document.getElementById('newVTypeDeposit').value) || 100,
     replacementValue: parseFloat(document.getElementById('newVTypeReplacement').value) || 500,
+    halfDay: parseFloat(document.getElementById('newVTypeHalfDay').value) || 0,
     prices: {1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0,13:0,14:0},
     extraDay: 0,
     compatibleAccessories: accessories.map(a => a.id),
