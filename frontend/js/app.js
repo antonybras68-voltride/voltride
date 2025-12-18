@@ -1,5 +1,6 @@
 // =====================================================
-// VOLTRIDE - Application principale (v2.0)
+// VOLTRIDE - Application principale (v2.1)
+// Responsive + Mobile sidebar
 // =====================================================
 
 let currentPage = 'dashboard';
@@ -54,6 +55,30 @@ function initUI() {
   document.getElementById('modalOverlay').addEventListener('click', (e) => {
     if (e.target.id === 'modalOverlay') closeModal();
   });
+  
+  // Fermer sidebar quand on clique sur un lien (mobile)
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      if (window.innerWidth <= 768) {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        if (sidebar) sidebar.classList.remove('open');
+        if (overlay) overlay.classList.remove('active');
+      }
+    });
+  });
+  
+  // Gérer les boutons de langue dans le header mobile
+  document.querySelectorAll('.mobile-lang .lang-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const lang = btn.dataset.lang;
+      localStorage.setItem('voltride_lang', lang);
+      document.querySelectorAll('.lang-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.lang === lang);
+      });
+      loadPage(currentPage);
+    });
+  });
 }
 
 function loadPage(page) {
@@ -82,7 +107,16 @@ function logout() {
 }
 
 function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('open');
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  
+  if (sidebar) {
+    sidebar.classList.toggle('open');
+  }
+  
+  if (overlay) {
+    overlay.classList.toggle('active');
+  }
 }
 
 // =====================================================
@@ -186,8 +220,8 @@ async function renderDashboard(container) {
             <td>${formatDateShort(r.start_date)}</td>
             <td>${formatDateShort(r.planned_end_date)}</td>
             <td><div class="btn-group">
-              <button class="btn btn-sm btn-info" onclick="downloadContract(${r.id})">📄 PDF</button>
-              <button class="btn btn-sm btn-success" onclick="showReturnModal(${r.id})">${t('returnVehicle')}</button>
+              <button class="btn btn-sm btn-info" onclick="downloadContract(${r.id})">📄</button>
+              <button class="btn btn-sm btn-success" onclick="showReturnModal(${r.id})">🏁</button>
             </div></td>
           </tr>`).join('')}
         </tbody></table></div>
@@ -497,8 +531,8 @@ function renderRentalsTable(rentals) {
         <td>${formatCurrency(r.total_amount)}</td>
         <td>${getStatusBadge(r.status)}</td>
         <td><div class="btn-group">
-          <button class="btn btn-sm btn-info" onclick="downloadContract(${r.id})">📄 PDF</button>
-          ${r.status === 'active' ? `<button class="btn btn-sm btn-success" onclick="showReturnModal(${r.id})">${t('returnVehicle')}</button>` : ''}
+          <button class="btn btn-sm btn-info" onclick="downloadContract(${r.id})">📄</button>
+          ${r.status === 'active' ? `<button class="btn btn-sm btn-success" onclick="showReturnModal(${r.id})">🏁</button>` : ''}
         </div></td>
       </tr>`).join('')}
     </tbody></table></div>
@@ -822,7 +856,7 @@ function renderDocumentsTable(rentals) {
   }
   document.getElementById('documentsList').innerHTML = `
     <div class="table-container"><table><thead><tr>
-      <th>Contrato</th><th>Cliente</th><th>Vehículo</th><th>Fecha</th><th>Total</th><th>Estado</th><th>Documentos</th>
+      <th>Contrato</th><th>Cliente</th><th>Vehículo</th><th>Fecha</th><th>Total</th><th>Estado</th><th>Docs</th>
     </tr></thead><tbody>
       ${rentals.map(r => `<tr>
         <td><strong>${r.contract_number}</strong></td>
