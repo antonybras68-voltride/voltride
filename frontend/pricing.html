@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voltride - Paramètres Tarifaires</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    .pricing-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .pricing-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    
+    .pricing-header h1 {
+      font-size: 1.8rem;
+      color: var(--text-primary);
+    }
+    
+    .tabs {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+      background: var(--bg-card);
+      padding: 8px;
+      border-radius: 12px;
+    }
+    
+    .tab-btn {
+      padding: 12px 24px;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    
+    .tab-btn:hover {
+      background: var(--bg-input);
+      color: var(--text-primary);
+    }
+    
+    .tab-btn.active {
+      background: var(--primary);
+      color: var(--bg-dark);
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    .pricing-card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 20px;
+    }
+    
+    .pricing-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .pricing-card-header h2 {
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .pricing-day {
+      text-align: center;
+    }
+    
+    .pricing-day label {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+    }
+    
+    .pricing-day input {
+      width: 100%;
+      padding: 10px 5px;
+      text-align: center;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+    }
+    
+    .pricing-day input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    
+    .item-row {
+      display: grid;
+      grid-template-columns: 200px 1fr auto;
+      gap: 20px;
+      align-items: start;
+      padding: 20px;
+      background: var(--bg-input);
+      border-radius: 10px;
+      margin-bottom: 15px;
+    }
+    
+    .item-info h3 {
+      font-size: 1rem;
+      margin-bottom: 5px;
+    }
+    
+    .item-info p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+    
+    .item-actions {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .extra-price {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid var(--border);
+    }
+    
+    .extra-price label {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+    
+    .extra-price input {
+      width: 100px;
+      padding: 10px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      text-align: center;
+    }
+    
+    .insurance-option {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px;
+      background: var(--bg-input);
+      border-radius: 10px;
+      margin-bottom: 15px;
+    }
+    
+    .insurance-info {
+      flex: 1;
+    }
+    
+    .insurance-info h3 {
+      font-size: 1rem;
+      margin-bottom: 5px;
+    }
+    
+    .insurance-info p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+    
+    .insurance-values {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+    
+    .insurance-field {
+      text-align: center;
+    }
+    
+    .insurance-field label {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+    }
+    
+    .insurance-field input {
+      width: 100px;
+      padding: 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      text-align: center;
+    }
+    
+    .damage-item {
+      display: grid;
+      grid-template-columns: 1fr 120px auto;
+      gap: 15px;
+      align-items: center;
+      padding: 15px;
+      background: var(--bg-input);
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+    
+    .damage-item input[type="text"] {
+      padding: 10px 15px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+    }
+    
+    .damage-item input[type="number"] {
+      padding: 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      text-align: center;
+    }
+    
+    .add-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 15px;
+      background: transparent;
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.95rem;
+    }
+    
+    .add-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: rgba(245, 158, 11, 0.1);
+    }
+    
+    .save-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--bg-card);
+      padding: 15px 30px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 15px;
+      border-top: 1px solid var(--border);
+      z-index: 100;
+    }
+    
+    .deposit-info {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid var(--info);
+      border-radius: 10px;
+      padding: 15px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    
+    .deposit-info-icon {
+      font-size: 1.5rem;
+    }
+    
+    .deposit-info p {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+    
+    .deposit-info strong {
+      color: var(--info);
+    }
+    
+    @media (max-width: 768px) {
+      .pricing-container {
+        padding: 15px;
+        padding-bottom: 100px;
+      }
+      
+      .tabs {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding: 5px;
+      }
+      
+      .tab-btn {
+        padding: 10px 16px;
+        font-size: 0.85rem;
+        white-space: nowrap;
+      }
+      
+      .item-row {
+        grid-template-columns: 1fr;
+        gap: 15px;
+      }
+      
+      .pricing-grid {
+        grid-template-columns: repeat(7, 1fr);
+      }
+      
+      .insurance-option {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+      }
+      
+      .insurance-values {
+        width: 100%;
+        justify-content: space-between;
+      }
+      
+      .damage-item {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+      
+      .save-bar {
+        flex-direction: column;
+      }
+      
+      .save-bar .btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="pricing-container">
+    <div class="pricing-header">
+      <div>
+        <h1>⚙️ Paramètres Tarifaires</h1>
+        <p style="color: var(--text-secondary);">Configurez les prix des véhicules, accessoires et dommages</p>
+      </div>
+      <a href="/app.html" class="btn btn-secondary">← Retour</a>
+    </div>
+    
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="vehicles">🚲 Véhicules</button>
+      <button class="tab-btn" data-tab="accessories">🎒 Accessoires</button>
+      <button class="tab-btn" data-tab="insurance">🛡️ Assurances</button>
+      <button class="tab-btn" data-tab="damages">⚠️ Dommages</button>
+    </div>
+    
+    <!-- TAB VÉHICULES -->
+    <div class="tab-content active" id="tab-vehicles">
+      <div class="deposit-info">
+        <span class="deposit-info-icon">💡</span>
+        <p>Les prix sont configurés par jour (1j à 14j) plus un tarif jour supplémentaire. La <strong>caution est réduite de 50%</strong> si le client choisit l'option assurance.</p>
+      </div>
+      
+      <div id="vehiclesPricingList">
+        <!-- Véhicules chargés dynamiquement -->
+      </div>
+      
+      <button class="add-btn" onclick="showAddVehicleTypeModal()">
+        <span>+</span> Ajouter un type de véhicule
+      </button>
+    </div>
+    
+    <!-- TAB ACCESSOIRES -->
+    <div class="tab-content" id="tab-accessories">
+      <div id="accessoriesPricingList">
+        <!-- Accessoires chargés dynamiquement -->
+      </div>
+      
+      <button class="add-btn" onclick="showAddAccessoryModal()">
+        <span>+</span> Ajouter un accessoire
+      </button>
+    </div>
+    
+    <!-- TAB ASSURANCES -->
+    <div class="tab-content" id="tab-insurance">
+      <div class="pricing-card">
+        <div class="pricing-card-header">
+          <h2>🛡️ Options d'assurance</h2>
+        </div>
+        
+        <div class="deposit-info">
+          <span class="deposit-info-icon">ℹ️</span>
+          <p>L'assurance réduit la caution du véhicule selon le pourcentage configuré. Par exemple, avec une réduction de 50%, une caution de 300€ devient 150€.</p>
+        </div>
+        
+        <div id="insuranceOptionsList">
+          <!-- Options d'assurance chargées dynamiquement -->
+        </div>
+        
+        <button class="add-btn" onclick="showAddInsuranceModal()">
+          <span>+</span> Ajouter une option d'assurance
+        </button>
+      </div>
+    </div>
+    
+    <!-- TAB DOMMAGES -->
+    <div class="tab-content" id="tab-damages">
+      <div class="pricing-card">
+        <div class="pricing-card-header">
+          <h2>⚠️ Tarifs des dommages</h2>
+        </div>
+        
+        <p style="color: var(--text-secondary); margin-bottom: 20px;">
+          Définissez les montants à facturer pour chaque type de dommage constaté lors du check-out.
+        </p>
+        
+        <div id="damagesPricingList">
+          <!-- Dommages chargés dynamiquement -->
+        </div>
+        
+        <button class="add-btn" onclick="addDamageRow()">
+          <span>+</span> Ajouter un type de dommage
+        </button>
+      </div>
+    </div>
+    
+    <div class="save-bar">
+      <button class="btn btn-secondary" onclick="window.location.href='/app.html'">Annuler</button>
+      <button class="btn btn-primary" onclick="saveAllPricing()">💾 Enregistrer tout</button>
+    </div>
+  </div>
+  
+  <!-- MODAL -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" id="modalContent"></div>
+  </div>
+  
+  <script src="/js/api.js"></script>
+  <script>
+    // =====================================================
+    // DONNÉES
+    // =====================================================
+    
+    let vehicleTypes = [];
+    let accessories = [];
+    let insuranceOptions = [];
+    let damages = [];
+    
+    // =====================================================
+    // INITIALISATION
+    // =====================================================
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      const token = localStorage.getItem('voltride_token');
+      if (!token) {
+        window.location.href = '/';
+        return;
+      }
+      
+      // Gestion des onglets
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+        });
+      });
+      
+      loadAllPricing();
+    });
+    
+    // =====================================================
+    // CHARGEMENT DES DONNÉES
+    // =====================================================
+    
+    async function loadAllPricing() {
+      try {
+        const response = await fetch('/api/pricing', {
+          headers: { 'Authorization': 'Bearer ' + localStorage.getItem('voltride_token') }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          vehicleTypes = data.vehicleTypes || getDefaultVehicleTypes();
+          accessories = data.accessories || getDefaultAccessories();
+          insuranceOptions = data.insuranceOptions || getDefaultInsuranceOptions();
+          damages = data.damages || getDefaultDamages();
+        } else {
+          // Utiliser les valeurs par défaut
+          vehicleTypes = getDefaultVehicleTypes();
+          accessories = getDefaultAccessories();
+          insuranceOptions = getDefaultInsuranceOptions();
+          damages = getDefaultDamages();
+        }
+        
+        renderVehicleTypes();
+        renderAccessories();
+        renderInsuranceOptions();
+        renderDamages();
+      } catch (e) {
+        console.error('Error loading pricing:', e);
+        // Utiliser les valeurs par défaut
+        vehicleTypes = getDefaultVehicleTypes();
+        accessories = getDefaultAccessories();
+        insuranceOptions = getDefaultInsuranceOptions();
+        damages = getDefaultDamages();
+        
+        renderVehicleTypes();
+        renderAccessories();
+        renderInsuranceOptions();
+        renderDamages();
+      }
+    }
+    
+    // =====================================================
+    // VALEURS PAR DÉFAUT
+    // =====================================================
+    
+    function getDefaultVehicleTypes() {
+      return [
+        {
+          id: 'bike',
+          name: 'Vélo classique',
+          icon: '🚲',
+          deposit: 100,
+          prices: { 1: 10, 2: 18, 3: 25, 4: 32, 5: 38, 6: 44, 7: 49, 8: 55, 9: 60, 10: 65, 11: 70, 12: 75, 13: 80, 14: 84 },
+          extraDay: 5
+        },
+        {
+          id: 'ebike',
+          name: 'Vélo électrique',
+          icon: '⚡',
+          deposit: 300,
+          prices: { 1: 25, 2: 45, 3: 63, 4: 80, 5: 95, 6: 108, 7: 119, 8: 130, 9: 140, 10: 150, 11: 159, 12: 168, 13: 176, 14: 182 },
+          extraDay: 12
+        },
+        {
+          id: 'scooter',
+          name: 'Scooter électrique',
+          icon: '🛵',
+          deposit: 500,
+          prices: { 1: 35, 2: 65, 3: 90, 4: 112, 5: 130, 6: 145, 7: 158, 8: 170, 9: 181, 10: 191, 11: 200, 12: 208, 13: 215, 14: 221 },
+          extraDay: 15
+        }
+      ];
+    }
+    
+    function getDefaultAccessories() {
+      return [
+        {
+          id: 'helmet',
+          name: 'Casque',
+          icon: '⛑️',
+          prices: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0 },
+          extraDay: 0
+        },
+        {
+          id: 'lock',
+          name: 'Antivol',
+          icon: '🔒',
+          prices: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0 },
+          extraDay: 0
+        },
+        {
+          id: 'basket',
+          name: 'Panier',
+          icon: '🧺',
+          prices: { 1: 2, 2: 4, 3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 13, 12: 14, 13: 15, 14: 15 },
+          extraDay: 1
+        },
+        {
+          id: 'child_seat',
+          name: 'Siège enfant',
+          icon: '👶',
+          prices: { 1: 5, 2: 9, 3: 12, 4: 15, 5: 17, 6: 19, 7: 21, 8: 23, 9: 25, 10: 27, 11: 29, 12: 31, 13: 33, 14: 35 },
+          extraDay: 2
+        },
+        {
+          id: 'phone_holder',
+          name: 'Support téléphone',
+          icon: '📱',
+          prices: { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 5, 7: 5, 8: 5, 9: 5, 10: 5, 11: 5, 12: 5, 13: 5, 14: 5 },
+          extraDay: 0
+        }
+      ];
+    }
+    
+    function getDefaultInsuranceOptions() {
+      return [
+        {
+          id: 'none',
+          name: 'Sans assurance',
+          description: 'Caution complète requise',
+          pricePerDay: 0,
+          depositReduction: 0
+        },
+        {
+          id: 'basic',
+          name: 'Assurance Basic',
+          description: 'Couverture des dommages accidentels',
+          pricePerDay: 3,
+          depositReduction: 50
+        },
+        {
+          id: 'premium',
+          name: 'Assurance Premium',
+          description: 'Couverture complète incluant vol',
+          pricePerDay: 6,
+          depositReduction: 75
+        }
+      ];
+    }
+    
+    function getDefaultDamages() {
+      return [
+        { id: 1, name: 'Pneu crevé', price: 15 },
+        { id: 2, name: 'Chambre à air', price: 10 },
+        { id: 3, name: 'Frein endommagé', price: 25 },
+        { id: 4, name: 'Chaîne cassée', price: 20 },
+        { id: 5, name: 'Dérailleur tordu', price: 35 },
+        { id: 6, name: 'Guidon tordu', price: 30 },
+        { id: 7, name: 'Selle endommagée', price: 25 },
+        { id: 8, name: 'Éclairage cassé', price: 15 },
+        { id: 9, name: 'Sonnette manquante', price: 5 },
+        { id: 10, name: 'Rayure importante', price: 20 },
+        { id: 11, name: 'Pédale cassée', price: 20 },
+        { id: 12, name: 'Roue voilée', price: 40 },
+        { id: 13, name: 'Batterie endommagée (e-bike)', price: 200 },
+        { id: 14, name: 'Écran cassé (e-bike)', price: 80 },
+        { id: 15, name: 'Chargeur perdu', price: 45 }
+      ];
+    }
+    
+    // =====================================================
+    // RENDU DES VÉHICULES
+    // =====================================================
+    
+    function renderVehicleTypes() {
+      const container = document.getElementById('vehiclesPricingList');
+      container.innerHTML = vehicleTypes.map((v, index) => `
+        <div class="pricing-card" data-vehicle-index="${index}">
+          <div class="pricing-card-header">
+            <h2>${v.icon} ${v.name}</h2>
+            <button class="btn btn-sm btn-danger" onclick="deleteVehicleType(${index})">🗑️</button>
+          </div>
+          
+          <div style="display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap;">
+            <div>
+              <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 5px;">Caution (€)</label>
+              <input type="number" value="${v.deposit}" onchange="updateVehicleDeposit(${index}, this.value)" 
+                     style="width: 120px; padding: 10px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); text-align: center;">
+            </div>
+          </div>
+          
+          <label style="display: block; font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 10px;">Prix par durée de location</label>
+          <div class="pricing-grid">
+            ${[1,2,3,4,5,6,7,8,9,10,11,12,13,14].map(day => `
+              <div class="pricing-day">
+                <label>${day}j</label>
+                <input type="number" value="${v.prices[day] || 0}" onchange="updateVehiclePrice(${index}, ${day}, this.value)">
+              </div>
+            `).join('')}
+          </div>
+          
+          <div class="extra-price">
+            <label>Jour supplémentaire (après 14j) :</label>
+            <input type="number" value="${v.extraDay}" onchange="updateVehicleExtraDay(${index}, this.value)"> €
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    function updateVehicleDeposit(index, value) {
+      vehicleTypes[index].deposit = parseFloat(value) || 0;
+    }
+    
+    function updateVehiclePrice(index, day, value) {
+      vehicleTypes[index].prices[day] = parseFloat(value) || 0;
+    }
+    
+    function updateVehicleExtraDay(index, value) {
+      vehicleTypes[index].extraDay = parseFloat(value) || 0;
+    }
+    
+    function deleteVehicleType(index) {
+      if (confirm('Supprimer ce type de véhicule ?')) {
+        vehicleTypes.splice(index, 1);
+        renderVehicleTypes();
+      }
+    }
+    
+    function showAddVehicleTypeModal() {
+      openModal('Ajouter un type de véhicule', `
+        <div class="form-group">
+          <label>Nom</label>
+          <input type="text" id="newVehicleName" class="form-control" placeholder="Ex: Vélo cargo">
+        </div>
+        <div class="form-group">
+          <label>Icône (emoji)</label>
+          <input type="text" id="newVehicleIcon" class="form-control" placeholder="🚲" maxlength="2">
+        </div>
+        <div class="form-group">
+          <label>Caution (€)</label>
+          <input type="number" id="newVehicleDeposit" class="form-control" value="100">
+        </div>
+      `, `
+        <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+        <button class="btn btn-primary" onclick="addVehicleType()">Ajouter</button>
+      `);
+    }
+    
+    function addVehicleType() {
+      const name = document.getElementById('newVehicleName').value;
+      const icon = document.getElementById('newVehicleIcon').value || '🚲';
+      const deposit = parseFloat(document.getElementById('newVehicleDeposit').value) || 100;
+      
+      if (!name) {
+        alert('Veuillez entrer un nom');
+        return;
+      }
+      
+      const id = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+      
+      vehicleTypes.push({
+        id: id,
+        name: name,
+        icon: icon,
+        deposit: deposit,
+        prices: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0 },
+        extraDay: 0
+      });
+      
+      closeModal();
+      renderVehicleTypes();
+    }
+    
+    // =====================================================
+    // RENDU DES ACCESSOIRES
+    // =====================================================
+    
+    function renderAccessories() {
+      const container = document.getElementById('accessoriesPricingList');
+      container.innerHTML = accessories.map((a, index) => `
+        <div class="pricing-card" data-accessory-index="${index}">
+          <div class="pricing-card-header">
+            <h2>${a.icon} ${a.name}</h2>
+            <button class="btn btn-sm btn-danger" onclick="deleteAccessory(${index})">🗑️</button>
+          </div>
+          
+          <label style="display: block; font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 10px;">Prix par durée de location</label>
+          <div class="pricing-grid">
+            ${[1,2,3,4,5,6,7,8,9,10,11,12,13,14].map(day => `
+              <div class="pricing-day">
+                <label>${day}j</label>
+                <input type="number" value="${a.prices[day] || 0}" onchange="updateAccessoryPrice(${index}, ${day}, this.value)">
+              </div>
+            `).join('')}
+          </div>
+          
+          <div class="extra-price">
+            <label>Jour supplémentaire (après 14j) :</label>
+            <input type="number" value="${a.extraDay}" onchange="updateAccessoryExtraDay(${index}, this.value)"> €
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    function updateAccessoryPrice(index, day, value) {
+      accessories[index].prices[day] = parseFloat(value) || 0;
+    }
+    
+    function updateAccessoryExtraDay(index, value) {
+      accessories[index].extraDay = parseFloat(value) || 0;
+    }
+    
+    function deleteAccessory(index) {
+      if (confirm('Supprimer cet accessoire ?')) {
+        accessories.splice(index, 1);
+        renderAccessories();
+      }
+    }
+    
+    function showAddAccessoryModal() {
+      openModal('Ajouter un accessoire', `
+        <div class="form-group">
+          <label>Nom</label>
+          <input type="text" id="newAccessoryName" class="form-control" placeholder="Ex: Sacoche">
+        </div>
+        <div class="form-group">
+          <label>Icône (emoji)</label>
+          <input type="text" id="newAccessoryIcon" class="form-control" placeholder="👜" maxlength="2">
+        </div>
+      `, `
+        <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+        <button class="btn btn-primary" onclick="addAccessory()">Ajouter</button>
+      `);
+    }
+    
+    function addAccessory() {
+      const name = document.getElementById('newAccessoryName').value;
+      const icon = document.getElementById('newAccessoryIcon').value || '📦';
+      
+      if (!name) {
+        alert('Veuillez entrer un nom');
+        return;
+      }
+      
+      const id = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+      
+      accessories.push({
+        id: id,
+        name: name,
+        icon: icon,
+        prices: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0 },
+        extraDay: 0
+      });
+      
+      closeModal();
+      renderAccessories();
+    }
+    
+    // =====================================================
+    // RENDU DES ASSURANCES
+    // =====================================================
+    
+    function renderInsuranceOptions() {
+      const container = document.getElementById('insuranceOptionsList');
+      container.innerHTML = insuranceOptions.map((ins, index) => `
+        <div class="insurance-option" data-insurance-index="${index}">
+          <div class="insurance-info">
+            <h3>${ins.name}</h3>
+            <p>${ins.description}</p>
+          </div>
+          <div class="insurance-values">
+            <div class="insurance-field">
+              <label>Prix/jour (€)</label>
+              <input type="number" value="${ins.pricePerDay}" onchange="updateInsurancePrice(${index}, this.value)">
+            </div>
+            <div class="insurance-field">
+              <label>Réduction caution (%)</label>
+              <input type="number" value="${ins.depositReduction}" min="0" max="100" onchange="updateInsuranceReduction(${index}, this.value)">
+            </div>
+            ${index > 0 ? `<button class="btn btn-sm btn-danger" onclick="deleteInsurance(${index})">🗑️</button>` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    function updateInsurancePrice(index, value) {
+      insuranceOptions[index].pricePerDay = parseFloat(value) || 0;
+    }
+    
+    function updateInsuranceReduction(index, value) {
+      insuranceOptions[index].depositReduction = Math.min(100, Math.max(0, parseFloat(value) || 0));
+    }
+    
+    function deleteInsurance(index) {
+      if (confirm('Supprimer cette option d\'assurance ?')) {
+        insuranceOptions.splice(index, 1);
+        renderInsuranceOptions();
+      }
+    }
+    
+    function showAddInsuranceModal() {
+      openModal('Ajouter une option d\'assurance', `
+        <div class="form-group">
+          <label>Nom</label>
+          <input type="text" id="newInsuranceName" class="form-control" placeholder="Ex: Assurance Gold">
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <input type="text" id="newInsuranceDesc" class="form-control" placeholder="Ex: Couverture totale">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Prix par jour (€)</label>
+            <input type="number" id="newInsurancePrice" class="form-control" value="5">
+          </div>
+          <div class="form-group">
+            <label>Réduction caution (%)</label>
+            <input type="number" id="newInsuranceReduction" class="form-control" value="50" min="0" max="100">
+          </div>
+        </div>
+      `, `
+        <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+        <button class="btn btn-primary" onclick="addInsurance()">Ajouter</button>
+      `);
+    }
+    
+    function addInsurance() {
+      const name = document.getElementById('newInsuranceName').value;
+      const description = document.getElementById('newInsuranceDesc').value;
+      const pricePerDay = parseFloat(document.getElementById('newInsurancePrice').value) || 0;
+      const depositReduction = parseFloat(document.getElementById('newInsuranceReduction').value) || 0;
+      
+      if (!name) {
+        alert('Veuillez entrer un nom');
+        return;
+      }
+      
+      const id = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+      
+      insuranceOptions.push({
+        id: id,
+        name: name,
+        description: description,
+        pricePerDay: pricePerDay,
+        depositReduction: Math.min(100, Math.max(0, depositReduction))
+      });
+      
+      closeModal();
+      renderInsuranceOptions();
+    }
+    
+    // =====================================================
+    // RENDU DES DOMMAGES
+    // =====================================================
+    
+    function renderDamages() {
+      const container = document.getElementById('damagesPricingList');
+      container.innerHTML = damages.map((d, index) => `
+        <div class="damage-item" data-damage-index="${index}">
+          <input type="text" value="${d.name}" placeholder="Type de dommage" onchange="updateDamageName(${index}, this.value)">
+          <input type="number" value="${d.price}" placeholder="Prix" onchange="updateDamagePrice(${index}, this.value)">
+          <button class="btn btn-sm btn-danger" onclick="deleteDamage(${index})">🗑️</button>
+        </div>
+      `).join('');
+    }
+    
+    function updateDamageName(index, value) {
+      damages[index].name = value;
+    }
+    
+    function updateDamagePrice(index, value) {
+      damages[index].price = parseFloat(value) || 0;
+    }
+    
+    function deleteDamage(index) {
+      damages.splice(index, 1);
+      renderDamages();
+    }
+    
+    function addDamageRow() {
+      const maxId = damages.length > 0 ? Math.max(...damages.map(d => d.id)) : 0;
+      damages.push({ id: maxId + 1, name: '', price: 0 });
+      renderDamages();
+      
+      // Focus sur le nouveau champ
+      setTimeout(() => {
+        const inputs = document.querySelectorAll('.damage-item input[type="text"]');
+        if (inputs.length > 0) {
+          inputs[inputs.length - 1].focus();
+        }
+      }, 100);
+    }
+    
+    // =====================================================
+    // MODAL
+    // =====================================================
+    
+    function openModal(title, body, footer = '') {
+      document.getElementById('modalContent').innerHTML = `
+        <div class="modal-header">
+          <h2>${title}</h2>
+          <button class="modal-close" onclick="closeModal()">×</button>
+        </div>
+        <div class="modal-body">${body}</div>
+        ${footer ? `<div class="modal-footer">${footer}</div>` : ''}
+      `;
+      document.getElementById('modalOverlay').classList.add('active');
+    }
+    
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.remove('active');
+    }
+    
+    // =====================================================
+    // SAUVEGARDE
+    // =====================================================
+    
+    async function saveAllPricing() {
+      // Filtrer les dommages vides
+      const filteredDamages = damages.filter(d => d.name && d.name.trim() !== '');
+      
+      const data = {
+        vehicleTypes: vehicleTypes,
+        accessories: accessories,
+        insuranceOptions: insuranceOptions,
+        damages: filteredDamages
+      };
+      
+      try {
+        const response = await fetch('/api/pricing', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('voltride_token')
+          },
+          body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+          showToast('Configuration tarifaire enregistrée !', 'success');
+        } else {
+          throw new Error('Erreur serveur');
+        }
+      } catch (e) {
+        console.error('Error saving pricing:', e);
+        // Sauvegarder en localStorage comme fallback
+        localStorage.setItem('voltride_pricing', JSON.stringify(data));
+        showToast('Configuration sauvegardée localement', 'warning');
+      }
+    }
+    
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 25px;
+        border-radius: 10px;
+        color: white;
+        font-weight: 500;
+        z-index: 2000;
+        animation: slideIn 0.3s ease;
+        background: ${type === 'success' ? '#22c55e' : type === 'warning' ? '#f59e0b' : type === 'error' ? '#ef4444' : '#3b82f6'};
+      `;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      
+      setTimeout(() => toast.remove(), 3000);
+    }
+  </script>
+</body>
+</html>
