@@ -47,6 +47,7 @@ app.use('/api/checkout', checkoutRoutes);
 app.use('/api/ocr', ocrRoutes);
 app.use('/api/invoices', invoicesRoutes);
 app.use('/api/pricing', pricingRoutes);
+app.use('/api/maintenance', require('./routes/maintenance'));
 
 // Route par défaut - renvoie l'application
 app.get('*', (req, res) => {
