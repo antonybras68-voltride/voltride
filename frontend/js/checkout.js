@@ -1,5 +1,5 @@
 // =====================================================
-// VOLTRIDE - Check-out (Version 1.1 - avec Facture & Email)
+// VOLTRIDE - Check-out (Version 2.0 - avec KM Motos & Maintenance)
 // =====================================================
 
 let currentStep = 1;
@@ -9,6 +9,10 @@ let accessoriesStatus = {};
 let inspectionData = {};
 let additionalDamages = [];
 let ticketPhotoData = null;
+let endKmValue = null;
+
+// Types de véhicules motorisés
+const MOTORIZED_TYPES = ['scooter', 'e-motocross', 'emotocross', 'e_motocross', 'moto', 'motocross'];
 
 // Valeurs des accessoires (à déduire si non rendus)
 const accessoryValues = {
@@ -22,13 +26,15 @@ const accessoryValues = {
   'rain_cover': { name: 'Chubasquero', value: 10 }
 };
 
-// Coûts des dommages
-const damageCosts = {
-  chassis: { rayado: 10, tordu: 50 },
-  wheels: { crevé: 0, voilé: 15 },
-  lights: { no_funciona: 0, cassé: 20 },
-  cleaning: { sale: 6 }
-};
+// =====================================================
+// Utilitaires
+// =====================================================
+
+function isMotorizedVehicle(type) {
+  if (!type) return false;
+  const normalizedType = type.toLowerCase().replace(/[-_\s]/g, '');
+  return MOTORIZED_TYPES.some(t => normalizedType.includes(t.replace(/[-_\s]/g, '')));
+}
 
 // =====================================================
 // Initialisation
@@ -66,7 +72,7 @@ async function loadActiveContracts() {
     console.error('Error:', e);
     document.getElementById('contractsGrid').innerHTML = `
       <div style="text-align: center; padding: 40px; color: var(--danger);">
-        ❌ Error al cargar los contratos: ${e.message}
+        Error al cargar los contratos: ${e.message}
       </div>
     `;
   }
@@ -78,7 +84,7 @@ function renderContracts() {
   if (activeContracts.length === 0) {
     grid.innerHTML = `
       <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
-        📭 No hay contratos activos para check-out
+        No hay contratos activos para check-out
       </div>
     `;
     return;
@@ -88,6 +94,7 @@ function renderContracts() {
     const startDate = new Date(contract.start_date);
     const endDate = new Date(contract.planned_end_date);
     const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+    const isMotorized = isMotorizedVehicle(contract.vehicle_type);
     const vehicleIcon = contract.vehicle_type === 'bike' ? '🚲' : contract.vehicle_type === 'ebike' ? '⚡' : '🛵';
     
     let accessories = [];
@@ -113,6 +120,18 @@ function renderContracts() {
             <span class="contract-info-label">Vehículo:</span>
             <span class="contract-info-value">${vehicleIcon} ${contract.vehicle_code}</span>
           </div>
+          ${isMotorized && contract.current_km ? `
+          <div class="contract-info-row">
+            <span class="contract-info-label">KM Inicio:</span>
+            <span class="contract-info-value" style="color: var(--info);">${contract.start_km || contract.current_km} km</span>
+          </div>
+          ` : ''}
+          ${isMotorized && contract.license_plate ? `
+          <div class="contract-info-row">
+            <span class="contract-info-label">Matrícula:</span>
+            <span class="contract-info-value">${contract.license_plate}</span>
+          </div>
+          ` : ''}
           <div class="contract-info-row">
             <span class="contract-info-label">Depósito:</span>
             <span class="contract-info-value" style="color: var(--success);">${parseFloat(contract.deposit).toFixed(2)}€</span>
@@ -120,11 +139,16 @@ function renderContracts() {
         </div>
         ${accessories.length > 0 ? `
           <div class="contract-accessories">
-            ${accessories.map(a => `<span class="accessory-tag">🎒 ${a}</span>`).join('')}
+            ${accessories.map(a => `<span class="accessory-tag">${a}</span>`).join('')}
+          </div>
+        ` : ''}
+        ${isMotorized ? `
+          <div style="background: var(--warning); color: var(--bg-dark); padding: 5px 10px; border-radius: 5px; font-size: 0.8rem; margin-top: 10px; text-align: center;">
+            🏍️ Vehículo motorizado - KM requerido
           </div>
         ` : ''}
         <div class="contract-dates">
-          📅 ${startDate.toLocaleDateString('es-ES')} → ${endDate.toLocaleDateString('es-ES')} (${days} días)
+          ${startDate.toLocaleDateString('es-ES')} → ${endDate.toLocaleDateString('es-ES')} (${days} días)
         </div>
       </div>
     `;
@@ -133,6 +157,7 @@ function renderContracts() {
 
 function selectContract(id) {
   selectedContract = activeContracts.find(c => c.id === id);
+  endKmValue = null;
   renderContracts();
   document.getElementById('btnNext1').disabled = !selectedContract;
 }
@@ -143,9 +168,43 @@ function selectContract(id) {
 
 function renderAccessories() {
   const list = document.getElementById('accessoriesList');
+  const isMotorized = selectedContract && isMotorizedVehicle(selectedContract.vehicle_type);
   
+  // Section KM pour véhicules motorisés
+  let kmSection = '';
+  if (isMotorized) {
+    const startKm = selectedContract.start_km || selectedContract.current_km || 0;
+    kmSection = `
+      <div style="background: linear-gradient(135deg, var(--warning) 0%, #f59e0b 100%); border-radius: 12px; padding: 20px; margin-bottom: 20px; color: var(--bg-dark);">
+        <h3 style="margin: 0 0 15px 0; display: flex; align-items: center; gap: 10px;">
+          🏍️ Kilométrage - Vehículo Motorizado
+        </h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+          <div>
+            <label style="font-size: 0.85rem; opacity: 0.8;">KM Inicio</label>
+            <div style="font-size: 1.5rem; font-weight: bold;">${startKm.toLocaleString()} km</div>
+          </div>
+          <div>
+            <label style="font-size: 0.85rem; opacity: 0.8;">KM Fin (actual) *</label>
+            <input type="number" id="endKmInput" class="form-control" 
+                   value="${endKmValue || ''}" 
+                   min="${startKm}"
+                   placeholder="Introducir km actual"
+                   onchange="updateEndKm(this.value)"
+                   style="font-size: 1.2rem; font-weight: bold; text-align: center; background: white; color: var(--bg-dark);">
+          </div>
+        </div>
+        <div id="kmTraveledInfo" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(0,0,0,0.2); display: ${endKmValue ? 'block' : 'none'};">
+          <span style="font-size: 0.9rem;">KM Recorridos: </span>
+          <strong id="kmTraveledValue">${endKmValue ? (endKmValue - startKm).toLocaleString() : 0} km</strong>
+        </div>
+      </div>
+    `;
+  }
+  
+  // Section accessoires
   if (!selectedContract || !selectedContract.notes) {
-    list.innerHTML = `
+    list.innerHTML = kmSection + `
       <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
         ✅ No hay accesorios registrados para este contrato
       </div>
@@ -160,7 +219,7 @@ function renderAccessories() {
   }
   
   if (accessories.length === 0) {
-    list.innerHTML = `
+    list.innerHTML = kmSection + `
       <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
         ✅ No hay accesorios registrados para este contrato
       </div>
@@ -172,7 +231,7 @@ function renderAccessories() {
   const endDate = new Date(selectedContract.planned_end_date);
   const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
   
-  list.innerHTML = accessories.map((accName, index) => {
+  list.innerHTML = kmSection + accessories.map((accName, index) => {
     const accKey = Object.keys(accessoryValues).find(k => 
       accessoryValues[k].name.toLowerCase() === accName.toLowerCase()
     );
@@ -202,6 +261,21 @@ function renderAccessories() {
       </div>
     `;
   }).join('');
+}
+
+function updateEndKm(value) {
+  const startKm = selectedContract.start_km || selectedContract.current_km || 0;
+  endKmValue = parseInt(value) || null;
+  
+  const infoDiv = document.getElementById('kmTraveledInfo');
+  const valueSpan = document.getElementById('kmTraveledValue');
+  
+  if (endKmValue && endKmValue >= startKm) {
+    infoDiv.style.display = 'block';
+    valueSpan.textContent = (endKmValue - startKm).toLocaleString() + ' km';
+  } else {
+    infoDiv.style.display = 'none';
+  }
 }
 
 function toggleAccessory(index) {
@@ -235,6 +309,7 @@ function renderInspection() {
     return;
   }
   
+  const isMotorized = isMotorizedVehicle(selectedContract.vehicle_type);
   const vehicleIcon = selectedContract.vehicle_type === 'bike' ? '🚲' : 
                       selectedContract.vehicle_type === 'ebike' ? '⚡' : '🛵';
   
@@ -243,6 +318,8 @@ function renderInspection() {
       chassis: 'excelente',
       wheels: 'excelente',
       lights: 'excelente',
+      brakes: 'excelente',
+      battery: 'excelente',
       cleaning: 'limpio',
       checkoutPhotoLeft: null,
       checkoutPhotoRight: null,
@@ -252,9 +329,30 @@ function renderInspection() {
   
   const inspection = inspectionData[selectedContract.vehicle_id];
   
+  // Options supplémentaires pour motos
+  const motorizedInspection = isMotorized ? `
+    <div class="inspection-item">
+      <label>Motor</label>
+      <select onchange="updateInspection(${selectedContract.vehicle_id}, 'motor', this.value)">
+        <option value="excelente" ${inspection.motor === 'excelente' ? 'selected' : ''}>✅ Funciona bien</option>
+        <option value="ruido" ${inspection.motor === 'ruido' ? 'selected' : ''}>⚠️ Ruido anormal (Mant.)</option>
+        <option value="no_arranca" ${inspection.motor === 'no_arranca' ? 'selected' : ''}>❌ No arranca (Mant.)</option>
+      </select>
+    </div>
+    <div class="inspection-item">
+      <label>Suspensión</label>
+      <select onchange="updateInspection(${selectedContract.vehicle_id}, 'suspension', this.value)">
+        <option value="excelente" ${inspection.suspension === 'excelente' ? 'selected' : ''}>✅ Excelente</option>
+        <option value="blanda" ${inspection.suspension === 'blanda' ? 'selected' : ''}>⚠️ Blanda (Mant.)</option>
+        <option value="dura" ${inspection.suspension === 'dura' ? 'selected' : ''}>⚠️ Dura (Mant.)</option>
+      </select>
+    </div>
+  ` : '';
+  
   container.innerHTML = `
     <div style="background: var(--bg-secondary); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
       <h3 style="margin-bottom: 20px;">${vehicleIcon} ${selectedContract.vehicle_code} - ${selectedContract.brand || ''} ${selectedContract.model || ''}</h3>
+      ${isMotorized && selectedContract.license_plate ? `<p style="color: var(--text-secondary); margin-bottom: 15px;">Matrícula: <strong>${selectedContract.license_plate}</strong></p>` : ''}
       
       <div class="inspection-grid">
         <div class="inspection-item">
@@ -285,6 +383,26 @@ function renderInspection() {
         </div>
         
         <div class="inspection-item">
+          <label>Frenos</label>
+          <select onchange="updateInspection(${selectedContract.vehicle_id}, 'brakes', this.value)">
+            <option value="excelente" ${inspection.brakes === 'excelente' ? 'selected' : ''}>✅ Excelente</option>
+            <option value="gastados" ${inspection.brakes === 'gastados' ? 'selected' : ''}>⚠️ Gastados (Mant.)</option>
+            <option value="defectuoso" ${inspection.brakes === 'defectuoso' ? 'selected' : ''}>❌ Defectuoso (Mant. URGENTE)</option>
+          </select>
+        </div>
+        
+        ${motorizedInspection}
+        
+        <div class="inspection-item">
+          <label>Batería</label>
+          <select onchange="updateInspection(${selectedContract.vehicle_id}, 'battery', this.value)">
+            <option value="excelente" ${inspection.battery === 'excelente' ? 'selected' : ''}>✅ Carga OK</option>
+            <option value="faible" ${inspection.battery === 'faible' ? 'selected' : ''}>⚠️ Carga baja</option>
+            <option value="defectuosa" ${inspection.battery === 'defectuosa' ? 'selected' : ''}>❌ Defectuosa (Mant.)</option>
+          </select>
+        </div>
+        
+        <div class="inspection-item">
           <label>Limpieza</label>
           <select onchange="updateInspection(${selectedContract.vehicle_id}, 'cleaning', this.value)">
             <option value="limpio" ${inspection.cleaning === 'limpio' ? 'selected' : ''}>✅ Limpio</option>
@@ -306,12 +424,12 @@ function renderInspection() {
     </div>
     
     <div class="photo-comparison">
-      <h3>📷 Comparación de Fotos (Antes / Después)</h3>
+      <h3>Comparación de Fotos (Antes / Después)</h3>
       <p style="color: var(--text-secondary); margin-bottom: 15px;">Compara el estado del vehículo al inicio y al final del alquiler</p>
       
       <div class="photo-comparison-grid">
         <div class="photo-side">
-          <h4>🔵 Lado Izquierdo</h4>
+          <h4>Lado Izquierdo</h4>
           <div class="photo-columns">
             <div>
               <div class="photo-box">
@@ -325,7 +443,7 @@ function renderInspection() {
               <div class="photo-box clickable" onclick="captureInspectionPhoto(${selectedContract.vehicle_id}, 'left')">
                 ${inspection.checkoutPhotoLeft ? 
                   `<img src="${inspection.checkoutPhotoLeft}" alt="Check-out">` : 
-                  '📷 Foto'}
+                  '+ Foto'}
               </div>
               <div class="photo-label">CHECK-OUT</div>
             </div>
@@ -333,7 +451,7 @@ function renderInspection() {
         </div>
         
         <div class="photo-side">
-          <h4>🔴 Lado Derecho</h4>
+          <h4>Lado Derecho</h4>
           <div class="photo-columns">
             <div>
               <div class="photo-box">
@@ -347,7 +465,7 @@ function renderInspection() {
               <div class="photo-box clickable" onclick="captureInspectionPhoto(${selectedContract.vehicle_id}, 'right')">
                 ${inspection.checkoutPhotoRight ? 
                   `<img src="${inspection.checkoutPhotoRight}" alt="Check-out">` : 
-                  '📷 Foto'}
+                  '+ Foto'}
               </div>
               <div class="photo-label">CHECK-OUT</div>
             </div>
@@ -357,17 +475,17 @@ function renderInspection() {
     </div>
     
     <div class="additional-photos">
-      <h3>📸 Fotos Adicionales (Daños)</h3>
+      <h3>Fotos Adicionales (Daños)</h3>
       <p style="color: var(--text-secondary); margin-bottom: 15px;">Añade fotos de cualquier daño encontrado</p>
       
       <div class="damage-photos-grid" id="damagePhotosGrid">
-        ${inspection.damagePhotos.map((photo, i) => `
+        ${(inspection.damagePhotos || []).map((photo, i) => `
           <div class="damage-photo-box">
             <img src="${photo}" alt="Daño ${i+1}">
           </div>
         `).join('')}
         <div class="damage-photo-box" onclick="captureDamagePhoto(${selectedContract.vehicle_id})">
-          📷 + Añadir
+          + Añadir
         </div>
       </div>
     </div>
@@ -446,8 +564,22 @@ function renderSummary() {
   const startDate = new Date(selectedContract.start_date);
   const endDate = new Date(selectedContract.planned_end_date);
   const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+  const isMotorized = isMotorizedVehicle(selectedContract.vehicle_type);
   const vehicleIcon = selectedContract.vehicle_type === 'bike' ? '🚲' : 
                       selectedContract.vehicle_type === 'ebike' ? '⚡' : '🛵';
+  
+  // Info KM pour motos
+  let kmInfo = '';
+  if (isMotorized) {
+    const startKm = selectedContract.start_km || selectedContract.current_km || 0;
+    const kmTraveled = endKmValue ? endKmValue - startKm : 0;
+    kmInfo = `
+      <div class="summary-row" style="background: var(--bg-secondary); padding: 10px; border-radius: 8px; margin: 10px 0;">
+        <span>KM Recorridos:</span>
+        <span style="color: var(--info);"><strong>${startKm.toLocaleString()} → ${(endKmValue || startKm).toLocaleString()} km</strong> (${kmTraveled.toLocaleString()} km)</span>
+      </div>
+    `;
+  }
   
   document.getElementById('contractSummary').innerHTML = `
     <div class="summary-row">
@@ -470,6 +602,7 @@ function renderSummary() {
       <span>Período:</span>
       <span>${days} día(s)</span>
     </div>
+    ${kmInfo}
   `;
   
   const deductions = calculateDeductions();
@@ -652,7 +785,18 @@ function handleTicketPhoto(input) {
 // =====================================================
 
 function nextStep() {
+  // Validation pour véhicules motorisés à l'étape 1
   if (currentStep === 1) {
+    const isMotorized = selectedContract && isMotorizedVehicle(selectedContract.vehicle_type);
+    if (isMotorized && !endKmValue) {
+      alert('Por favor, introduce el kilometraje actual del vehículo');
+      return;
+    }
+    const startKm = selectedContract?.start_km || selectedContract?.current_km || 0;
+    if (isMotorized && endKmValue < startKm) {
+      alert('El kilometraje final no puede ser menor que el kilometraje inicial');
+      return;
+    }
     renderAccessories();
   }
   if (currentStep === 2) {
@@ -697,6 +841,14 @@ async function finishCheckout() {
     return;
   }
   
+  const isMotorized = isMotorizedVehicle(selectedContract.vehicle_type);
+  
+  // Validation KM pour motos
+  if (isMotorized && !endKmValue) {
+    alert('Por favor, introduce el kilometraje final del vehículo');
+    return;
+  }
+  
   const depositMethod = selectedContract.deposit_method || 'cash';
   if (depositMethod === 'preauth' && !ticketPhotoData) {
     alert('Por favor, tome una foto del ticket de cancelación de pre-autorización');
@@ -713,7 +865,14 @@ async function finishCheckout() {
     inspection.wheels === 'crevé' || 
     inspection.wheels === 'voilé' || 
     inspection.lights === 'no_funciona' || 
-    inspection.lights === 'cassé';
+    inspection.lights === 'cassé' ||
+    inspection.brakes === 'defectuoso' ||
+    inspection.brakes === 'gastados' ||
+    inspection.battery === 'defectuosa' ||
+    inspection.motor === 'ruido' ||
+    inspection.motor === 'no_arranca' ||
+    inspection.suspension === 'blanda' ||
+    inspection.suspension === 'dura';
   
   const checkoutData = {
     rental_id: selectedContract.id,
@@ -729,12 +888,13 @@ async function finishCheckout() {
       left: inspection.checkoutPhotoLeft,
       right: inspection.checkoutPhotoRight,
       damages: inspection.damagePhotos || []
-    }
+    },
+    end_km: isMotorized ? endKmValue : null
   };
   
   try {
     document.getElementById('btnFinish').disabled = true;
-    document.getElementById('btnFinish').textContent = '⏳ Procesando...';
+    document.getElementById('btnFinish').textContent = 'Procesando...';
     
     const response = await fetch('/api/checkout', {
       method: 'POST',
@@ -755,11 +915,17 @@ async function finishCheckout() {
       
       // Message de succès
       const emailMsg = selectedContract.email ? 
-        `\n\n📧 Factura enviada a: ${selectedContract.email}` : '';
+        `\n\nFactura enviada a: ${selectedContract.email}` : '';
+      const kmMsg = isMotorized && result.km_traveled ? 
+        `\nKM recorridos: ${result.km_traveled.toLocaleString()} km` : '';
+      const maintenanceMsg = result.scheduled_maintenance ? 
+        `\n\n⚠️ Mantenimiento programado requerido` : '';
       
       alert(`✅ Check-out completado!\n\n` +
-            `💰 Depósito devuelto: ${toRefund.toFixed(2)}€\n` +
-            `${needsMaintenance ? '⚠️ Vehículo enviado a mantenimiento' : '✅ Vehículo disponible'}` +
+            `Depósito devuelto: ${toRefund.toFixed(2)}€` +
+            kmMsg +
+            `\n${needsMaintenance || result.scheduled_maintenance ? '⚠️ Vehículo enviado a mantenimiento' : '✅ Vehículo disponible'}` +
+            maintenanceMsg +
             emailMsg);
       
       window.location.href = '/app.html';
@@ -768,9 +934,9 @@ async function finishCheckout() {
     }
   } catch (e) {
     console.error('Error:', e);
-    alert('❌ Error: ' + e.message);
+    alert('Error: ' + e.message);
     document.getElementById('btnFinish').disabled = false;
-    document.getElementById('btnFinish').textContent = '✅ Finalizar Check-out y Generar Documentos';
+    document.getElementById('btnFinish').textContent = 'Finalizar Check-out y Generar Documentos';
   }
 }
 
