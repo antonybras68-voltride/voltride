@@ -24,14 +24,25 @@
       border: 2px solid #f59e0b;
       border-radius: 10px;
       color: white;
-      font-size: 28px;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
     }
     .mobile-menu-btn:active {
       background: #f59e0b;
       transform: scale(0.95);
+    }
+    .mobile-menu-btn svg {
+      width: 28px;
+      height: 28px;
+      pointer-events: none;
     }
     .mobile-logo { height: 35px; }
     .mobile-lang { display: flex; gap: 5px; }
@@ -111,7 +122,7 @@
       
       <!-- Bouton Fermer dans le sidebar pour mobile -->
       <div style="padding: 15px; display: none;" class="mobile-close-btn">
-        <button class="btn btn-secondary" style="width: 100%;" id="closeSidebarBtn">✕ Fermer le menu</button>
+        <button class="btn btn-secondary" style="width: 100%;" id="closeSidebarBtn">✕ Cerrar menú</button>
       </div>
       
       <div class="sidebar-footer">
@@ -128,7 +139,13 @@
     
     <main class="main-content">
       <div class="mobile-header" id="mobileHeader">
-        <button class="mobile-menu-btn" id="menuBtn" type="button">☰</button>
+        <button class="mobile-menu-btn" id="menuBtn" type="button" aria-label="Menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
         <img src="/assets/logo.png" alt="Voltride" class="mobile-logo">
         <div class="mobile-lang">
           <button class="lang-btn active" data-lang="es" type="button">ES</button>
@@ -151,28 +168,27 @@
   <script src="/js/api.js"></script>
   <script src="/js/app.js"></script>
   
-  <!-- MOBILE MENU SCRIPT - AFTER app.js to ensure it runs last -->
+  <!-- MOBILE MENU SCRIPT -->
   <script>
     (function() {
       'use strict';
       
-      // Éléments du DOM
       var menuBtn = document.getElementById('menuBtn');
       var sidebar = document.getElementById('sidebar');
       var overlay = document.getElementById('sidebarOverlay');
       var closeSidebarBtn = document.getElementById('closeSidebarBtn');
       
-      // Fonction pour ouvrir/fermer le menu
-      function toggleMenu() {
-        console.log('Menu button clicked!'); // Debug
+      function toggleMenu(e) {
+        if (e) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
         if (sidebar && overlay) {
           sidebar.classList.toggle('open');
           overlay.classList.toggle('active');
-          console.log('Sidebar open:', sidebar.classList.contains('open')); // Debug
         }
       }
       
-      // Fonction pour fermer le menu
       function closeMenu() {
         if (sidebar && overlay) {
           sidebar.classList.remove('open');
@@ -180,35 +196,19 @@
         }
       }
       
-      // Attacher l'événement au bouton menu
       if (menuBtn) {
-        menuBtn.addEventListener('click', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          toggleMenu();
-        });
-        
-        // Support tactile
-        menuBtn.addEventListener('touchend', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          toggleMenu();
-        });
+        menuBtn.addEventListener('click', toggleMenu, false);
       }
       
-      // Fermer quand on clique sur l'overlay
       if (overlay) {
-        overlay.addEventListener('click', closeMenu);
+        overlay.addEventListener('click', closeMenu, false);
       }
       
-      // Bouton fermer dans le sidebar
       if (closeSidebarBtn) {
-        closeSidebarBtn.addEventListener('click', closeMenu);
+        closeSidebarBtn.addEventListener('click', closeMenu, false);
       }
       
-      // Fermer quand on clique sur un élément de navigation
-      var navItems = document.querySelectorAll('.nav-item');
-      navItems.forEach(function(item) {
+      document.querySelectorAll('.nav-item').forEach(function(item) {
         item.addEventListener('click', function() {
           if (window.innerWidth <= 768) {
             closeMenu();
@@ -216,32 +216,23 @@
         });
       });
       
-      // Gestion des boutons de langue
-      var langBtns = document.querySelectorAll('.mobile-lang .lang-btn');
-      langBtns.forEach(function(btn) {
+      document.querySelectorAll('.mobile-lang .lang-btn').forEach(function(btn) {
         btn.addEventListener('click', function(e) {
           e.preventDefault();
           var lang = this.getAttribute('data-lang');
           localStorage.setItem('voltride_lang', lang);
-          
-          // Mettre à jour tous les boutons de langue
           document.querySelectorAll('.lang-btn').forEach(function(b) {
             b.classList.toggle('active', b.getAttribute('data-lang') === lang);
           });
-          
-          // Recharger la page si loadPage existe
           if (typeof loadPage === 'function' && typeof currentPage !== 'undefined') {
             loadPage(currentPage);
           }
         });
       });
       
-      // Afficher le bouton fermer sur mobile
       var style = document.createElement('style');
       style.textContent = '@media (max-width: 768px) { .mobile-close-btn { display: block !important; } }';
       document.head.appendChild(style);
-      
-      console.log('Mobile menu script loaded successfully!'); // Debug
     })();
   </script>
 </body>
