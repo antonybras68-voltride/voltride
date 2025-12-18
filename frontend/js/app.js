@@ -402,7 +402,7 @@ function showVehicleModal(id = null) {
       <input type="hidden" id="vehicleId" value="${id||''}">
       <div class="form-row">
         <div class="form-group"><label>${t('vehicleCode')} *</label><input type="text" id="vehicleCode" class="form-control" required placeholder="EB1, CB2, SC3..."></div>
-        <div class="form-group"><label>${t('vehicleType')} *</label><select id="vehicleType" class="form-control">${typeOptions}</select></div>
+        <div class="form-group"><label>${t('vehicleType')} *</label><select id="vehicleType" class="form-control" onchange="toggleMotorizedFields()">${typeOptions}</select></div>
       </div>
       <div class="form-row">
         <div class="form-group"><label>${t('brand')}</label><input type="text" id="vehicleBrand" class="form-control" placeholder="FIIDO, MBM..."></div>
@@ -413,6 +413,16 @@ function showVehicleModal(id = null) {
         <div class="form-group"><label>${t('status')}</label><select id="vehicleStatus" class="form-control"><option value="available">${t('available')}</option><option value="maintenance">${t('maintenance')}</option></select></div>
       </div>
       <div class="form-group"><label>Color</label><input type="text" id="vehicleColor" class="form-control" placeholder="Negro, Blanco, Rojo..."></div>
+      
+      <!-- Champs pour véhicules motorisés (E-motocross, Scooter) -->
+      <div id="motorizedFields" style="display:none;border:1px solid var(--border);border-radius:8px;padding:15px;margin:15px 0;background:var(--bg-input);">
+        <p style="margin:0 0 15px 0;color:var(--primary);font-weight:500;">Información legal (vehículo motorizado)</p>
+        <div class="form-row">
+          <div class="form-group"><label>Matrícula</label><input type="text" id="vehiclePlate" class="form-control" placeholder="1234 ABC"></div>
+          <div class="form-group"><label>Nº Bastidor/Chasis</label><input type="text" id="vehicleChassis" class="form-control" placeholder="VIN/Número de chasis"></div>
+        </div>
+      </div>
+      
       <div class="form-group"><label>Notas</label><textarea id="vehicleNotes" class="form-control" rows="2" placeholder="Observaciones adicionales..."></textarea></div>
     </form>
   `, `<button class="btn btn-secondary" onclick="closeModal()">${t('cancel')}</button><button class="btn btn-primary" onclick="saveVehicle()">${t('save')}</button>`);
@@ -420,8 +430,24 @@ function showVehicleModal(id = null) {
   // Sélectionner l'agence de l'utilisateur par défaut
   if (!id) {
     document.getElementById('vehicleAgency').value = currentUser.agency_id;
+    toggleMotorizedFields();
   } else {
     loadVehicleData(id);
+  }
+}
+
+// Afficher/masquer les champs pour véhicules motorisés
+function toggleMotorizedFields() {
+  const type = document.getElementById('vehicleType').value.toLowerCase();
+  const motorizedFields = document.getElementById('motorizedFields');
+  
+  // Types qui nécessitent plaque et châssis
+  const motorizedTypes = ['e-motocross', 'emotocross', 'e_motocross', 'scooter', 'moto', 'motocross'];
+  
+  if (motorizedTypes.some(t => type.includes(t.replace(/[-_]/g, '')) || type.replace(/[-_]/g, '').includes(t.replace(/[-_]/g, '')))) {
+    motorizedFields.style.display = 'block';
+  } else {
+    motorizedFields.style.display = 'none';
   }
 }
 
@@ -435,7 +461,12 @@ async function loadVehicleData(id) {
     document.getElementById('vehicleAgency').value = v.agency_id || currentUser.agency_id;
     document.getElementById('vehicleStatus').value = v.status;
     document.getElementById('vehicleColor').value = v.color || '';
+    document.getElementById('vehiclePlate').value = v.license_plate || '';
+    document.getElementById('vehicleChassis').value = v.chassis_number || '';
     document.getElementById('vehicleNotes').value = v.notes || '';
+    
+    // Afficher les champs motorisés si nécessaire
+    toggleMotorizedFields();
   } catch (e) { console.error(e); }
 }
 
@@ -449,6 +480,8 @@ async function saveVehicle() {
     color: document.getElementById('vehicleColor').value,
     status: document.getElementById('vehicleStatus').value,
     agency_id: document.getElementById('vehicleAgency').value,
+    license_plate: document.getElementById('vehiclePlate').value || null,
+    chassis_number: document.getElementById('vehicleChassis').value || null,
     notes: document.getElementById('vehicleNotes').value,
     daily_rate: 0,
     deposit: 0
