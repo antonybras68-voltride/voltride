@@ -1524,16 +1524,39 @@ function renderInsurancePricing(container) {
 
 function renderDamagesPricing(container) {
   container.innerHTML = `
-    <p style="color:var(--text-secondary);margin-bottom:15px;">Tarifs des dommages à facturer lors du check-out.</p>
+    <div style="background:rgba(245,158,11,0.15);border:1px solid var(--primary);border-radius:10px;padding:15px;margin-bottom:20px;">
+      <p style="color:var(--text-primary);font-size:0.9rem;margin:0;"><strong>💡 Info:</strong> Les dommages sont affichés dans le Check-out. Vous pouvez les associer à des types de véhicules spécifiques.</p>
+    </div>
     ${damages.map((d, i) => `
-      <div class="damage-row">
-        <input type="text" value="${d.name}" placeholder="Type de dommage" onchange="damages[${i}].name=this.value" style="padding:10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
-        <input type="number" value="${d.price}" placeholder="€" onchange="damages[${i}].price=parseFloat(this.value)" style="padding:10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);text-align:center;">
+      <div class="damage-row" style="display:grid;grid-template-columns:1fr 100px 200px auto;gap:10px;align-items:center;padding:15px;background:var(--bg-input);border-radius:8px;margin-bottom:10px;">
+        <input type="text" value="${d.name || ''}" placeholder="Type de dommage" onchange="damages[${i}].name=this.value" style="padding:10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+        <input type="number" value="${d.price || 0}" placeholder="€" onchange="damages[${i}].price=parseFloat(this.value)||0" style="padding:10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);text-align:center;">
+        <select onchange="updateDamageTypes(${i}, this.value)" style="padding:10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+          <option value="" ${!d.compatibleTypes || d.compatibleTypes.length === 0 ? 'selected' : ''}>🌐 Tous véhicules</option>
+          ${vehicleTypes.map(vt => `
+            <option value="${vt.id}" ${d.compatibleTypes && d.compatibleTypes.includes(vt.id) ? 'selected' : ''}>${vt.name}</option>
+          `).join('')}
+        </select>
         <button class="btn btn-sm btn-danger" onclick="deleteDamage(${i})">Suppr.</button>
       </div>
     `).join('')}
-    <button class="add-item-btn" onclick="addDamage()">+ Ajouter un type de dommage</button>
+    <button class="add-item-btn" onclick="addDamageWithType()">+ Ajouter un type de dommage</button>
   `;
+}
+
+function updateDamageTypes(index, vehicleTypeId) {
+  if (!damages[index].compatibleTypes) damages[index].compatibleTypes = [];
+  if (vehicleTypeId === '') {
+    damages[index].compatibleTypes = [];
+  } else {
+    damages[index].compatibleTypes = [vehicleTypeId];
+  }
+}
+
+function addDamageWithType() {
+  const maxId = damages.length > 0 ? Math.max(...damages.map(d => d.id || 0)) : 0;
+  damages.push({ id: maxId + 1, name: '', price: 0, compatibleTypes: [] });
+  switchPricingSubTab('damages');
 }
 
 function addVehicleType() {
@@ -1627,12 +1650,6 @@ function confirmAddInsurance() {
 }
 
 function deleteInsurance(i) { if(confirm('Supprimer?')) { insuranceOptions.splice(i,1); switchPricingSubTab('insurance'); } }
-
-function addDamage() {
-  const maxId = damages.length > 0 ? Math.max(...damages.map(d => d.id)) : 0;
-  damages.push({ id: maxId + 1, name: '', price: 0 });
-  switchPricingSubTab('damages');
-}
 
 function deleteDamage(i) { damages.splice(i,1); switchPricingSubTab('damages'); }
 
