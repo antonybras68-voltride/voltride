@@ -1258,8 +1258,8 @@ function nextStep() {
   }
   if (currentStep === 2) {
     // Vérifier qu'un véhicule est sélectionné
-    if (!selectedVehicle) {
-      alert('Por favor, seleccione un vehículo');
+    if (selectedVehicles.length === 0) {
+      alert('Por favor, seleccione al menos un vehículo');
       return;
     }
     renderAccessories();
