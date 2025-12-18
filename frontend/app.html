@@ -6,7 +6,6 @@
   <title>Voltride - Gestión de Alquileres</title>
   <link rel="stylesheet" href="/css/styles.css">
   <style>
-    /* MOBILE STYLES - Override */
     .mobile-header {
       display: none;
       align-items: center;
@@ -118,12 +117,12 @@
     
     <main class="main-content">
       <div class="mobile-header" id="mobileHeader">
-        <button class="mobile-menu-btn" id="menuBtn">☰</button>
+        <button class="mobile-menu-btn" id="menuBtn" onclick="toggleMobileMenu()">☰</button>
         <img src="/assets/logo.png" alt="Voltride" class="mobile-logo">
         <div class="mobile-lang">
-          <button class="lang-btn active" data-lang="es">ES</button>
-          <button class="lang-btn" data-lang="fr">FR</button>
-          <button class="lang-btn" data-lang="en">EN</button>
+          <button class="lang-btn active" data-lang="es" onclick="setLang('es')">ES</button>
+          <button class="lang-btn" data-lang="fr" onclick="setLang('fr')">FR</button>
+          <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
         </div>
       </div>
       
@@ -137,57 +136,50 @@
     <div class="modal" id="modalContent"></div>
   </div>
   
+  <!-- MOBILE MENU SCRIPT - FIRST (before other scripts) -->
+  <script>
+    function toggleMobileMenu() {
+      var sidebar = document.getElementById('sidebar');
+      var overlay = document.getElementById('sidebarOverlay');
+      if (sidebar.classList.contains('open')) {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
+      } else {
+        sidebar.classList.add('open');
+        overlay.classList.add('active');
+      }
+    }
+    
+    function closeMobileMenu() {
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebarOverlay').classList.remove('active');
+    }
+    
+    function setLang(lang) {
+      localStorage.setItem('voltride_lang', lang);
+      document.querySelectorAll('.lang-btn').forEach(function(b) {
+        b.classList.toggle('active', b.getAttribute('data-lang') === lang);
+      });
+      if (typeof loadPage === 'function' && typeof currentPage !== 'undefined') {
+        loadPage(currentPage);
+      }
+    }
+    
+    document.getElementById('sidebarOverlay').onclick = closeMobileMenu;
+  </script>
+  
   <script src="/js/translations.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/app.js"></script>
+  
   <script>
-    // Mobile Menu - Same code as test-mobile.html
-    var menuBtn = document.getElementById('menuBtn');
-    var sidebar = document.getElementById('sidebar');
-    var overlay = document.getElementById('sidebarOverlay');
-    
-    function openSidebar() {
-      sidebar.classList.add('open');
-      overlay.classList.add('active');
-    }
-    
-    function closeSidebar() {
-      sidebar.classList.remove('open');
-      overlay.classList.remove('active');
-    }
-    
-    menuBtn.onclick = function() {
-      if (sidebar.classList.contains('open')) {
-        closeSidebar();
-      } else {
-        openSidebar();
-      }
-    };
-    
-    overlay.onclick = closeSidebar;
-    
     // Close sidebar when clicking nav items on mobile
     document.querySelectorAll('.nav-item').forEach(function(item) {
       item.addEventListener('click', function() {
         if (window.innerWidth <= 768) {
-          closeSidebar();
+          closeMobileMenu();
         }
       });
-    });
-    
-    // Mobile language buttons
-    document.querySelectorAll('.mobile-lang .lang-btn').forEach(function(btn) {
-      btn.onclick = function() {
-        var lang = this.getAttribute('data-lang');
-        localStorage.setItem('voltride_lang', lang);
-        document.querySelectorAll('.lang-btn').forEach(function(b) {
-          b.classList.remove('active');
-        });
-        this.classList.add('active');
-        if (typeof loadPage === 'function') {
-          loadPage(currentPage);
-        }
-      };
     });
   </script>
 </body>
