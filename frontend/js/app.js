@@ -1,6 +1,6 @@
 // =====================================================
-// VOLTRIDE - Application principale (v2.2)
-// Responsive + Mobile sidebar + Settings intégrés
+// VOLTRIDE - Application principale (v2.3)
+// Responsive + Mobile sidebar + Settings intégrés + ½ día
 // =====================================================
 
 let currentPage = 'dashboard';
@@ -974,6 +974,9 @@ async function renderSettings(container) {
       .pricing-day label { display: block; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px; }
       .pricing-day input { width: 100%; padding: 8px 4px; text-align: center; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 0.85rem; }
       .pricing-day input:focus { outline: none; border-color: var(--primary); }
+      .pricing-day.half-day { background: rgba(245, 158, 11, 0.2); border-radius: 8px; padding: 5px; }
+      .pricing-day.half-day label { color: var(--primary); font-weight: bold; }
+      .pricing-day.half-day input { background: rgba(245, 158, 11, 0.1); border-color: var(--primary); }
       .pricing-card { background: var(--bg-card); border-radius: 12px; padding: 20px; margin-bottom: 15px; }
       .pricing-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
       .add-item-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 15px; background: transparent; border: 2px dashed var(--border); border-radius: 10px; color: var(--text-secondary); cursor: pointer; font-size: 0.9rem; transition: all 0.2s; }
@@ -981,7 +984,7 @@ async function renderSettings(container) {
       .insurance-row { display: flex; align-items: center; justify-content: space-between; padding: 15px; background: var(--bg-input); border-radius: 10px; margin-bottom: 10px; flex-wrap: wrap; gap: 15px; }
       .damage-row { display: grid; grid-template-columns: 1fr 100px auto; gap: 10px; align-items: center; padding: 12px; background: var(--bg-input); border-radius: 8px; margin-bottom: 8px; }
       @media (max-width: 768px) {
-        .pricing-grid { grid-template-columns: repeat(7, 1fr); }
+        .pricing-grid { grid-template-columns: repeat(5, 1fr); }
         .damage-row { grid-template-columns: 1fr; }
         .insurance-row { flex-direction: column; align-items: stretch; }
       }
@@ -1307,8 +1310,8 @@ function switchPricingSubTab(tab) {
 
 function renderVehiclesPricing(container) {
   container.innerHTML = `
-    <div style="background:rgba(59,130,246,0.1);border:1px solid var(--info);border-radius:10px;padding:15px;margin-bottom:20px;">
-      <p style="color:var(--text-secondary);font-size:0.9rem;"><strong>Valeur de remplacement</strong> = montant déduit de la caution si véhicule non retourné/volé</p>
+    <div style="background:rgba(245,158,11,0.15);border:1px solid var(--primary);border-radius:10px;padding:15px;margin-bottom:20px;">
+      <p style="color:var(--text-primary);font-size:0.9rem;margin:0;"><strong>💡 Info:</strong> Los precios son <strong>TOTALES</strong> por duración. <strong>½ día = 4 horas</strong>. <strong>24h = 1 día</strong> (+1h gratis).</p>
     </div>
   ` + vehicleTypes.map((v, i) => `
     <div class="pricing-card">
@@ -1338,8 +1341,12 @@ function renderVehiclesPricing(container) {
         </div>
       </div>
       
-      <label style="font-size:0.85rem;color:var(--text-secondary);">Prix par durée (1-14 jours)</label>
+      <label style="font-size:0.85rem;color:var(--text-secondary);">Prix par durée (½ día + 1-14 jours)</label>
       <div class="pricing-grid">
+        <div class="pricing-day half-day">
+          <label>½ día</label>
+          <input type="number" value="${v.halfDay||0}" onchange="vehicleTypes[${i}].halfDay=parseFloat(this.value)||0">
+        </div>
         ${[1,2,3,4,5,6,7,8,9,10,11,12,13,14].map(d => `
           <div class="pricing-day">
             <label>${d}j</label>
@@ -1452,8 +1459,12 @@ function renderAccessoriesPricing(container) {
           <input type="number" value="${a.extraDay}" onchange="accessories[${i}].extraDay=parseFloat(this.value)" style="width:80px;padding:8px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);text-align:center;">
         </div>
       </div>
-      <label style="font-size:0.85rem;color:var(--text-secondary);">Prix par durée (1-14 jours)</label>
+      <label style="font-size:0.85rem;color:var(--text-secondary);">Prix par durée (½ día + 1-14 jours)</label>
       <div class="pricing-grid">
+        <div class="pricing-day half-day">
+          <label>½ día</label>
+          <input type="number" value="${a.halfDay||0}" onchange="accessories[${i}].halfDay=parseFloat(this.value)||0">
+        </div>
         ${[1,2,3,4,5,6,7,8,9,10,11,12,13,14].map(d => `
           <div class="pricing-day">
             <label>${d}j</label>
