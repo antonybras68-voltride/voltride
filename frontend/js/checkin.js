@@ -163,10 +163,7 @@ function getVehicleTypePrice(type, days, isHalfDay = false) {
     vt.name.toLowerCase() === type.toLowerCase()
   );
   
-  console.log('🔍 getVehicleTypePrice:', { type, days, isHalfDay, vehicleType, allTypes: pricingConfig.vehicleTypes.map(v => v.id) });
-  
   if (!vehicleType || !vehicleType.prices) {
-    console.log('⚠️ Type non trouvé, retour 0');
     return { dailyRate: 0, total: 0, deposit: 0 };
   }
   
@@ -194,7 +191,6 @@ function getVehicleTypePrice(type, days, isHalfDay = false) {
   if (vehicleType.prices[String(daysInt)]) {
     total = vehicleType.prices[String(daysInt)];
     dailyRate = total / daysInt;
-    console.log('✅ Prix trouvé pour', daysInt, 'jours:', total, '€');
   } 
   // Si > 14 jours, utiliser prix 14j + jours supplémentaires
   else if (daysInt > 14) {
@@ -203,7 +199,6 @@ function getVehicleTypePrice(type, days, isHalfDay = false) {
     const extraDays = daysInt - 14;
     total = base14 + (extraDay * extraDays);
     dailyRate = total / daysInt;
-    console.log('📊 >14j calcul:', { base14, extraDay, extraDays, total });
   }
   // Sinon trouver le prix le plus proche inférieur
   else {
@@ -212,8 +207,6 @@ function getVehicleTypePrice(type, days, isHalfDay = false) {
       .filter(d => !isNaN(d) && d <= daysInt)
       .sort((a, b) => b - a);
     
-    console.log('🔎 Recherche prix proche pour', daysInt, 'jours. Disponibles:', sortedDays);
-    
     if (sortedDays.length > 0) {
       const closestDay = sortedDays[0];
       const basePrice = vehicleType.prices[String(closestDay)];
@@ -221,11 +214,9 @@ function getVehicleTypePrice(type, days, isHalfDay = false) {
       const extraDays = daysInt - closestDay;
       total = basePrice + (extraDay * extraDays);
       dailyRate = total / daysInt;
-      console.log('📊 Calcul:', { closestDay, basePrice, extraDay, extraDays, total });
     } else {
       dailyRate = vehicleType.prices['1'] || 0;
       total = dailyRate * daysInt;
-      console.log('⚠️ Fallback jour 1:', { dailyRate, total });
     }
   }
   
