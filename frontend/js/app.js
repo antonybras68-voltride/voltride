@@ -712,7 +712,7 @@ async function generateZReport() {
 async function renderDocuments(container) {
   container.innerHTML = `
     <div class="page-header">
-      <h1>📄 Documentos</h1>
+      <h1>Documentos</h1>
       <p>Contratos y facturas de alquileres</p>
     </div>
     <div class="card">
@@ -798,15 +798,15 @@ async function renderSettings(container) {
   
   container.innerHTML = `
     <div class="page-header">
-      <h1>⚙️ Parámetros</h1>
+      <h1>Parámetros</h1>
       <p>Configuración de la aplicación</p>
     </div>
     
     <div class="settings-tabs" style="display:flex;gap:5px;margin-bottom:20px;flex-wrap:wrap;background:var(--bg-card);padding:8px;border-radius:12px;">
-      <button class="settings-tab-btn ${currentSettingsTab === 'agencies' ? 'active' : ''}" onclick="switchSettingsTab('agencies')">🏢 Agencias</button>
-      <button class="settings-tab-btn ${currentSettingsTab === 'company' ? 'active' : ''}" onclick="switchSettingsTab('company')">🏪 Empresa</button>
-      <button class="settings-tab-btn ${currentSettingsTab === 'pricing' ? 'active' : ''}" onclick="switchSettingsTab('pricing')">💰 Tarifas</button>
-      ${isAdmin ? `<button class="settings-tab-btn ${currentSettingsTab === 'users' ? 'active' : ''}" onclick="switchSettingsTab('users')">👤 Usuarios</button>` : ''}
+      <button class="settings-tab-btn ${currentSettingsTab === 'agencies' ? 'active' : ''}" onclick="switchSettingsTab('agencies')">Agencias</button>
+      <button class="settings-tab-btn ${currentSettingsTab === 'company' ? 'active' : ''}" onclick="switchSettingsTab('company')">Empresa</button>
+      <button class="settings-tab-btn ${currentSettingsTab === 'pricing' ? 'active' : ''}" onclick="switchSettingsTab('pricing')">Tarifas</button>
+      ${isAdmin ? `<button class="settings-tab-btn ${currentSettingsTab === 'users' ? 'active' : ''}" onclick="switchSettingsTab('users')">Usuarios</button>` : ''}
     </div>
     
     <div id="settingsContent"></div>
@@ -873,7 +873,7 @@ async function renderAgenciesTab(container) {
   container.innerHTML = `
     <div class="card">
       <div class="card-header">
-        <h2>🏢 Agencias</h2>
+        <h2>Agencias</h2>
         <button class="btn btn-primary" onclick="showAgencyModal()">+ Nueva Agencia</button>
       </div>
       <div id="agenciesList"><div class="loading"><div class="spinner"></div></div></div>
@@ -886,7 +886,7 @@ async function loadAgenciesSettings() {
   try {
     const agenciesList = await agenciesAPI.getAll();
     if (!agenciesList.length) {
-      document.getElementById('agenciesList').innerHTML = `<div class="empty-state"><div class="empty-state-icon">🏢</div><h3>No hay agencias</h3></div>`;
+      document.getElementById('agenciesList').innerHTML = `<div class="empty-state"><h3>No hay agencias</h3></div>`;
       return;
     }
     document.getElementById('agenciesList').innerHTML = `
@@ -968,7 +968,7 @@ function renderCompanyTab(container) {
   
   container.innerHTML = `
     <div class="card">
-      <div class="card-header"><h2>🏪 Información de la Empresa</h2></div>
+      <div class="card-header"><h2>Información de la Empresa</h2></div>
       <div style="padding: 20px;">
         <div class="form-row">
           <div class="form-group">
@@ -990,7 +990,7 @@ function renderCompanyTab(container) {
             <input type="tel" id="companyPhone" class="form-control" value="${saved.phone || ''}" placeholder="+34 600 000 001">
           </div>
         </div>
-        <button class="btn btn-primary" onclick="saveCompanySettings()">💾 Guardar</button>
+        <button class="btn btn-primary" onclick="saveCompanySettings()">Guardar</button>
       </div>
     </div>
   `;
@@ -1017,15 +1017,15 @@ async function renderPricingTab(container) {
   container.innerHTML = `
     <div class="card">
       <div class="card-header">
-        <h2>💰 Configuración de Tarifas</h2>
-        <button class="btn btn-primary" onclick="savePricing()">💾 Guardar</button>
+        <h2>Configuración de Tarifas</h2>
+        <button class="btn btn-primary" onclick="savePricing()">Guardar</button>
       </div>
       
       <div style="display:flex;gap:5px;margin-bottom:20px;flex-wrap:wrap;">
-        <button class="btn btn-sm ${currentPricingSubTab === 'vehicles' ? 'btn-primary' : 'btn-secondary'}" onclick="switchPricingSubTab('vehicles')">🚲 Vehículos</button>
-        <button class="btn btn-sm ${currentPricingSubTab === 'accessories' ? 'btn-primary' : 'btn-secondary'}" onclick="switchPricingSubTab('accessories')">🎒 Accessoires</button>
-        <button class="btn btn-sm ${currentPricingSubTab === 'insurance' ? 'btn-primary' : 'btn-secondary'}" onclick="switchPricingSubTab('insurance')">🛡️ Assurances</button>
-        <button class="btn btn-sm ${currentPricingSubTab === 'damages' ? 'btn-primary' : 'btn-secondary'}" onclick="switchPricingSubTab('damages')">⚠️ Dommages</button>
+        <button class="btn btn-sm ${currentPricingSubTab === 'vehicles' ? 'btn-primary' : 'btn-secondary'}" onclick="switchPricingSubTab('vehicles')">Vehículos</button>
+        <button class="btn btn-sm ${currentPricingSubTab === 'accessories' ? 'btn-primary' : 'btn-secondary'}" onclick="switchPricingSubTab('accessories')">Accessoires</button>
+        <button class="btn btn-sm ${currentPricingSubTab === 'insurance' ? 'btn-primary' : 'btn-secondary'}" onclick="switchPricingSubTab('insurance')">Assurances</button>
+        <button class="btn btn-sm ${currentPricingSubTab === 'damages' ? 'btn-primary' : 'btn-secondary'}" onclick="switchPricingSubTab('damages')">Dommages</button>
       </div>
       
       <div id="pricingSubContent"><div class="loading"><div class="spinner"></div></div></div>
@@ -1068,7 +1068,7 @@ function getDefaultVehicleTypes() {
     { 
       id: 'bike', 
       name: 'Vélo classique', 
-      icon: '🚲', 
+      image: '', 
       deposit: 100, 
       replacementValue: 350,
       prices: {1:10,2:18,3:25,4:32,5:38,6:44,7:49,8:55,9:60,10:65,11:70,12:75,13:80,14:84}, 
@@ -1080,7 +1080,7 @@ function getDefaultVehicleTypes() {
     { 
       id: 'ebike', 
       name: 'Vélo électrique', 
-      icon: '⚡', 
+      image: '', 
       deposit: 300, 
       replacementValue: 1500,
       prices: {1:25,2:45,3:63,4:80,5:95,6:108,7:119,8:130,9:140,10:150,11:159,12:168,13:176,14:182}, 
@@ -1092,7 +1092,7 @@ function getDefaultVehicleTypes() {
     { 
       id: 'scooter', 
       name: 'Scooter électrique', 
-      icon: '🛵', 
+      image: '', 
       deposit: 500, 
       replacementValue: 2500,
       prices: {1:35,2:65,3:90,4:112,5:130,6:145,7:158,8:170,9:181,10:191,11:200,12:208,13:215,14:221}, 
@@ -1106,12 +1106,22 @@ function getDefaultVehicleTypes() {
 
 function getDefaultAccessories() {
   return [
-    { id: 'helmet', name: 'Casque', icon: '⛑️', replacementValue: 35, prices: {1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0,13:0,14:0}, extraDay: 0 },
-    { id: 'lock', name: 'Antivol', icon: '🔒', replacementValue: 25, prices: {1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0,13:0,14:0}, extraDay: 0 },
-    { id: 'basket', name: 'Panier', icon: '🧺', replacementValue: 20, prices: {1:2,2:4,3:5,4:6,5:7,6:8,7:9,8:10,9:11,10:12,11:13,12:14,13:15,14:15}, extraDay: 1 },
-    { id: 'child_seat', name: 'Siège enfant', icon: '👶', replacementValue: 60, prices: {1:5,2:9,3:12,4:15,5:17,6:19,7:21,8:23,9:25,10:27,11:29,12:31,13:33,14:35}, extraDay: 2 },
-    { id: 'phone_holder', name: 'Support téléphone', icon: '📱', replacementValue: 15, prices: {1:1,2:2,3:3,4:4,5:5,6:5,7:5,8:5,9:5,10:5,11:5,12:5,13:5,14:5}, extraDay: 0 }
+    { id: 'helmet', name: 'Casque', image: '', replacementValue: 35, prices: {1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0,13:0,14:0}, extraDay: 0 },
+    { id: 'lock', name: 'Antivol', image: '', replacementValue: 25, prices: {1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0,13:0,14:0}, extraDay: 0 },
+    { id: 'basket', name: 'Panier', image: '', replacementValue: 20, prices: {1:2,2:4,3:5,4:6,5:7,6:8,7:9,8:10,9:11,10:12,11:13,12:14,13:15,14:15}, extraDay: 1 },
+    { id: 'child_seat', name: 'Siège enfant', image: '', replacementValue: 60, prices: {1:5,2:9,3:12,4:15,5:17,6:19,7:21,8:23,9:25,10:27,11:29,12:31,13:33,14:35}, extraDay: 2 },
+    { id: 'phone_holder', name: 'Support téléphone', image: '', replacementValue: 15, prices: {1:1,2:2,3:3,4:4,5:5,6:5,7:5,8:5,9:5,10:5,11:5,12:5,13:5,14:5}, extraDay: 0 }
   ];
+}
+
+// Fonction pour afficher l'image ou un placeholder
+function getItemImage(item, size = 60) {
+  if (item.image) {
+    return `<img src="${item.image}" alt="${item.name}" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:8px;">`;
+  }
+  // Placeholder avec initiales
+  const initials = item.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+  return `<div style="width:${size}px;height:${size}px;background:var(--bg-input);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:bold;color:var(--text-secondary);font-size:${size/3}px;">${initials}</div>`;
 }
 
 function getDefaultInsuranceOptions() {
@@ -1154,13 +1164,19 @@ function switchPricingSubTab(tab) {
 function renderVehiclesPricing(container) {
   container.innerHTML = `
     <div style="background:rgba(59,130,246,0.1);border:1px solid var(--info);border-radius:10px;padding:15px;margin-bottom:20px;">
-      <p style="color:var(--text-secondary);font-size:0.9rem;">💡 <strong>Valeur de remplacement</strong> = montant déduit de la caution si véhicule non retourné/volé</p>
+      <p style="color:var(--text-secondary);font-size:0.9rem;"><strong>Valeur de remplacement</strong> = montant déduit de la caution si véhicule non retourné/volé</p>
     </div>
   ` + vehicleTypes.map((v, i) => `
     <div class="pricing-card">
       <div class="pricing-card-header">
-        <h3>${v.icon} ${v.name}</h3>
-        <button class="btn btn-sm btn-danger" onclick="deleteVehicleType(${i})">🗑️</button>
+        <div style="display:flex;align-items:center;gap:15px;">
+          <div class="item-image-container" onclick="uploadVehicleImage(${i})" style="cursor:pointer;position:relative;">
+            ${getItemImage(v, 60)}
+            <div style="position:absolute;bottom:-5px;right:-5px;background:var(--primary);color:var(--bg-dark);width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;">+</div>
+          </div>
+          <h3>${v.name}</h3>
+        </div>
+        <button class="btn btn-sm btn-danger" onclick="deleteVehicleType(${i})">Suppr.</button>
       </div>
       
       <div style="display:flex;gap:15px;flex-wrap:wrap;margin-bottom:15px;">
@@ -1189,23 +1205,23 @@ function renderVehiclesPricing(container) {
       </div>
       
       <div style="margin-top:20px;padding-top:15px;border-top:1px solid var(--border);">
-        <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:10px;">🎒 Accessoires compatibles</label>
+        <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:10px;">Accessoires compatibles</label>
         <div style="display:flex;flex-wrap:wrap;gap:10px;">
           ${accessories.map(acc => `
-            <label style="display:flex;align-items:center;gap:5px;padding:8px 12px;background:var(--bg-input);border-radius:6px;cursor:pointer;font-size:0.85rem;">
+            <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg-input);border-radius:6px;cursor:pointer;font-size:0.85rem;">
               <input type="checkbox" ${(v.compatibleAccessories || []).includes(acc.id) ? 'checked' : ''} onchange="toggleVehicleAccessory(${i}, '${acc.id}', this.checked)">
-              ${acc.icon} ${acc.name}
+              ${acc.image ? `<img src="${acc.image}" style="width:20px;height:20px;object-fit:cover;border-radius:4px;">` : ''} ${acc.name}
             </label>
           `).join('')}
         </div>
       </div>
       
       <div style="margin-top:15px;padding-top:15px;border-top:1px solid var(--border);">
-        <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:10px;">🛡️ Options d'assurance</label>
+        <label style="font-size:0.85rem;color:var(--text-secondary);display:block;margin-bottom:10px;">Options d'assurance</label>
         <div style="display:flex;flex-wrap:wrap;gap:15px;align-items:center;">
           <label style="display:flex;align-items:center;gap:5px;font-size:0.85rem;color:var(--warning);">
             <input type="checkbox" ${v.insuranceRequired ? 'checked' : ''} onchange="vehicleTypes[${i}].insuranceRequired=this.checked">
-            ⚠️ Assurance obligatoire
+            Assurance obligatoire
           </label>
           <span style="color:var(--text-secondary);font-size:0.85rem;">|</span>
           <span style="font-size:0.85rem;color:var(--text-secondary);">Disponibles:</span>
@@ -1219,6 +1235,24 @@ function renderVehiclesPricing(container) {
       </div>
     </div>
   `).join('') + `<button class="add-item-btn" onclick="addVehicleType()">+ Ajouter un type de véhicule</button>`;
+}
+
+function uploadVehicleImage(index) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        vehicleTypes[index].image = event.target.result;
+        switchPricingSubTab('vehicles');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  input.click();
 }
 
 function toggleVehicleAccessory(vehicleIndex, accessoryId, checked) {
@@ -1250,13 +1284,19 @@ function toggleVehicleInsurance(vehicleIndex, insuranceId, checked) {
 function renderAccessoriesPricing(container) {
   container.innerHTML = `
     <div style="background:rgba(59,130,246,0.1);border:1px solid var(--info);border-radius:10px;padding:15px;margin-bottom:20px;">
-      <p style="color:var(--text-secondary);font-size:0.9rem;">💡 <strong>Valeur de remplacement</strong> = montant déduit de la caution si accessoire non retourné/perdu</p>
+      <p style="color:var(--text-secondary);font-size:0.9rem;"><strong>Valeur de remplacement</strong> = montant déduit de la caution si accessoire non retourné/perdu</p>
     </div>
   ` + accessories.map((a, i) => `
     <div class="pricing-card">
       <div class="pricing-card-header">
-        <h3>${a.icon} ${a.name}</h3>
-        <button class="btn btn-sm btn-danger" onclick="deleteAccessory(${i})">🗑️</button>
+        <div style="display:flex;align-items:center;gap:15px;">
+          <div class="item-image-container" onclick="uploadAccessoryImage(${i})" style="cursor:pointer;position:relative;">
+            ${getItemImage(a, 50)}
+            <div style="position:absolute;bottom:-5px;right:-5px;background:var(--primary);color:var(--bg-dark);width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;">+</div>
+          </div>
+          <h3>${a.name}</h3>
+        </div>
+        <button class="btn btn-sm btn-danger" onclick="deleteAccessory(${i})">Suppr.</button>
       </div>
       <div style="display:flex;gap:15px;flex-wrap:wrap;margin-bottom:15px;">
         <div>
@@ -1281,10 +1321,28 @@ function renderAccessoriesPricing(container) {
   `).join('') + `<button class="add-item-btn" onclick="addAccessory()">+ Ajouter un accessoire</button>`;
 }
 
+function uploadAccessoryImage(index) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        accessories[index].image = event.target.result;
+        switchPricingSubTab('accessories');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  input.click();
+}
+
 function renderInsurancePricing(container) {
   container.innerHTML = `
     <div style="background:rgba(59,130,246,0.1);border:1px solid var(--info);border-radius:10px;padding:15px;margin-bottom:20px;">
-      <p style="color:var(--text-secondary);font-size:0.9rem;">💡 L'assurance réduit la caution selon le % configuré. Ex: 50% = caution divisée par 2.</p>
+      <p style="color:var(--text-secondary);font-size:0.9rem;">L'assurance réduit la caution selon le % configuré. Ex: 50% = caution divisée par 2.</p>
     </div>
     ${insuranceOptions.map((ins, i) => `
       <div class="insurance-row">
@@ -1301,7 +1359,7 @@ function renderInsurancePricing(container) {
             <label style="font-size:0.75rem;color:var(--text-secondary);display:block;">Réduction (%)</label>
             <input type="number" value="${ins.depositReduction}" min="0" max="100" onchange="insuranceOptions[${i}].depositReduction=parseFloat(this.value)" style="width:80px;padding:8px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);text-align:center;">
           </div>
-          ${i > 0 ? `<button class="btn btn-sm btn-danger" onclick="deleteInsurance(${i})">🗑️</button>` : '<div style="width:36px;"></div>'}
+          ${i > 0 ? `<button class="btn btn-sm btn-danger" onclick="deleteInsurance(${i})">Suppr.</button>` : '<div style="width:60px;"></div>'}
         </div>
       </div>
     `).join('')}
@@ -1316,7 +1374,7 @@ function renderDamagesPricing(container) {
       <div class="damage-row">
         <input type="text" value="${d.name}" placeholder="Type de dommage" onchange="damages[${i}].name=this.value" style="padding:10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
         <input type="number" value="${d.price}" placeholder="€" onchange="damages[${i}].price=parseFloat(this.value)" style="padding:10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);text-align:center;">
-        <button class="btn btn-sm btn-danger" onclick="deleteDamage(${i})">🗑️</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteDamage(${i})">Suppr.</button>
       </div>
     `).join('')}
     <button class="add-item-btn" onclick="addDamage()">+ Ajouter un type de dommage</button>
@@ -1326,7 +1384,6 @@ function renderDamagesPricing(container) {
 function addVehicleType() {
   openModal('Ajouter un type de véhicule', `
     <div class="form-group"><label>Nom</label><input type="text" id="newVTypeName" class="form-control" placeholder="Ex: Vélo cargo"></div>
-    <div class="form-group"><label>Icône (emoji)</label><input type="text" id="newVTypeIcon" class="form-control" value="🚲" maxlength="2"></div>
     <div class="form-row">
       <div class="form-group"><label>Caution (€)</label><input type="number" id="newVTypeDeposit" class="form-control" value="100"></div>
       <div class="form-group"><label>Valeur de remplacement (€)</label><input type="number" id="newVTypeReplacement" class="form-control" value="500"></div>
@@ -1343,7 +1400,7 @@ function confirmAddVehicleType() {
   vehicleTypes.push({
     id: name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
     name: name,
-    icon: document.getElementById('newVTypeIcon').value || '🚲',
+    image: '',
     deposit: parseFloat(document.getElementById('newVTypeDeposit').value) || 100,
     replacementValue: parseFloat(document.getElementById('newVTypeReplacement').value) || 500,
     prices: {1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0,13:0,14:0},
@@ -1361,7 +1418,6 @@ function deleteVehicleType(i) { if(confirm('Supprimer?')) { vehicleTypes.splice(
 function addAccessory() {
   openModal('Ajouter un accessoire', `
     <div class="form-group"><label>Nom</label><input type="text" id="newAccName" class="form-control" placeholder="Ex: Sacoche"></div>
-    <div class="form-group"><label>Icône (emoji)</label><input type="text" id="newAccIcon" class="form-control" value="📦" maxlength="2"></div>
     <div class="form-group"><label>Valeur de remplacement (€)</label><input type="number" id="newAccReplacement" class="form-control" value="30"></div>
   `, `<button class="btn btn-secondary" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="confirmAddAccessory()">Ajouter</button>`);
 }
@@ -1372,7 +1428,7 @@ function confirmAddAccessory() {
   const newAcc = {
     id: name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
     name: name,
-    icon: document.getElementById('newAccIcon').value || '📦',
+    image: '',
     replacementValue: parseFloat(document.getElementById('newAccReplacement').value) || 30,
     prices: {1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0,13:0,14:0},
     extraDay: 0
@@ -1467,7 +1523,7 @@ async function renderUsersTab(container) {
   container.innerHTML = `
     <div class="card">
       <div class="card-header">
-        <h2>👤 Usuarios</h2>
+        <h2>Usuarios</h2>
         <button class="btn btn-primary" onclick="showUserModal()">+ ${t('addUser')}</button>
       </div>
       <div id="usersListContent"><div class="loading"><div class="spinner"></div></div></div>
