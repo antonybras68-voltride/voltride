@@ -2,11 +2,16 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <title>Voltride - Gestión de Alquileres</title>
   <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
+  <!-- Overlay pour fermer le menu mobile -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+  
   <div class="app-container">
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
@@ -63,11 +68,6 @@
       </nav>
       
       <div class="sidebar-footer">
-        <div class="lang-selector">
-          <button class="lang-btn active" data-lang="es">ES</button>
-          <button class="lang-btn" data-lang="fr">FR</button>
-          <button class="lang-btn" data-lang="en">EN</button>
-        </div>
         <div class="user-info">
           <div class="user-avatar" id="userAvatar">A</div>
           <div class="user-details">
@@ -85,9 +85,14 @@
     <!-- Main Content -->
     <main class="main-content">
       <!-- Mobile Header -->
-      <div class="mobile-header" style="display: none;">
-        <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
-        <img src="/assets/logo.png" alt="Voltride" style="height: 30px;">
+      <div class="mobile-header" id="mobileHeader">
+        <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+        <img src="/assets/logo.png" alt="Voltride" class="mobile-logo">
+        <div class="mobile-lang">
+          <button class="lang-btn active" data-lang="es">ES</button>
+          <button class="lang-btn" data-lang="fr">FR</button>
+          <button class="lang-btn" data-lang="en">EN</button>
+        </div>
       </div>
       
       <!-- Pages Container -->
@@ -106,6 +111,7 @@
       <!-- Le contenu du modal sera injecté ici -->
     </div>
   </div>
+  
   <script src="/js/translations.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/app.js"></script>
