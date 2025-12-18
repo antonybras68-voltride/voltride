@@ -1,11 +1,18 @@
 // =====================================================
-// VOLTRIDE - Application principale (v2.1)
-// Responsive + Mobile sidebar
+// VOLTRIDE - Application principale (v2.2)
+// Responsive + Mobile sidebar + Settings intégrés
 // =====================================================
 
 let currentPage = 'dashboard';
 let currentUser = null;
 let agencies = [];
+
+// Variables pour les tarifs
+let vehicleTypes = [];
+let accessories = [];
+let insuranceOptions = [];
+let damages = [];
+let currentSettingsTab = 'agencies';
 
 // =====================================================
 // Initialisation
@@ -31,9 +38,9 @@ function initUI() {
   document.getElementById('userAvatar').textContent = currentUser.full_name.charAt(0).toUpperCase();
   document.getElementById('currentAgency').textContent = currentUser.agency_name || 'Voltride';
   
-  if (currentUser.role === 'admin') {
-    document.getElementById('navUsers').style.display = 'flex';
-  }
+  // Masquer le lien Usuarios dans la sidebar (maintenant dans Parámetros)
+  const navUsers = document.getElementById('navUsers');
+  if (navUsers) navUsers.style.display = 'none';
   
   document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', () => {
@@ -56,7 +63,6 @@ function initUI() {
     if (e.target.id === 'modalOverlay') closeModal();
   });
   
-  // Fermer sidebar quand on clique sur un lien (mobile)
   document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', () => {
       if (window.innerWidth <= 768) {
@@ -68,7 +74,6 @@ function initUI() {
     });
   });
   
-  // Gérer les boutons de langue dans le header mobile
   document.querySelectorAll('.mobile-lang .lang-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const lang = btn.dataset.lang;
@@ -94,7 +99,7 @@ function loadPage(page) {
     case 'rentals': renderRentals(container); break;
     case 'customers': renderCustomers(container); break;
     case 'cash': renderCash(container); break;
-    case 'users': renderUsers(container); break;
+    case 'users': renderSettings(container); break; // Redirige vers settings
     case 'documents': renderDocuments(container); break;
     case 'settings': renderSettings(container); break;
   }
@@ -109,14 +114,8 @@ function logout() {
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebarOverlay');
-  
-  if (sidebar) {
-    sidebar.classList.toggle('open');
-  }
-  
-  if (overlay) {
-    overlay.classList.toggle('active');
-  }
+  if (sidebar) sidebar.classList.toggle('open');
+  if (overlay) overlay.classList.toggle('active');
 }
 
 // =====================================================
@@ -707,98 +706,6 @@ async function generateZReport() {
 }
 
 // =====================================================
-// Utilisateurs (Admin)
-// =====================================================
-
-async function renderUsers(container) {
-  if (currentUser.role !== 'admin') { loadPage('dashboard'); return; }
-  
-  container.innerHTML = `
-    <div class="page-header"><h1>${t('users')}</h1></div>
-    <div class="card">
-      <div class="card-header">
-        <h2>${t('usersList')}</h2>
-        <button class="btn btn-primary" onclick="showUserModal()">+ ${t('addUser')}</button>
-      </div>
-      <div id="usersList"><div class="loading"><div class="spinner"></div></div></div>
-    </div>
-  `;
-  
-  try {
-    const users = await authAPI.getUsers();
-    document.getElementById('usersList').innerHTML = `
-      <div class="table-container"><table><thead><tr>
-        <th>${t('username')}</th><th>${t('fullName')}</th><th>${t('role')}</th><th>${t('agency')}</th><th></th>
-      </tr></thead><tbody>
-        ${users.map(u => `<tr>
-          <td><strong>${u.username}</strong></td>
-          <td>${u.full_name}</td>
-          <td>${t(u.role)}</td>
-          <td>${u.agency_name || '-'}</td>
-          <td><div class="btn-group">
-            <button class="btn btn-sm btn-secondary" onclick="showUserModal(${u.id})">✏️</button>
-            ${u.id !== currentUser.id ? `<button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id})">🗑️</button>` : ''}
-          </div></td>
-        </tr>`).join('')}
-      </tbody></table></div>
-    `;
-  } catch (e) { showToast(t('errorOccurred'), 'error'); }
-}
-
-function showUserModal(id = null) {
-  openModal(id ? t('editUser') : t('addUser'), `
-    <form id="userForm">
-      <input type="hidden" id="userId" value="${id||''}">
-      <div class="form-group"><label>${t('username')} *</label><input type="text" id="userUsername" class="form-control" required></div>
-      <div class="form-group"><label>${t('password')} ${id ? '' : '*'}</label><input type="password" id="userPassword" class="form-control" ${id ? '' : 'required'}></div>
-      <div class="form-group"><label>${t('fullName')} *</label><input type="text" id="userFullName" class="form-control" required></div>
-      <div class="form-row">
-        <div class="form-group"><label>${t('role')}</label><select id="userRole" class="form-control"><option value="employee">${t('employee')}</option><option value="admin">${t('admin')}</option></select></div>
-        <div class="form-group"><label>${t('agency')}</label><select id="userAgency" class="form-control">${agencies.map(a => `<option value="${a.id}">${a.code} - ${a.name}</option>`).join('')}</select></div>
-      </div>
-    </form>
-  `, `<button class="btn btn-secondary" onclick="closeModal()">${t('cancel')}</button><button class="btn btn-primary" onclick="saveUser()">${t('save')}</button>`);
-  if (id) loadUserData(id);
-}
-
-async function loadUserData(id) {
-  try {
-    const users = await authAPI.getUsers();
-    const u = users.find(x => x.id === id);
-    if (u) {
-      document.getElementById('userUsername').value = u.username;
-      document.getElementById('userFullName').value = u.full_name;
-      document.getElementById('userRole').value = u.role;
-      document.getElementById('userAgency').value = u.agency_id || '';
-    }
-  } catch (e) { console.error(e); }
-}
-
-async function saveUser() {
-  const id = document.getElementById('userId').value;
-  const data = {
-    username: document.getElementById('userUsername').value,
-    full_name: document.getElementById('userFullName').value,
-    role: document.getElementById('userRole').value,
-    agency_id: document.getElementById('userAgency').value,
-    active: true
-  };
-  const password = document.getElementById('userPassword').value;
-  if (password) data.password = password;
-  
-  try {
-    if (id) await authAPI.updateUser(id, data); else await authAPI.createUser(data);
-    closeModal(); showToast(t('savedSuccess'), 'success'); renderUsers(document.getElementById('pageContainer'));
-  } catch (e) { showToast(e.message, 'error'); }
-}
-
-async function deleteUser(id) {
-  if (!confirm(t('confirmDelete'))) return;
-  try { await authAPI.deleteUser(id); showToast(t('deleteSuccess'), 'success'); renderUsers(document.getElementById('pageContainer')); }
-  catch (e) { showToast(e.message, 'error'); }
-}
-
-// =====================================================
 // Documents (Contrats & Factures)
 // =====================================================
 
@@ -878,17 +785,92 @@ function downloadInvoice(rentalId) {
   window.open(`/api/invoices/${rentalId}/pdf`, '_blank');
 }
 
+function downloadContract(rentalId) {
+  window.open(`/api/contracts/${rentalId}/pdf`, '_blank');
+}
+
 // =====================================================
-// Paramètres (Settings)
+// PARAMÈTRES - Page principale unifiée
 // =====================================================
 
 async function renderSettings(container) {
+  const isAdmin = currentUser.role === 'admin';
+  
   container.innerHTML = `
     <div class="page-header">
       <h1>⚙️ Parámetros</h1>
       <p>Configuración de la aplicación</p>
     </div>
     
+    <div class="settings-tabs" style="display:flex;gap:5px;margin-bottom:20px;flex-wrap:wrap;background:var(--bg-card);padding:8px;border-radius:12px;">
+      <button class="settings-tab-btn ${currentSettingsTab === 'agencies' ? 'active' : ''}" onclick="switchSettingsTab('agencies')">🏢 Agencias</button>
+      <button class="settings-tab-btn ${currentSettingsTab === 'company' ? 'active' : ''}" onclick="switchSettingsTab('company')">🏪 Empresa</button>
+      <button class="settings-tab-btn ${currentSettingsTab === 'pricing' ? 'active' : ''}" onclick="switchSettingsTab('pricing')">💰 Tarifas</button>
+      ${isAdmin ? `<button class="settings-tab-btn ${currentSettingsTab === 'users' ? 'active' : ''}" onclick="switchSettingsTab('users')">👤 Usuarios</button>` : ''}
+    </div>
+    
+    <div id="settingsContent"></div>
+    
+    <style>
+      .settings-tab-btn {
+        padding: 12px 20px;
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        transition: all 0.2s;
+      }
+      .settings-tab-btn:hover { background: var(--bg-input); color: var(--text-primary); }
+      .settings-tab-btn.active { background: var(--primary); color: var(--bg-dark); }
+      .pricing-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px; margin: 15px 0; }
+      .pricing-day { text-align: center; }
+      .pricing-day label { display: block; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px; }
+      .pricing-day input { width: 100%; padding: 8px 4px; text-align: center; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 0.85rem; }
+      .pricing-day input:focus { outline: none; border-color: var(--primary); }
+      .pricing-card { background: var(--bg-card); border-radius: 12px; padding: 20px; margin-bottom: 15px; }
+      .pricing-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+      .add-item-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 15px; background: transparent; border: 2px dashed var(--border); border-radius: 10px; color: var(--text-secondary); cursor: pointer; font-size: 0.9rem; transition: all 0.2s; }
+      .add-item-btn:hover { border-color: var(--primary); color: var(--primary); background: rgba(245, 158, 11, 0.1); }
+      .insurance-row { display: flex; align-items: center; justify-content: space-between; padding: 15px; background: var(--bg-input); border-radius: 10px; margin-bottom: 10px; flex-wrap: wrap; gap: 15px; }
+      .damage-row { display: grid; grid-template-columns: 1fr 100px auto; gap: 10px; align-items: center; padding: 12px; background: var(--bg-input); border-radius: 8px; margin-bottom: 8px; }
+      @media (max-width: 768px) {
+        .pricing-grid { grid-template-columns: repeat(7, 1fr); }
+        .damage-row { grid-template-columns: 1fr; }
+        .insurance-row { flex-direction: column; align-items: stretch; }
+      }
+    </style>
+  `;
+  
+  switchSettingsTab(currentSettingsTab);
+}
+
+function switchSettingsTab(tab) {
+  currentSettingsTab = tab;
+  
+  // Mettre à jour les boutons actifs
+  document.querySelectorAll('.settings-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent.toLowerCase().includes(tab.substring(0, 4)));
+  });
+  
+  const content = document.getElementById('settingsContent');
+  
+  switch(tab) {
+    case 'agencies': renderAgenciesTab(content); break;
+    case 'company': renderCompanyTab(content); break;
+    case 'pricing': renderPricingTab(content); break;
+    case 'users': renderUsersTab(content); break;
+  }
+}
+
+// =====================================================
+// Tab Agences
+// =====================================================
+
+async function renderAgenciesTab(container) {
+  container.innerHTML = `
     <div class="card">
       <div class="card-header">
         <h2>🏢 Agencias</h2>
@@ -896,37 +878,8 @@ async function renderSettings(container) {
       </div>
       <div id="agenciesList"><div class="loading"><div class="spinner"></div></div></div>
     </div>
-    
-    <div class="card">
-      <div class="card-header"><h2>🏪 Información de la Empresa</h2></div>
-      <div style="padding: 20px;">
-        <div class="form-row">
-          <div class="form-group">
-            <label>Nombre de la empresa</label>
-            <input type="text" id="companyName" class="form-control" value="Voltride">
-          </div>
-          <div class="form-group">
-            <label>NIF/CIF</label>
-            <input type="text" id="companyNif" class="form-control" placeholder="B12345678">
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Email</label>
-            <input type="email" id="companyEmail" class="form-control" placeholder="info@voltride.es">
-          </div>
-          <div class="form-group">
-            <label>Teléfono</label>
-            <input type="tel" id="companyPhone" class="form-control" placeholder="+34 600 000 001">
-          </div>
-        </div>
-        <button class="btn btn-primary" onclick="saveCompanySettings()">💾 Guardar</button>
-      </div>
-    </div>
   `;
-  
   await loadAgenciesSettings();
-  loadCompanySettings();
 }
 
 async function loadAgenciesSettings() {
@@ -997,11 +950,8 @@ async function saveAgency() {
   };
   
   try {
-    if (id) {
-      await agenciesAPI.update(id, data);
-    } else {
-      await agenciesAPI.create(data);
-    }
+    if (id) await agenciesAPI.update(id, data);
+    else await agenciesAPI.create(data);
     closeModal();
     showToast(t('savedSuccess'), 'success');
     loadAgenciesSettings();
@@ -1009,15 +959,41 @@ async function saveAgency() {
   } catch (e) { showToast(e.message, 'error'); }
 }
 
-function loadCompanySettings() {
-  const saved = localStorage.getItem('voltride_company');
-  if (saved) {
-    const settings = JSON.parse(saved);
-    document.getElementById('companyName').value = settings.name || 'Voltride';
-    document.getElementById('companyNif').value = settings.nif || '';
-    document.getElementById('companyEmail').value = settings.email || '';
-    document.getElementById('companyPhone').value = settings.phone || '';
-  }
+// =====================================================
+// Tab Empresa
+// =====================================================
+
+function renderCompanyTab(container) {
+  const saved = JSON.parse(localStorage.getItem('voltride_company') || '{}');
+  
+  container.innerHTML = `
+    <div class="card">
+      <div class="card-header"><h2>🏪 Información de la Empresa</h2></div>
+      <div style="padding: 20px;">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nombre de la empresa</label>
+            <input type="text" id="companyName" class="form-control" value="${saved.name || 'Voltride'}">
+          </div>
+          <div class="form-group">
+            <label>NIF/CIF</label>
+            <input type="text" id="companyNif" class="form-control" value="${saved.nif || ''}" placeholder="B12345678">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="companyEmail" class="form-control" value="${saved.email || ''}" placeholder="info@voltride.es">
+          </div>
+          <div class="form-group">
+            <label>Teléfono</label>
+            <input type="tel" id="companyPhone" class="form-control" value="${saved.phone || ''}" placeholder="+34 600 000 001">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="saveCompanySettings()">💾 Guardar</button>
+      </div>
+    </div>
+  `;
 }
 
 function saveCompanySettings() {
@@ -1032,9 +1008,420 @@ function saveCompanySettings() {
 }
 
 // =====================================================
-// Contrats & Factures PDF
+// Tab Tarifas
 // =====================================================
 
-function downloadContract(rentalId) {
-  window.open(`/api/contracts/${rentalId}/pdf`, '_blank');
+let currentPricingSubTab = 'vehicles';
+
+async function renderPricingTab(container) {
+  container.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <h2>💰 Configuración de Tarifas</h2>
+        <button class="btn btn-primary" onclick="savePricing()">💾 Guardar</button>
+      </div>
+      
+      <div style="display:flex;gap:5px;margin-bottom:20px;flex-wrap:wrap;">
+        <button class="btn btn-sm ${currentPricingSubTab === 'vehicles' ? 'btn-primary' : 'btn-secondary'}" onclick="switchPricingSubTab('vehicles')">🚲 Vehículos</button>
+        <button class="btn btn-sm ${currentPricingSubTab === 'accessories' ? 'btn-primary' : 'btn-secondary'}" onclick="switchPricingSubTab('accessories')">🎒 Accessoires</button>
+        <button class="btn btn-sm ${currentPricingSubTab === 'insurance' ? 'btn-primary' : 'btn-secondary'}" onclick="switchPricingSubTab('insurance')">🛡️ Assurances</button>
+        <button class="btn btn-sm ${currentPricingSubTab === 'damages' ? 'btn-primary' : 'btn-secondary'}" onclick="switchPricingSubTab('damages')">⚠️ Dommages</button>
+      </div>
+      
+      <div id="pricingSubContent"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+  `;
+  
+  await loadPricingData();
+  switchPricingSubTab(currentPricingSubTab);
+}
+
+async function loadPricingData() {
+  try {
+    const response = await fetch('/api/pricing', {
+      headers: { 'Authorization': 'Bearer ' + getToken() }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      vehicleTypes = data.vehicleTypes || getDefaultVehicleTypes();
+      accessories = data.accessories || getDefaultAccessories();
+      insuranceOptions = data.insuranceOptions || getDefaultInsuranceOptions();
+      damages = data.damages || getDefaultDamages();
+    } else {
+      vehicleTypes = getDefaultVehicleTypes();
+      accessories = getDefaultAccessories();
+      insuranceOptions = getDefaultInsuranceOptions();
+      damages = getDefaultDamages();
+    }
+  } catch (e) {
+    console.error('Error loading pricing:', e);
+    vehicleTypes = getDefaultVehicleTypes();
+    accessories = getDefaultAccessories();
+    insuranceOptions = getDefaultInsuranceOptions();
+    damages = getDefaultDamages();
+  }
+}
+
+function getDefaultVehicleTypes() {
+  return [
+    { id: 'bike', name: 'Vélo classique', icon: '🚲', deposit: 100, prices: {1:10,2:18,3:25,4:32,5:38,6:44,7:49,8:55,9:60,10:65,11:70,12:75,13:80,14:84}, extraDay: 5 },
+    { id: 'ebike', name: 'Vélo électrique', icon: '⚡', deposit: 300, prices: {1:25,2:45,3:63,4:80,5:95,6:108,7:119,8:130,9:140,10:150,11:159,12:168,13:176,14:182}, extraDay: 12 },
+    { id: 'scooter', name: 'Scooter électrique', icon: '🛵', deposit: 500, prices: {1:35,2:65,3:90,4:112,5:130,6:145,7:158,8:170,9:181,10:191,11:200,12:208,13:215,14:221}, extraDay: 15 }
+  ];
+}
+
+function getDefaultAccessories() {
+  return [
+    { id: 'helmet', name: 'Casque', icon: '⛑️', prices: {1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0,13:0,14:0}, extraDay: 0 },
+    { id: 'lock', name: 'Antivol', icon: '🔒', prices: {1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0,13:0,14:0}, extraDay: 0 },
+    { id: 'basket', name: 'Panier', icon: '🧺', prices: {1:2,2:4,3:5,4:6,5:7,6:8,7:9,8:10,9:11,10:12,11:13,12:14,13:15,14:15}, extraDay: 1 },
+    { id: 'child_seat', name: 'Siège enfant', icon: '👶', prices: {1:5,2:9,3:12,4:15,5:17,6:19,7:21,8:23,9:25,10:27,11:29,12:31,13:33,14:35}, extraDay: 2 }
+  ];
+}
+
+function getDefaultInsuranceOptions() {
+  return [
+    { id: 'none', name: 'Sans assurance', description: 'Caution complète', pricePerDay: 0, depositReduction: 0 },
+    { id: 'basic', name: 'Assurance Basic', description: 'Réduction 50% caution', pricePerDay: 3, depositReduction: 50 },
+    { id: 'premium', name: 'Assurance Premium', description: 'Réduction 75% caution', pricePerDay: 6, depositReduction: 75 }
+  ];
+}
+
+function getDefaultDamages() {
+  return [
+    { id: 1, name: 'Pneu crevé', price: 15 },
+    { id: 2, name: 'Frein endommagé', price: 25 },
+    { id: 3, name: 'Chaîne cassée', price: 20 },
+    { id: 4, name: 'Éclairage cassé', price: 15 },
+    { id: 5, name: 'Batterie endommagée', price: 200 }
+  ];
+}
+
+function switchPricingSubTab(tab) {
+  currentPricingSubTab = tab;
+  
+  // Mettre à jour les boutons
+  document.querySelectorAll('#settingsContent .card .btn-sm').forEach(btn => {
+    const isActive = btn.textContent.toLowerCase().includes(tab.substring(0, 4));
+    btn.className = `btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}`;
+  });
+  
+  const content = document.getElementById('pricingSubContent');
+  
+  switch(tab) {
+    case 'vehicles': renderVehiclesPricing(content); break;
+    case 'accessories': renderAccessoriesPricing(content); break;
+    case 'insurance': renderInsurancePricing(content); break;
+    case 'damages': renderDamagesPricing(content); break;
+  }
+}
+
+function renderVehiclesPricing(container) {
+  container.innerHTML = vehicleTypes.map((v, i) => `
+    <div class="pricing-card">
+      <div class="pricing-card-header">
+        <h3>${v.icon} ${v.name}</h3>
+        <button class="btn btn-sm btn-danger" onclick="deleteVehicleType(${i})">🗑️</button>
+      </div>
+      <div style="display:flex;gap:15px;flex-wrap:wrap;margin-bottom:15px;">
+        <div>
+          <label style="font-size:0.8rem;color:var(--text-secondary);">Caution (€)</label>
+          <input type="number" value="${v.deposit}" onchange="vehicleTypes[${i}].deposit=parseFloat(this.value)" style="width:100px;padding:8px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);text-align:center;">
+        </div>
+        <div>
+          <label style="font-size:0.8rem;color:var(--text-secondary);">Jour sup. (€)</label>
+          <input type="number" value="${v.extraDay}" onchange="vehicleTypes[${i}].extraDay=parseFloat(this.value)" style="width:80px;padding:8px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);text-align:center;">
+        </div>
+      </div>
+      <label style="font-size:0.85rem;color:var(--text-secondary);">Prix par durée (1-14 jours)</label>
+      <div class="pricing-grid">
+        ${[1,2,3,4,5,6,7,8,9,10,11,12,13,14].map(d => `
+          <div class="pricing-day">
+            <label>${d}j</label>
+            <input type="number" value="${v.prices[d]||0}" onchange="vehicleTypes[${i}].prices[${d}]=parseFloat(this.value)">
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('') + `<button class="add-item-btn" onclick="addVehicleType()">+ Ajouter un type de véhicule</button>`;
+}
+
+function renderAccessoriesPricing(container) {
+  container.innerHTML = accessories.map((a, i) => `
+    <div class="pricing-card">
+      <div class="pricing-card-header">
+        <h3>${a.icon} ${a.name}</h3>
+        <button class="btn btn-sm btn-danger" onclick="deleteAccessory(${i})">🗑️</button>
+      </div>
+      <div style="margin-bottom:15px;">
+        <label style="font-size:0.8rem;color:var(--text-secondary);">Jour sup. (€)</label>
+        <input type="number" value="${a.extraDay}" onchange="accessories[${i}].extraDay=parseFloat(this.value)" style="width:80px;padding:8px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);text-align:center;">
+      </div>
+      <label style="font-size:0.85rem;color:var(--text-secondary);">Prix par durée (1-14 jours)</label>
+      <div class="pricing-grid">
+        ${[1,2,3,4,5,6,7,8,9,10,11,12,13,14].map(d => `
+          <div class="pricing-day">
+            <label>${d}j</label>
+            <input type="number" value="${a.prices[d]||0}" onchange="accessories[${i}].prices[${d}]=parseFloat(this.value)">
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('') + `<button class="add-item-btn" onclick="addAccessory()">+ Ajouter un accessoire</button>`;
+}
+
+function renderInsurancePricing(container) {
+  container.innerHTML = `
+    <div style="background:rgba(59,130,246,0.1);border:1px solid var(--info);border-radius:10px;padding:15px;margin-bottom:20px;">
+      <p style="color:var(--text-secondary);font-size:0.9rem;">💡 L'assurance réduit la caution selon le % configuré. Ex: 50% = caution divisée par 2.</p>
+    </div>
+    ${insuranceOptions.map((ins, i) => `
+      <div class="insurance-row">
+        <div style="flex:1;">
+          <strong>${ins.name}</strong>
+          <p style="font-size:0.85rem;color:var(--text-secondary);margin:0;">${ins.description}</p>
+        </div>
+        <div style="display:flex;gap:15px;align-items:center;">
+          <div style="text-align:center;">
+            <label style="font-size:0.75rem;color:var(--text-secondary);display:block;">Prix/jour (€)</label>
+            <input type="number" value="${ins.pricePerDay}" onchange="insuranceOptions[${i}].pricePerDay=parseFloat(this.value)" style="width:80px;padding:8px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);text-align:center;">
+          </div>
+          <div style="text-align:center;">
+            <label style="font-size:0.75rem;color:var(--text-secondary);display:block;">Réduction (%)</label>
+            <input type="number" value="${ins.depositReduction}" min="0" max="100" onchange="insuranceOptions[${i}].depositReduction=parseFloat(this.value)" style="width:80px;padding:8px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);text-align:center;">
+          </div>
+          ${i > 0 ? `<button class="btn btn-sm btn-danger" onclick="deleteInsurance(${i})">🗑️</button>` : '<div style="width:36px;"></div>'}
+        </div>
+      </div>
+    `).join('')}
+    <button class="add-item-btn" onclick="addInsurance()">+ Ajouter une option d'assurance</button>
+  `;
+}
+
+function renderDamagesPricing(container) {
+  container.innerHTML = `
+    <p style="color:var(--text-secondary);margin-bottom:15px;">Tarifs des dommages à facturer lors du check-out.</p>
+    ${damages.map((d, i) => `
+      <div class="damage-row">
+        <input type="text" value="${d.name}" placeholder="Type de dommage" onchange="damages[${i}].name=this.value" style="padding:10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+        <input type="number" value="${d.price}" placeholder="€" onchange="damages[${i}].price=parseFloat(this.value)" style="padding:10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);text-align:center;">
+        <button class="btn btn-sm btn-danger" onclick="deleteDamage(${i})">🗑️</button>
+      </div>
+    `).join('')}
+    <button class="add-item-btn" onclick="addDamage()">+ Ajouter un type de dommage</button>
+  `;
+}
+
+function addVehicleType() {
+  openModal('Ajouter un type de véhicule', `
+    <div class="form-group"><label>Nom</label><input type="text" id="newVTypeName" class="form-control" placeholder="Ex: Vélo cargo"></div>
+    <div class="form-group"><label>Icône (emoji)</label><input type="text" id="newVTypeIcon" class="form-control" value="🚲" maxlength="2"></div>
+    <div class="form-group"><label>Caution (€)</label><input type="number" id="newVTypeDeposit" class="form-control" value="100"></div>
+  `, `<button class="btn btn-secondary" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="confirmAddVehicleType()">Ajouter</button>`);
+}
+
+function confirmAddVehicleType() {
+  const name = document.getElementById('newVTypeName').value;
+  if (!name) { alert('Nom requis'); return; }
+  vehicleTypes.push({
+    id: name.toLowerCase().replace(/\s+/g, '_'),
+    name: name,
+    icon: document.getElementById('newVTypeIcon').value || '🚲',
+    deposit: parseFloat(document.getElementById('newVTypeDeposit').value) || 100,
+    prices: {1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0,13:0,14:0},
+    extraDay: 0
+  });
+  closeModal();
+  switchPricingSubTab('vehicles');
+}
+
+function deleteVehicleType(i) { if(confirm('Supprimer?')) { vehicleTypes.splice(i,1); switchPricingSubTab('vehicles'); } }
+
+function addAccessory() {
+  openModal('Ajouter un accessoire', `
+    <div class="form-group"><label>Nom</label><input type="text" id="newAccName" class="form-control" placeholder="Ex: Sacoche"></div>
+    <div class="form-group"><label>Icône (emoji)</label><input type="text" id="newAccIcon" class="form-control" value="📦" maxlength="2"></div>
+  `, `<button class="btn btn-secondary" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="confirmAddAccessory()">Ajouter</button>`);
+}
+
+function confirmAddAccessory() {
+  const name = document.getElementById('newAccName').value;
+  if (!name) { alert('Nom requis'); return; }
+  accessories.push({
+    id: name.toLowerCase().replace(/\s+/g, '_'),
+    name: name,
+    icon: document.getElementById('newAccIcon').value || '📦',
+    prices: {1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0,13:0,14:0},
+    extraDay: 0
+  });
+  closeModal();
+  switchPricingSubTab('accessories');
+}
+
+function deleteAccessory(i) { if(confirm('Supprimer?')) { accessories.splice(i,1); switchPricingSubTab('accessories'); } }
+
+function addInsurance() {
+  openModal('Ajouter une assurance', `
+    <div class="form-group"><label>Nom</label><input type="text" id="newInsName" class="form-control"></div>
+    <div class="form-group"><label>Description</label><input type="text" id="newInsDesc" class="form-control"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Prix/jour (€)</label><input type="number" id="newInsPrice" class="form-control" value="5"></div>
+      <div class="form-group"><label>Réduction caution (%)</label><input type="number" id="newInsReduction" class="form-control" value="50"></div>
+    </div>
+  `, `<button class="btn btn-secondary" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="confirmAddInsurance()">Ajouter</button>`);
+}
+
+function confirmAddInsurance() {
+  const name = document.getElementById('newInsName').value;
+  if (!name) { alert('Nom requis'); return; }
+  insuranceOptions.push({
+    id: name.toLowerCase().replace(/\s+/g, '_'),
+    name: name,
+    description: document.getElementById('newInsDesc').value,
+    pricePerDay: parseFloat(document.getElementById('newInsPrice').value) || 0,
+    depositReduction: parseFloat(document.getElementById('newInsReduction').value) || 0
+  });
+  closeModal();
+  switchPricingSubTab('insurance');
+}
+
+function deleteInsurance(i) { if(confirm('Supprimer?')) { insuranceOptions.splice(i,1); switchPricingSubTab('insurance'); } }
+
+function addDamage() {
+  const maxId = damages.length > 0 ? Math.max(...damages.map(d => d.id)) : 0;
+  damages.push({ id: maxId + 1, name: '', price: 0 });
+  switchPricingSubTab('damages');
+}
+
+function deleteDamage(i) { damages.splice(i,1); switchPricingSubTab('damages'); }
+
+async function savePricing() {
+  const filteredDamages = damages.filter(d => d.name && d.name.trim() !== '');
+  
+  try {
+    const response = await fetch('/api/pricing', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + getToken()
+      },
+      body: JSON.stringify({
+        vehicleTypes: vehicleTypes,
+        accessories: accessories,
+        insuranceOptions: insuranceOptions,
+        damages: filteredDamages
+      })
+    });
+    
+    if (response.ok) {
+      showToast('Tarifas guardadas correctamente', 'success');
+    } else {
+      throw new Error('Error servidor');
+    }
+  } catch (e) {
+    console.error(e);
+    localStorage.setItem('voltride_pricing', JSON.stringify({ vehicleTypes, accessories, insuranceOptions, damages: filteredDamages }));
+    showToast('Guardado localmente', 'warning');
+  }
+}
+
+// =====================================================
+// Tab Usuarios
+// =====================================================
+
+async function renderUsersTab(container) {
+  if (currentUser.role !== 'admin') {
+    container.innerHTML = `<div class="empty-state"><h3>Accès réservé aux administrateurs</h3></div>`;
+    return;
+  }
+  
+  container.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <h2>👤 Usuarios</h2>
+        <button class="btn btn-primary" onclick="showUserModal()">+ ${t('addUser')}</button>
+      </div>
+      <div id="usersListContent"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+  `;
+  
+  try {
+    const users = await authAPI.getUsers();
+    document.getElementById('usersListContent').innerHTML = `
+      <div class="table-container"><table><thead><tr>
+        <th>${t('username')}</th><th>${t('fullName')}</th><th>${t('role')}</th><th>${t('agency')}</th><th></th>
+      </tr></thead><tbody>
+        ${users.map(u => `<tr>
+          <td><strong>${u.username}</strong></td>
+          <td>${u.full_name}</td>
+          <td>${t(u.role)}</td>
+          <td>${u.agency_name || '-'}</td>
+          <td><div class="btn-group">
+            <button class="btn btn-sm btn-secondary" onclick="showUserModal(${u.id})">✏️</button>
+            ${u.id !== currentUser.id ? `<button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id})">🗑️</button>` : ''}
+          </div></td>
+        </tr>`).join('')}
+      </tbody></table></div>
+    `;
+  } catch (e) { showToast(t('errorOccurred'), 'error'); }
+}
+
+function showUserModal(id = null) {
+  openModal(id ? t('editUser') : t('addUser'), `
+    <form id="userForm">
+      <input type="hidden" id="userId" value="${id||''}">
+      <div class="form-group"><label>${t('username')} *</label><input type="text" id="userUsername" class="form-control" required></div>
+      <div class="form-group"><label>${t('password')} ${id ? '' : '*'}</label><input type="password" id="userPassword" class="form-control" ${id ? '' : 'required'}></div>
+      <div class="form-group"><label>${t('fullName')} *</label><input type="text" id="userFullName" class="form-control" required></div>
+      <div class="form-row">
+        <div class="form-group"><label>${t('role')}</label><select id="userRole" class="form-control"><option value="employee">${t('employee')}</option><option value="admin">${t('admin')}</option></select></div>
+        <div class="form-group"><label>${t('agency')}</label><select id="userAgency" class="form-control">${agencies.map(a => `<option value="${a.id}">${a.code} - ${a.name}</option>`).join('')}</select></div>
+      </div>
+    </form>
+  `, `<button class="btn btn-secondary" onclick="closeModal()">${t('cancel')}</button><button class="btn btn-primary" onclick="saveUser()">${t('save')}</button>`);
+  if (id) loadUserData(id);
+}
+
+async function loadUserData(id) {
+  try {
+    const users = await authAPI.getUsers();
+    const u = users.find(x => x.id === id);
+    if (u) {
+      document.getElementById('userUsername').value = u.username;
+      document.getElementById('userFullName').value = u.full_name;
+      document.getElementById('userRole').value = u.role;
+      document.getElementById('userAgency').value = u.agency_id || '';
+    }
+  } catch (e) { console.error(e); }
+}
+
+async function saveUser() {
+  const id = document.getElementById('userId').value;
+  const data = {
+    username: document.getElementById('userUsername').value,
+    full_name: document.getElementById('userFullName').value,
+    role: document.getElementById('userRole').value,
+    agency_id: document.getElementById('userAgency').value,
+    active: true
+  };
+  const password = document.getElementById('userPassword').value;
+  if (password) data.password = password;
+  
+  try {
+    if (id) await authAPI.updateUser(id, data);
+    else await authAPI.createUser(data);
+    closeModal();
+    showToast(t('savedSuccess'), 'success');
+    renderUsersTab(document.getElementById('settingsContent'));
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function deleteUser(id) {
+  if (!confirm(t('confirmDelete'))) return;
+  try {
+    await authAPI.deleteUser(id);
+    showToast(t('deleteSuccess'), 'success');
+    renderUsersTab(document.getElementById('settingsContent'));
+  } catch (e) { showToast(e.message, 'error'); }
 }
