@@ -24,8 +24,9 @@ let pricingConfig = {
 
 // Payment data
 let paymentData = {
-  rental: { method: null, amount: 0 },
-  deposit: { method: null, amount: 0 }
+  rental: { method: null, amount: 0, originalAmount: 0 },
+  deposit: { method: null, amount: 0 },
+  discount: { amount: 0, reason: '' }
 };
 
 // Types motorisés (nécessitent KM)
@@ -379,7 +380,27 @@ async function loadAvailableVehicles() {
     const response = await fetch(`/api/vehicles?agency_id=${user.agency_id}`, {
       headers: { 'Authorization': 'Bearer ' + getToken() }
     });
+    
+    // Si non autorisé, rediriger vers login
+    if (response.status === 401) {
+      console.error('Session expirée ou token invalide');
+      localStorage.removeItem('voltride_token');
+      localStorage.removeItem('voltride_user');
+      window.location.href = '/';
+      return;
+    }
+    
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+    
     const allVehicles = await response.json();
+    
+    // Vérifier que c'est bien un tableau
+    if (!Array.isArray(allVehicles)) {
+      console.error('API did not return an array:', allVehicles);
+      throw new Error('Formato de respuesta inválido');
+    }
     
     // Filtrer uniquement les véhicules disponibles
     vehiclesData = allVehicles.filter(v => v.status === 'available');
@@ -1220,12 +1241,62 @@ function goToPayment() {
   document.getElementById('clientModeBanner').classList.remove('active');
   document.getElementById('operatorModeBanner').classList.add('active');
   
+  // Stocker le montant original de la location
+  paymentData.rental.originalAmount = paymentData.rental.amount;
+  
+  // Reset discount
+  paymentData.discount.amount = 0;
+  paymentData.discount.reason = '';
+  document.getElementById('discountAmount').value = '0';
+  document.getElementById('discountReason').value = '';
+  document.getElementById('discountInfo').style.display = 'none';
+  
+  updatePaymentDisplay();
+  
+  nextStep();
+}
+
+function applyDiscount() {
+  const discountInput = document.getElementById('discountAmount');
+  const discountReason = document.getElementById('discountReason');
+  const discountInfo = document.getElementById('discountInfo');
+  const discountApplied = document.getElementById('discountApplied');
+  
+  let discountAmount = parseFloat(discountInput.value) || 0;
+  
+  // Le descuento ne peut pas dépasser le montant de la location
+  if (discountAmount > paymentData.rental.originalAmount) {
+    discountAmount = paymentData.rental.originalAmount;
+    discountInput.value = discountAmount;
+  }
+  
+  if (discountAmount < 0) {
+    discountAmount = 0;
+    discountInput.value = 0;
+  }
+  
+  paymentData.discount.amount = discountAmount;
+  paymentData.discount.reason = discountReason.value;
+  
+  // Recalculer le montant de la location avec le descuento
+  paymentData.rental.amount = paymentData.rental.originalAmount - discountAmount;
+  
+  // Afficher le descuento appliqué
+  if (discountAmount > 0) {
+    discountInfo.style.display = 'block';
+    discountApplied.textContent = discountAmount.toFixed(2) + ' €';
+  } else {
+    discountInfo.style.display = 'none';
+  }
+  
+  updatePaymentDisplay();
+}
+
+function updatePaymentDisplay() {
   const totalToPay = paymentData.rental.amount + paymentData.deposit.amount;
   document.getElementById('paymentTotalAmount').textContent = totalToPay.toFixed(2) + ' €';
   document.getElementById('rentalAmountDisplay').textContent = paymentData.rental.amount.toFixed(2) + ' €';
   document.getElementById('depositAmountDisplay').textContent = paymentData.deposit.amount.toFixed(2) + ' €';
-  
-  nextStep();
 }
 
 function selectPaymentMethod(type, method) {
@@ -1405,8 +1476,11 @@ async function finishCheckin() {
     payment: {
       rental_method: paymentData.rental.method,
       rental_amount: paymentData.rental.amount,
+      rental_original_amount: paymentData.rental.originalAmount,
       deposit_method: paymentData.deposit.method,
-      deposit_amount: paymentData.deposit.amount
+      deposit_amount: paymentData.deposit.amount,
+      discount_amount: paymentData.discount.amount,
+      discount_reason: paymentData.discount.reason
     }
   };
   
