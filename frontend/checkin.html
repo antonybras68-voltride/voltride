@@ -255,6 +255,23 @@
       <div class="wizard-panel" id="step9">
         <div class="payment-container">
           <div class="payment-total-display"><div class="label">TOTAL</div><div class="amount" id="paymentTotalAmount">0 €</div></div>
+          
+          <!-- Descuento section -->
+          <div class="discount-section" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1)); border: 1px solid var(--success); border-radius: 12px; padding: 15px; margin-bottom: 20px;">
+            <h3 style="color: var(--success); margin-bottom: 10px;">🎁 Descuento comercial</h3>
+            <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+              <div style="flex: 1; min-width: 150px;">
+                <label style="font-size: 0.85rem; color: var(--text-secondary); display: block; margin-bottom: 5px;">Importe descuento (€)</label>
+                <input type="number" id="discountAmount" min="0" step="0.01" value="0" onchange="applyDiscount()" oninput="applyDiscount()" style="width: 100%; padding: 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 1.1rem; text-align: center;">
+              </div>
+              <div style="flex: 2; min-width: 200px;">
+                <label style="font-size: 0.85rem; color: var(--text-secondary); display: block; margin-bottom: 5px;">Motivo (opcional)</label>
+                <input type="text" id="discountReason" placeholder="Ej: Gesto comercial, Fidelidad..." style="width: 100%; padding: 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary);">
+              </div>
+            </div>
+            <p id="discountInfo" style="margin-top: 10px; color: var(--success); font-size: 0.9rem; display: none;">✓ Descuento aplicado: <strong id="discountApplied">0 €</strong></p>
+          </div>
+          
           <div class="payment-box"><h3>💶 Alquiler</h3><p>Importe: <strong id="rentalAmountDisplay">0 €</strong></p><div class="payment-methods" id="rentalPaymentMethods"><div class="payment-method" onclick="selectPaymentMethod('rental','card')"><div class="payment-method-icon">💳</div><div class="payment-method-name">Tarjeta</div></div><div class="payment-method" onclick="selectPaymentMethod('rental','cash')"><div class="payment-method-icon">💵</div><div class="payment-method-name">Efectivo</div></div><div class="payment-method" onclick="selectPaymentMethod('rental','bizum')"><div class="payment-method-icon">📱</div><div class="payment-method-name">Bizum</div></div></div></div>
           <div class="payment-box"><h3>🔒 Caución</h3><p>Importe: <strong id="depositAmountDisplay">0 €</strong></p><div class="payment-methods" id="depositPaymentMethods"><div class="payment-method" onclick="selectPaymentMethod('deposit','cash')"><div class="payment-method-icon">💵</div><div class="payment-method-name">Efectivo</div></div><div class="payment-method" onclick="selectPaymentMethod('deposit','preauth')"><div class="payment-method-icon">💳</div><div class="payment-method-name">Pre-auth</div><div class="payment-method-desc">Crédito solo</div></div></div><div class="deposit-warning">⚠️ Pre-autorización: solo tarjeta CRÉDITO</div></div>
           <div style="text-align:center;margin-top:25px;"><button class="btn-wizard finish" onclick="finishCheckin()" id="btnFinish" disabled>✅ Finalizar Check-in</button></div>
