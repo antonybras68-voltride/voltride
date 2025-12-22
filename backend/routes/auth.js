@@ -4,7 +4,11 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { pool } = require('../database');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'voltride-secret-key-2024';
+// Security: JWT_SECRET must be set via environment variable - no hardcoded fallback
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('CRITICAL: JWT_SECRET environment variable is not set. Server cannot start securely.');
+}
 
 // Middleware de vérification du token
 const authMiddleware = async (req, res, next) => {
